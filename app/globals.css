@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-space-dark text-text-primary font-display antialiased;
+  }
+}
+
+@layer components {
+  /* Star animation for background */
+  .star {
+    @apply absolute bg-white rounded-full animate-star-fall;
+  }
+  
+  /* Progress ring animation */
+  .progress-ring__circle {
+    transition: stroke-dashoffset 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+  }
+  
+  /* Glassmorphism effect */
+  .glass {
+    @apply bg-space-mid/80 backdrop-blur-sm;
+  }
+  
+  /* Glow effect */
+  .glow-purple {
+    box-shadow: 0 0 40px 10px rgba(139, 92, 246, 0.2), 0 0 60px 20px rgba(236, 72, 153, 0.1);
+  }
+  
+  .glow-blue {
+    box-shadow: 0 0 40px 10px rgba(59, 130, 246, 0.2);
+  }
+}
+
+@layer utilities {
+  .animation-delay-500 {
+    animation-delay: 500ms;
+  }
+  
+  .animation-delay-1000 {
+    animation-delay: 1000ms;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2d2d44;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8b5cf6;
+}
+
