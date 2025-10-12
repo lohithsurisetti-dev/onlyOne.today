@@ -187,6 +187,7 @@ export default function FeedPage() {
   const [reactionCooldowns, setReactionCooldowns] = useState<Map<string, number>>(new Map())
   const [shareModalOpen, setShareModalOpen] = useState(false)
   const [selectedPost, setSelectedPost] = useState<DisplayPost | null>(null)
+  const [showLegend, setShowLegend] = useState(false)
   
   const postsPerPage = 24
   
@@ -354,19 +355,21 @@ export default function FeedPage() {
               <div className="w-6" /> {/* Spacer */}
             </div>
             
-            {/* Filters */}
-            <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
-              {/* Type Filters */}
-              <button
-                onClick={() => setFilter('all')}
-                className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-all ${
-                  filter === 'all'
-                    ? 'bg-white/20 text-white border border-white/30'
-                    : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
-                }`}
-              >
-                All
-              </button>
+            {/* Filters & Legend Row */}
+            <div className="flex items-center justify-between gap-4 mt-4">
+              {/* Filters */}
+              <div className="flex gap-2 overflow-x-auto pb-2 flex-1">
+                {/* Type Filters */}
+                <button
+                  onClick={() => setFilter('all')}
+                  className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-all ${
+                    filter === 'all'
+                      ? 'bg-white/20 text-white border border-white/30'
+                      : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                  }`}
+                >
+                  All
+                </button>
               <button
                 onClick={() => setFilter('unique')}
                 className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-all ${
@@ -422,7 +425,53 @@ export default function FeedPage() {
               >
                 🔥 Must Try
               </button>
+              </div>
+              
+              {/* Legend - Right Side (Desktop) */}
+              <div className="hidden lg:flex items-center gap-3 px-4 py-2 bg-white/5 rounded-full border border-white/10 text-xs text-white/70 whitespace-nowrap">
+                <span className="flex items-center gap-1">
+                  <span className="text-purple-300">✨</span>
+                  <span>Unique %</span>
+                </span>
+                <span className="text-white/30">·</span>
+                <span className="flex items-center gap-1">
+                  <span className="text-blue-300">👥</span>
+                  <span>Others</span>
+                </span>
+              </div>
+              
+              {/* Info Button (Mobile) */}
+              <button
+                onClick={() => setShowLegend(!showLegend)}
+                className="lg:hidden p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+                title="Show legend"
+              >
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
             </div>
+            
+            {/* Expandable Legend (Mobile) */}
+            {showLegend && (
+              <div className="mt-3 p-4 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 animate-fade-in lg:hidden">
+                <div className="text-xs text-white/80 space-y-2">
+                  <p className="font-semibold text-white mb-2">📊 How to read the cards:</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-purple-300">✨</span>
+                    <span><span className="font-medium">Uniqueness %</span> = How rare this action is</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-blue-300">👥</span>
+                    <span><span className="font-medium">Others</span> = How many people did the same</span>
+                  </div>
+                  <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+                    <span>💡</span>
+                    <span className="text-white/60">Higher uniqueness = more rare. More people = trending!</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </header>
         
