@@ -13,7 +13,7 @@ export interface GhostPost {
   id: string
   content: string
   type: 'ghost' // Special type to distinguish from real posts
-  source: 'reddit' | 'github' | 'google' | 'spotify' | 'youtube' | 'twitter' | 'curated'
+  source: 'reddit' | 'spotify' | 'google' | 'github' | 'google-trends' | 'youtube' | 'twitter' | 'curated'
   peopleCount: number // Estimated global count
   uniqueness: 0 // Ghost posts are always 0% unique (everyone's doing it)
   vibe?: string
