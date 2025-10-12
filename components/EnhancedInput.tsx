@@ -95,18 +95,15 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({ onSubmit, isLoading = fal
   }
 
   return (
-    <div className="max-w-xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="text-center space-y-3">
-        <h1 className="text-3xl font-bold text-text-primary">
-          What did you do differently today?
-        </h1>
-        <p className="text-text-secondary">
-          Share your moment and discover your uniqueness
-        </p>
-      </div>
-
+    <div className="max-w-xl mx-auto">
       <Card className="p-6 space-y-4">
+        {/* Header Inside Card */}
+        <div className="text-center mb-4">
+          <h2 className="text-2xl font-bold text-white mb-2">
+            What did you do differently today?
+          </h2>
+        </div>
+        
         {/* Content Input - Main Focus */}
         <div>
           <TextArea
@@ -166,14 +163,14 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({ onSubmit, isLoading = fal
             'Discover'
           )}
         </Button>
+        
+        {/* Compact Info Inside Card */}
+        <div className="text-center pt-2">
+          <p className="text-white/50 text-xs">
+            ✨ Uniqueness • 🤝 Commonality • 🌍 Anonymous
+          </p>
+        </div>
       </Card>
-
-      {/* Compact Info */}
-      <div className="text-center">
-        <p className="text-text-muted text-sm">
-          ✨ Uniqueness • 🤝 Commonality • 🌍 Anonymous
-        </p>
-      </div>
     </div>
   )
 }
