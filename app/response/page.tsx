@@ -3,9 +3,6 @@
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Suspense, useState, useEffect } from 'react'
 import StarsBackground from '@/components/StarsBackground'
-import Card from '@/components/ui/Card'
-import CircularProgress from '@/components/ui/CircularProgress'
-import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import ShareModal from '@/components/ShareModal'
 import type { CreatePostResult } from '@/lib/hooks/usePosts'
@@ -19,6 +16,7 @@ function ResponseContent() {
   const postId = searchParams.get('postId')
   const [showShareModal, setShowShareModal] = useState(false)
   const [postResult, setPostResult] = useState<CreatePostResult | null>(null)
+  const [shareType, setShareType] = useState<'uniqueness' | 'commonality'>('uniqueness')
   
   // Load post result from sessionStorage
   useEffect(() => {
@@ -28,7 +26,6 @@ function ResponseContent() {
     }
   }, [])
   
-  // Use real data if available, otherwise fall back to mock
   const getScopeText = (scope: string) => {
     switch (scope) {
       case 'city': return 'in your city'
@@ -50,137 +47,142 @@ function ResponseContent() {
   // Calculate display data
   const uniquenessScore = postResult?.uniquenessScore ?? 94
   const matchCount = postResult?.matchCount ?? 0
-  const similarCount = matchCount + 1 // Including self
+  const similarCount = matchCount + 1
+  const commonalityScore = 100 - uniquenessScore
   
-  const mockData = {
-    uniquenessScore,
-    commonalityScore: 100 - uniquenessScore,
-    similarCount,
-    trendContext: matchCount === 0 
-      ? `You're the only one ${getScopeText(scope)} who did this today! ✨`
-      : `You're one of ${similarCount} people ${getScopeText(scope)} who did this! ✨`,
-    rank: uniquenessScore >= 90 
-      ? `Top 1% most unique ${getScopeText(scope)}`
-      : uniquenessScore >= 70
-        ? `Top 10% most unique ${getScopeText(scope)}`
-        : `Common ${getScopeText(scope)}`,
-    timestamp: postResult?.post?.created_at 
-      ? new Date(postResult.post.created_at).toLocaleString()
-      : 'Just now',
-    scope: scope,
-    scopeEmoji: getScopeEmoji(scope),
-    inputType: inputType,
-  }
+  const isUnique = uniquenessScore >= 70
+  
+  const message = matchCount === 0 
+    ? `You're the only one ${getScopeText(scope)} who did this today! ✨`
+    : `You're one of ${similarCount} people ${getScopeText(scope)} who did this! ✨`
+  
+  const rank = uniquenessScore >= 90 
+    ? `Top 1% most unique ${getScopeText(scope)}`
+    : uniquenessScore >= 70
+      ? `Top 10% most unique ${getScopeText(scope)}`
+      : `Common ${getScopeText(scope)}`
   
   const handleShare = () => {
     setShowShareModal(true)
   }
   
-  const handleFeed = () => {
-    router.push('/feed')
-  }
-  
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden p-4 sm:p-6 md:p-8">
-      {/* Background Stars */}
-      <StarsBackground count={80} />
+    <div className="min-h-screen bg-gradient-to-br from-space-dark via-space-darker to-space-darkest relative overflow-hidden">
+      <StarsBackground />
       
-      {/* Main Response Card */}
-      <Card variant="glow" className="relative z-10 w-full max-w-[700px] animate-fade-in-up">
-        <div className="flex flex-col items-center text-center">
-          {/* Scope Badge */}
-          <div className="flex items-center space-x-2 mb-4">
-            <span className="text-lg">{mockData.scopeEmoji}</span>
-            <Badge variant="secondary" className="text-xs">
-              {mockData.scope === 'world' ? 'Worldwide' : 
-               mockData.scope === 'country' ? 'Your Country' :
-               mockData.scope === 'state' ? 'Your State' : 'Your City'}
-            </Badge>
-            <Badge variant="outline" className="text-xs">
-              {mockData.inputType === 'day' ? 'Daily Routine' : 'Single Action'}
-            </Badge>
+      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-8">
+        {/* Compact Card */}
+        <div className="w-full max-w-md bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl">
+          
+          {/* Heading */}
+          <h1 className="text-3xl font-bold text-white text-center mb-6">
+            Your Result ✨
+          </h1>
+          
+          {/* Scope & Type Badges */}
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <span className="text-sm px-3 py-1 bg-white/10 rounded-full text-white/80 flex items-center gap-1">
+              <span>{getScopeEmoji(scope)}</span>
+              <span className="text-xs">{scope === 'world' ? 'Worldwide' : scope}</span>
+            </span>
+            <span className="text-xs px-3 py-1 bg-white/10 rounded-full text-white/60">
+              {inputType === 'day' ? 'Daily' : 'Action'}
+            </span>
           </div>
-          
-          {/* Label */}
-          <p className="text-sm font-medium uppercase tracking-widest text-text-muted">
-            Your moment
-          </p>
-          
-          {/* User's Post */}
-          <h3 className="mt-2 text-2xl font-medium text-text-primary">
+
+          {/* Content */}
+          <h2 className="text-2xl font-bold text-white text-center mb-8">
             {content}
-          </h3>
-          
-          {/* Divider */}
-          <div className="my-6 h-px w-full max-w-xs bg-white/10" />
-          
-          {/* Circular Progress */}
-          <CircularProgress 
-            value={mockData.uniquenessScore}
-            size={200}
-            strokeWidth={12}
-            gradient={true}
-            className="my-6"
-          />
-          
-          {/* Score Label */}
-          <p className="text-sm font-medium text-text-muted">
-            Uniqueness Score
+          </h2>
+
+          {/* Toggle Buttons */}
+          <div className="flex gap-2 mb-6">
+            <button
+              onClick={() => setShareType('uniqueness')}
+              className={`flex-1 py-3 rounded-xl font-medium transition-all ${
+                shareType === 'uniqueness'
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
+                  : 'bg-white/10 text-white/60 hover:bg-white/20'
+              }`}
+            >
+              Uniqueness {uniquenessScore}%
+            </button>
+            <button
+              onClick={() => setShareType('commonality')}
+              className={`flex-1 py-3 rounded-xl font-medium transition-all ${
+                shareType === 'commonality'
+                  ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg'
+                  : 'bg-white/10 text-white/60 hover:bg-white/20'
+              }`}
+            >
+              Commonality {commonalityScore}%
+            </button>
+          </div>
+
+          {/* Score Display */}
+          <div className="mb-6">
+            <div className="relative h-3 bg-white/10 rounded-full overflow-hidden">
+              <div 
+                className={`h-full rounded-full transition-all duration-500 ${
+                  shareType === 'uniqueness'
+                    ? 'bg-gradient-to-r from-purple-500 to-pink-500'
+                    : 'bg-gradient-to-r from-blue-500 to-cyan-500'
+                }`}
+                style={{ 
+                  width: `${shareType === 'uniqueness' ? uniquenessScore : commonalityScore}%` 
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Message */}
+          <p className="text-center text-white/90 text-sm mb-2 leading-relaxed">
+            {message}
           </p>
           
-          {/* Context Text */}
-          <h3 className="mt-6 text-xl font-normal leading-relaxed text-text-primary max-w-md">
-            {mockData.trendContext}
-          </h3>
-          
-          {/* Rank Badge */}
-          <Badge variant="purple" size="md" className="mt-4">
-            {mockData.rank}
-          </Badge>
-          
-          {/* Secondary Metrics */}
-          <div className="mt-8 flex w-full items-center justify-between border-t border-white/10 pt-6 text-sm text-text-muted">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-accent-blue" />
-              <span>👥 {mockData.similarCount} others also skipped it</span>
-            </div>
-            <span>Posted {mockData.timestamp}</span>
-          </div>
-          
+          <p className="text-center text-white/60 text-xs mb-8">
+            {rank}
+          </p>
+
           {/* Action Buttons */}
-          <div className="mt-8 w-full space-y-3">
+          <div className="space-y-3">
             <Button
               variant="primary"
               size="lg"
               className="w-full"
               onClick={handleShare}
             >
-              Share This Moment
+              Share {shareType === 'uniqueness' ? 'Uniqueness' : 'Commonality'}
             </Button>
             
-            <Button
-              variant="secondary"
-              size="lg"
-              className="w-full"
-              onClick={handleFeed}
+            <button
+              onClick={() => router.push('/feed')}
+              className="w-full py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-all"
             >
               See What Others Did
-            </Button>
+            </button>
+
+            <button
+              onClick={() => router.push('/')}
+              className="w-full py-2 text-white/60 hover:text-white text-xs transition-all"
+            >
+              Post Another
+            </button>
           </div>
         </div>
-      </Card>
+      </div>
       
       {/* Share Modal */}
       <ShareModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         content={content}
-        score={mockData.uniquenessScore}
-        type="uniqueness"
-        message={mockData.trendContext}
-        rank={mockData.rank}
-        scope={mockData.scope}
-        inputType={mockData.inputType}
+        score={shareType === 'uniqueness' ? uniquenessScore : commonalityScore}
+        type={shareType}
+        message={message}
+        rank={rank}
+        scope={scope}
+        inputType={inputType}
       />
     </div>
   )
@@ -189,7 +191,7 @@ function ResponseContent() {
 export default function ResponsePage() {
   return (
     <Suspense fallback={
-      <div className="flex items-center justify-center min-h-screen bg-gradient-sky">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-space-dark via-space-darker to-space-darkest">
         <div className="text-white">Loading...</div>
       </div>
     }>
@@ -197,4 +199,3 @@ export default function ResponsePage() {
     </Suspense>
   )
 }
-
