@@ -262,21 +262,27 @@ export default function FeedPage() {
   // Transform API posts to display format with live uniqueness recalculation
   const allPosts: DisplayPost[] = React.useMemo(() => {
     return apiPosts.map(post => {
-      // Live recalculation: count how many posts have the same content_hash
-      const similarPostsCount = apiPosts.filter(p => 
-        p.content_hash === post.content_hash && p.id !== post.id
-      ).length
+      // Only recalculate if content_hash exists (for newer posts)
+      let liveUniquenessScore = post.uniqueness_score
+      let liveMatchCount = post.match_count
       
-      // Recalculate uniqueness based on current feed
-      const liveMatchCount = similarPostsCount
-      const liveUniquenessScore = Math.max(0, 100 - (liveMatchCount * 10))
+      if (post.content_hash) {
+        // Live recalculation: count how many posts have the same content_hash
+        const similarPostsCount = apiPosts.filter(p => 
+          p.content_hash && p.content_hash === post.content_hash && p.id !== post.id
+        ).length
+        
+        // Recalculate uniqueness based on current feed
+        liveMatchCount = similarPostsCount
+        liveUniquenessScore = Math.max(0, 100 - (liveMatchCount * 10))
+      }
       
       return {
         id: post.id,
         content: post.content,
         type: liveUniquenessScore >= 70 ? 'unique' as const : 'common' as const,
         time: formatTimeAgo(new Date(post.created_at)),
-        score: liveUniquenessScore, // Use recalculated score
+        score: liveUniquenessScore,
         count: liveMatchCount + 1, // Include self
         funny_count: post.funny_count || 0,
         creative_count: post.creative_count || 0,
