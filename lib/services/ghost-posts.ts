@@ -1,22 +1,29 @@
 /**
- * Ghost Posts - AI-Generated World Activity
+ * Ghost Posts - Real-Time Trending Activity
  * 
  * When real user posts are low, inject "ghost posts" showing what
- * the world is actually doing (from trending APIs).
+ * the world is actually doing (from real APIs: Reddit, GitHub, Google Trends).
  * 
  * Makes the feed feel alive even with few users.
  */
+
+import { getAllTrendingData, type TrendingItem } from './trending-data'
 
 export interface GhostPost {
   id: string
   content: string
   type: 'ghost' // Special type to distinguish from real posts
-  source: 'spotify' | 'youtube' | 'google-trends' | 'twitter' | 'curated'
+  source: 'reddit' | 'github' | 'google' | 'spotify' | 'youtube' | 'twitter' | 'curated'
   peopleCount: number // Estimated global count
   uniqueness: 0 // Ghost posts are always 0% unique (everyone's doing it)
   vibe?: string
   isGhost: true
 }
+
+// Cache for trending data (refresh every 10 minutes)
+let trendingCache: TrendingItem[] = []
+let lastFetch = 0
+const CACHE_DURATION = 10 * 60 * 1000 // 10 minutes
 
 /**
  * Curated ghost posts (fallback when APIs aren't available)
@@ -187,18 +194,49 @@ const CURATED_GHOST_POSTS: Omit<GhostPost, 'id'>[] = [
 ]
 
 /**
- * Get random ghost posts to inject into feed (no repeats)
+ * Get random ghost posts from real trending data (with fallback)
  */
-export function getGhostPosts(count: number = 10): GhostPost[] {
-  // Shuffle to ensure variety
-  const shuffled = [...CURATED_GHOST_POSTS].sort(() => Math.random() - 0.5)
+export async function getGhostPosts(count: number = 10): Promise<GhostPost[]> {
+  const now = Date.now()
   
-  // Take unique posts only
+  // Fetch fresh trending data if cache expired
+  if (now - lastFetch > CACHE_DURATION || trendingCache.length === 0) {
+    console.log('🔄 Fetching fresh trending data...')
+    try {
+      trendingCache = await getAllTrendingData()
+      lastFetch = now
+      console.log(`✅ Cached ${trendingCache.length} trending items`)
+    } catch (error) {
+      console.error('❌ Failed to fetch trending data:', error)
+      // Keep using old cache or fall back to curated
+    }
+  }
+  
+  // Use trending data if available, otherwise use curated fallback
+  if (trendingCache.length > 0) {
+    // Shuffle and select from trending cache
+    const shuffled = [...trendingCache].sort(() => Math.random() - 0.5)
+    const selected = shuffled.slice(0, count)
+    
+    return selected.map((trend, index) => ({
+      id: `ghost-${now}-${index}`,
+      content: trend.content,
+      type: 'ghost' as const,
+      source: trend.source,
+      peopleCount: trend.count,
+      uniqueness: 0,
+      isGhost: true,
+    }))
+  }
+  
+  // Fallback to curated posts
+  console.log('⚠️ Using curated fallback posts')
+  const shuffled = [...CURATED_GHOST_POSTS].sort(() => Math.random() - 0.5)
   const unique = shuffled.slice(0, Math.min(count, CURATED_GHOST_POSTS.length))
   
   return unique.map((post, index) => ({
     ...post,
-    id: `ghost-${Date.now()}-${index}`,
+    id: `ghost-${now}-${index}`,
   }))
 }
 
@@ -210,16 +248,16 @@ export function getGhostPosts(count: number = 10): GhostPost[] {
  * - If 10-20 real posts: Add 5-10 ghost posts
  * - If 20+ real posts: Add 0-5 ghost posts
  */
-export function injectGhostPosts<T extends { id: string | number }>(
+export async function injectGhostPosts<T extends { id: string | number }>(
   realPosts: T[],
   minPosts: number = 20
-): (T | GhostPost)[] {
+): Promise<(T | GhostPost)[]> {
   const realCount = realPosts.length
   
   if (realCount >= minPosts) {
     // Enough real posts, maybe add a few ghosts for variety
     const ghostCount = Math.floor(Math.random() * 3) + 1 // 1-3 ghosts
-    const ghosts = getGhostPosts(ghostCount)
+    const ghosts = await getGhostPosts(ghostCount)
     
     // Interleave ghosts randomly
     const combined = [...realPosts]
@@ -234,7 +272,7 @@ export function injectGhostPosts<T extends { id: string | number }>(
   // Need more posts
   const needed = minPosts - realCount
   const ghostCount = Math.min(needed + 5, 15) // Add extra for variety
-  const ghosts = getGhostPosts(ghostCount)
+  const ghosts = await getGhostPosts(ghostCount)
   
   // Mix real and ghost posts
   const combined = [...realPosts, ...ghosts]
