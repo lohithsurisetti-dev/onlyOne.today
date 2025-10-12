@@ -259,20 +259,31 @@ export default function FeedPage() {
   // Fetch real posts from API
   const { posts: apiPosts, loading, error } = useRecentPosts(filter, 100, 0, refreshKey)
   
-  // Transform API posts to display format
+  // Transform API posts to display format with live uniqueness recalculation
   const allPosts: DisplayPost[] = React.useMemo(() => {
-    return apiPosts.map(post => ({
-      id: post.id,
-      content: post.content,
-      type: post.uniqueness_score >= 70 ? 'unique' as const : 'common' as const,
-      time: formatTimeAgo(new Date(post.created_at)),
-      score: post.uniqueness_score,
-      count: post.match_count + 1,
-      funny_count: post.funny_count || 0,
-      creative_count: post.creative_count || 0,
-      must_try_count: post.must_try_count || 0,
-      total_reactions: post.total_reactions || 0,
-    }))
+    return apiPosts.map(post => {
+      // Live recalculation: count how many posts have the same content_hash
+      const similarPostsCount = apiPosts.filter(p => 
+        p.content_hash === post.content_hash && p.id !== post.id
+      ).length
+      
+      // Recalculate uniqueness based on current feed
+      const liveMatchCount = similarPostsCount
+      const liveUniquenessScore = Math.max(0, 100 - (liveMatchCount * 10))
+      
+      return {
+        id: post.id,
+        content: post.content,
+        type: liveUniquenessScore >= 70 ? 'unique' as const : 'common' as const,
+        time: formatTimeAgo(new Date(post.created_at)),
+        score: liveUniquenessScore, // Use recalculated score
+        count: liveMatchCount + 1, // Include self
+        funny_count: post.funny_count || 0,
+        creative_count: post.creative_count || 0,
+        must_try_count: post.must_try_count || 0,
+        total_reactions: post.total_reactions || 0,
+      }
+    })
   }, [apiPosts])
   
   const filteredPosts = React.useMemo(() => {

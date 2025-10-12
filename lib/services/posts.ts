@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { Database } from '@/lib/types/database'
 import { generateDynamicHash, findSimilarInBatch as findSimilarDynamic } from './nlp-dynamic'
 import { findSemanticallySimilar, hybridMatch } from './nlp-advanced'
@@ -88,6 +89,28 @@ export async function createPost(data: {
     }))
 
     await supabase.from('post_matches').insert(matches)
+    
+    // IMPORTANT: Update uniqueness scores for all matching posts
+    // When a new similar post is created, old similar posts become less unique
+    console.log(`🔄 Updating ${similarPosts.length} similar posts' uniqueness scores...`)
+    
+    const adminClient = createAdminClient()
+    
+    for (const similarPost of similarPosts) {
+      // New match count = old count + 1 (because this new post matches)
+      const newMatchCount = (similarPost.match_count || 0) + 1
+      const newUniquenessScore = calculateUniquenessScore(newMatchCount)
+      
+      await adminClient
+        .from('posts')
+        .update({
+          match_count: newMatchCount,
+          uniqueness_score: newUniquenessScore,
+        })
+        .eq('id', similarPost.id)
+    }
+    
+    console.log(`✅ Updated ${similarPosts.length} posts with new uniqueness scores`)
   }
 
   return {
