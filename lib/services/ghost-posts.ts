@@ -20,32 +20,53 @@ export interface GhostPost {
   isGhost: true
 }
 
-// Cache for trending data (refresh every 10 minutes)
+// Cache for trending data (refresh every 5 minutes for faster updates)
 let trendingCache: TrendingItem[] = []
 let lastFetch = 0
-const CACHE_DURATION = 10 * 60 * 1000 // 10 minutes
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+let isFetching = false
+
+/**
+ * Background fetch trending data (non-blocking)
+ */
+async function refreshTrendingCache() {
+  if (isFetching) return
+  
+  isFetching = true
+  console.log('🔄 Background fetch: trending data...')
+  
+  try {
+    const fresh = await getAllTrendingData()
+    trendingCache = fresh
+    lastFetch = Date.now()
+    console.log(`✅ Cache refreshed: ${trendingCache.length} trends`)
+  } catch (error) {
+    console.error('❌ Background fetch failed:', error)
+  } finally {
+    isFetching = false
+  }
+}
 
 /**
  * Get random ghost posts from REAL trending data ONLY
+ * Returns cache immediately, refreshes in background if stale
  */
 export async function getGhostPosts(count: number = 10): Promise<GhostPost[]> {
   const now = Date.now()
+  const cacheAge = now - lastFetch
   
-  // Fetch fresh trending data if cache expired
-  if (now - lastFetch > CACHE_DURATION || trendingCache.length === 0) {
-    console.log('🔄 Fetching fresh trending data...')
-    try {
-      trendingCache = await getAllTrendingData()
-      lastFetch = now
-      console.log(`✅ Cached ${trendingCache.length} trending items`)
-    } catch (error) {
-      console.error('❌ Failed to fetch trending data:', error)
-      // If fetch fails, return empty array (no fallback to static)
-      return []
-    }
+  // If cache is stale, trigger background refresh (but don't wait)
+  if (cacheAge > CACHE_DURATION && !isFetching) {
+    refreshTrendingCache() // Fire and forget
   }
   
-  // Use only real trending data (no static fallback)
+  // If no cache exists, wait for first fetch
+  if (trendingCache.length === 0 && cacheAge === now) {
+    console.log('⏳ First fetch: waiting for trending data...')
+    await refreshTrendingCache()
+  }
+  
+  // Return from cache immediately (stale cache is better than slow response)
   if (trendingCache.length === 0) {
     console.log('⚠️ No trending data available')
     return []
@@ -69,28 +90,28 @@ export async function getGhostPosts(count: number = 10): Promise<GhostPost[]> {
 /**
  * Inject ghost posts into feed when user posts are low
  * 
- * Strategy (UPDATED for more variety):
- * - If < 10 real posts: Add 30-40 ghost posts
- * - If 10-30 real posts: Add 15-25 ghost posts
- * - If 30+ real posts: Add 5-10 ghost posts
+ * Strategy (OPTIMIZED for speed):
+ * - If < 10 real posts: Add 15-20 ghost posts
+ * - If 10-20 real posts: Add 8-12 ghost posts
+ * - If 20+ real posts: Add 3-5 ghost posts
  */
 export async function injectGhostPosts<T extends { id: string | number }>(
   realPosts: T[],
-  minPosts: number = 40
+  minPosts: number = 25
 ): Promise<(T | GhostPost)[]> {
   const realCount = realPosts.length
   
-  // Calculate how many ghost posts to add based on real post count
+  // Calculate how many ghost posts to add (REDUCED for performance)
   let ghostCount: number
   
   if (realCount < 10) {
-    ghostCount = Math.floor(Math.random() * 11) + 30 // 30-40 ghosts
+    ghostCount = Math.floor(Math.random() * 6) + 15 // 15-20 ghosts
+  } else if (realCount < 20) {
+    ghostCount = Math.floor(Math.random() * 5) + 8 // 8-12 ghosts
   } else if (realCount < 30) {
-    ghostCount = Math.floor(Math.random() * 11) + 15 // 15-25 ghosts
-  } else if (realCount < 50) {
-    ghostCount = Math.floor(Math.random() * 6) + 5 // 5-10 ghosts
+    ghostCount = Math.floor(Math.random() * 3) + 3 // 3-5 ghosts
   } else {
-    ghostCount = Math.floor(Math.random() * 3) + 2 // 2-4 ghosts (minimal)
+    ghostCount = Math.floor(Math.random() * 2) + 1 // 1-2 ghosts (minimal)
   }
   
   const ghosts = await getGhostPosts(ghostCount)

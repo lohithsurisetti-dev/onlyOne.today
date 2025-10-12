@@ -137,12 +137,12 @@ export async function findSimilarPosts(params: {
   const supabase = createClient()
   const { contentHash, content, scope, locationCity, locationState, locationCountry, limit = 50 } = params
 
-  // Get all recent posts from database based on scope
+  // Get all recent posts from database based on scope (OPTIMIZED)
   let query = supabase
     .from('posts')
-    .select('id, content, content_hash, uniqueness_score, match_count, created_at')
+    .select('id, content, content_hash, uniqueness_score, match_count')
     .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-    .limit(limit * 2) // Get more posts for better matching
+    .limit(limit) // Reduced from limit*2 for speed
 
   // Apply scope filters
   if (scope === 'city' && locationCity) {
@@ -226,7 +226,7 @@ export async function findSimilarPosts(params: {
 }
 
 /**
- * Get recent posts for the feed
+ * Get recent posts for the feed (OPTIMIZED)
  */
 export async function getRecentPosts(params: {
   filter?: 'all' | 'unique' | 'common'
@@ -238,9 +238,10 @@ export async function getRecentPosts(params: {
 
   let query = supabase
     .from('posts')
-    .select('id, content, input_type, scope, location_city, location_state, location_country, uniqueness_score, match_count, funny_count, creative_count, must_try_count, total_reactions, created_at')
+    .select('id, content, input_type, scope, uniqueness_score, match_count, funny_count, creative_count, must_try_count, total_reactions, created_at, content_hash')
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)
+    .limit(limit) // Explicit limit for speed
 
   // Apply filter
   if (filter === 'unique') {

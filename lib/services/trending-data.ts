@@ -21,11 +21,19 @@ export interface TrendingItem {
  */
 export async function getRedditTrending(): Promise<TrendingItem[]> {
   try {
-    const response = await fetch('https://www.reddit.com/r/all/hot.json?limit=100', {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 2000) // 2 second timeout
+    
+    const response = await fetch('https://www.reddit.com/r/all/hot.json?limit=50', {
       headers: { 
         'User-Agent': 'OnlyOne.today/1.0'
-      }
+      },
+      signal: controller.signal,
+      // @ts-ignore - Next.js specific caching
+      next: { revalidate: 300 } // Cache for 5 minutes
     })
+    
+    clearTimeout(timeout)
     
     if (!response.ok) {
       throw new Error(`Reddit API error: ${response.status}`)
@@ -35,7 +43,7 @@ export async function getRedditTrending(): Promise<TrendingItem[]> {
     
     return data.data.children
       .filter((post: any) => post.data.ups > 500) // Only popular posts
-      .slice(0, 50) // Take 50 instead of 10
+      .slice(0, 30) // Take 30 for speed
       .map((post: any) => {
         // Shorten title if too long
         let title = post.data.title
@@ -63,16 +71,23 @@ export async function getRedditTrending(): Promise<TrendingItem[]> {
  */
 export async function getSpotifyTrending(): Promise<TrendingItem[]> {
   try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 2000) // 2 second timeout
+    
     // Use Spotify's undocumented public API (powers their charts website)
-    // This returns the latest weekly chart data
     const response = await fetch(
       'https://charts-spotify-com-service.spotify.com/public/v0/charts',
       {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; OnlyOne.today/1.0)'
-        }
+        },
+        signal: controller.signal,
+        // @ts-ignore - Next.js specific caching
+        next: { revalidate: 600 } // Cache for 10 minutes (charts update weekly)
       }
     )
+    
+    clearTimeout(timeout)
     
     if (!response.ok) {
       throw new Error(`Spotify API error: ${response.status}`)
@@ -94,13 +109,12 @@ export async function getSpotifyTrending(): Promise<TrendingItem[]> {
       throw new Error('No chart entries found')
     }
     
-    return entries.slice(0, 50).map((entry: any, index: number) => {
+    return entries.slice(0, 30).map((entry: any, index: number) => {
       const trackName = entry.trackMetadata?.trackName || 'Unknown Track'
       const artistName = entry.trackMetadata?.artists?.[0]?.name || entry.trackMetadata?.artistName || 'Unknown Artist'
       
-      // Estimate streams based on chart position (higher = more streams)
-      // Position 1 = ~15M, Position 50 = ~5M
-      const estimatedStreams = Math.floor((15000000 - (index * 200000)) * (Math.random() * 0.3 + 0.85))
+      // Estimate streams based on chart position
+      const estimatedStreams = Math.floor((15000000 - (index * 400000)) * (Math.random() * 0.3 + 0.85))
       
       return {
         content: `Listening to "${trackName}" by ${artistName}`,
@@ -145,13 +159,18 @@ export async function getSpotifyTrending(): Promise<TrendingItem[]> {
  */
 export async function getGoogleTrends(): Promise<TrendingItem[]> {
   try {
-    // Try realtime trending searches
-    const result = await googleTrends.realTimeTrends({
+    // Add timeout for Google Trends (can be slow)
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Timeout')), 1500)
+    )
+    
+    const trendsPromise = googleTrends.realTimeTrends({
       geo: 'US',
       category: 'all',
     })
     
-    const data = JSON.parse(result)
+    const result = await Promise.race([trendsPromise, timeoutPromise])
+    const data = JSON.parse(result as string)
     
     // Extract trending searches from different possible locations
     let trendingSearches: any[] = []
