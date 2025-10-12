@@ -617,7 +617,7 @@ export default function FeedPage() {
             {/* Global Pulse Sidebar (Desktop Only) */}
             <aside className="hidden lg:block">
               <div className="sticky top-24">
-                <GlobalPulse posts={allPosts} />
+                <GlobalPulse posts={allPosts} currentFilter={filter} />
               </div>
             </aside>
           </div>

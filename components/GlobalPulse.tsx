@@ -5,10 +5,11 @@ import React from 'react'
 interface GlobalPulseProps {
   posts: any[]
   className?: string
+  currentFilter?: 'all' | 'unique' | 'common' | 'trending'
 }
 
-export default function GlobalPulse({ posts, className = '' }: GlobalPulseProps) {
-  // Calculate stats from posts
+export default function GlobalPulse({ posts, className = '', currentFilter = 'all' }: GlobalPulseProps) {
+  // Calculate stats from posts based on current filter
   const stats = React.useMemo(() => {
     if (posts.length === 0) {
       return {
@@ -17,10 +18,38 @@ export default function GlobalPulse({ posts, className = '' }: GlobalPulseProps)
         perfectUnique: 0,
         mostCommon: { content: '', count: 0 },
         topVibes: [],
+        isGhostView: false,
+        totalReach: 0,
+        topTrending: null,
       }
     }
     
-    // Filter out ghost posts for stats
+    const isGhostView = currentFilter === 'trending'
+    
+    if (isGhostView) {
+      // Stats for ghost/trending posts
+      const ghostPosts = posts.filter(p => p.isGhost)
+      
+      // Calculate total reach (sum of all people counts)
+      const totalReach = ghostPosts.reduce((sum, p) => sum + (p.count || 0), 0)
+      
+      // Top trending (highest count)
+      const sortedByReach = [...ghostPosts].sort((a, b) => (b.count || 0) - (a.count || 0))
+      const topTrending = sortedByReach[0] || null
+      
+      return {
+        totalPosts: ghostPosts.length,
+        avgUniqueness: 0,
+        perfectUnique: 0,
+        mostCommon: { content: '', count: 0 },
+        topVibes: [],
+        isGhostView: true,
+        totalReach,
+        topTrending,
+      }
+    }
+    
+    // Filter out ghost posts for regular stats
     const realPosts = posts.filter(p => !p.isGhost)
     
     // Average uniqueness
@@ -47,71 +76,124 @@ export default function GlobalPulse({ posts, className = '' }: GlobalPulseProps)
       perfectUnique,
       mostCommon,
       topVibes,
+      isGhostView: false,
+      totalReach: 0,
+      topTrending: null,
     }
-  }, [posts])
+  }, [posts, currentFilter])
+  
+  // Format large numbers (e.g., 2300000 -> 2.3M)
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
+    return num.toString()
+  }
   
   return (
     <div className={`bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-2xl border border-white/20 p-6 ${className}`}>
       <div className="flex items-center gap-2 mb-4">
-        <span className="text-2xl">🌍</span>
-        <h3 className="text-xl font-bold text-white">Today's Global Pulse</h3>
+        <span className="text-2xl">{stats.isGhostView ? '🔥' : '🌍'}</span>
+        <h3 className="text-xl font-bold text-white">
+          {stats.isGhostView ? 'Trending Right Now' : 'Today\'s Global Pulse'}
+        </h3>
       </div>
       
       <div className="space-y-4">
-        {/* Total Activity */}
-        <div className="flex items-center justify-between">
-          <span className="text-white/70 text-sm">Total Activities</span>
-          <span className="text-white font-bold text-lg">{stats.totalPosts}</span>
-        </div>
-        
-        {/* Average Uniqueness */}
-        <div className="flex items-center justify-between">
-          <span className="text-white/70 text-sm">Average Uniqueness</span>
-          <span className="text-purple-300 font-bold text-lg">{stats.avgUniqueness}%</span>
-        </div>
-        
-        {/* Perfect Unique */}
-        <div className="flex items-center justify-between">
-          <span className="text-white/70 text-sm">Totally Unique (100%)</span>
-          <span className="text-pink-300 font-bold text-lg">{stats.perfectUnique} people</span>
-        </div>
-        
-        {/* Divider */}
-        <div className="h-px bg-white/10 my-4" />
-        
-        {/* Most Common Activity */}
-        {stats.mostCommon.count > 1 && (
-          <div>
-            <span className="text-white/70 text-xs block mb-2">Most Common Activity:</span>
-            <div className="bg-white/5 rounded-lg p-3 border border-blue-400/20">
-              <p className="text-white/90 text-sm mb-1 line-clamp-1">{stats.mostCommon.content}</p>
-              <span className="text-blue-300 text-xs">👥 {stats.mostCommon.count} people</span>
+        {stats.isGhostView ? (
+          // Trending view stats
+          <>
+            {/* Total Trending Activities */}
+            <div className="flex items-center justify-between">
+              <span className="text-white/70 text-sm">Trending Activities</span>
+              <span className="text-orange-300 font-bold text-lg">{stats.totalPosts}</span>
             </div>
-          </div>
-        )}
-        
-        {/* Top Vibes */}
-        {stats.topVibes.length > 0 && (
-          <div>
-            <span className="text-white/70 text-xs block mb-2">Top Vibes Today:</span>
-            <div className="space-y-1.5">
-              {stats.topVibes.slice(0, 3).map((vibe, i) => (
-                <div key={i} className="flex items-center justify-between text-sm">
-                  <span className="text-white/80">{vibe.vibe}</span>
-                  <span className="text-white/50">{vibe.count}</span>
+            
+            {/* Total Global Reach */}
+            <div className="flex items-center justify-between">
+              <span className="text-white/70 text-sm">Total People Doing This</span>
+              <span className="text-orange-300 font-bold text-lg">{formatNumber(stats.totalReach)}</span>
+            </div>
+            
+            {/* Divider */}
+            <div className="h-px bg-white/10 my-4" />
+            
+            {/* Top Trending */}
+            {stats.topTrending && (
+              <div>
+                <span className="text-white/70 text-xs block mb-2">🔥 Most Trending:</span>
+                <div className="bg-gradient-to-br from-orange-900/20 to-red-900/20 rounded-lg p-3 border border-orange-400/30">
+                  <p className="text-white/90 text-sm mb-1 line-clamp-2 italic">{stats.topTrending.content}</p>
+                  <span className="text-orange-300 text-xs font-medium">👥 {formatNumber(stats.topTrending.count)} people</span>
                 </div>
-              ))}
+              </div>
+            )}
+            
+            {/* Info Message */}
+            <div className="bg-orange-500/10 rounded-lg p-3 border border-orange-400/20">
+              <p className="text-orange-300/90 text-xs leading-relaxed">
+                These are global trends happening right now. Post your unique version! 🎯
+              </p>
             </div>
-          </div>
-        )}
-        
-        {/* Empty State */}
-        {stats.totalPosts === 0 && (
-          <div className="text-center py-4">
-            <p className="text-white/60 text-sm">
-              No posts yet today. Be the first! ✨
-            </p>
-          </div>
+          </>
+        ) : (
+          // Regular view stats
+          <>
+            {/* Total Activity */}
+            <div className="flex items-center justify-between">
+              <span className="text-white/70 text-sm">Total Activities</span>
+              <span className="text-white font-bold text-lg">{stats.totalPosts}</span>
+            </div>
+            
+            {/* Average Uniqueness */}
+            <div className="flex items-center justify-between">
+              <span className="text-white/70 text-sm">Average Uniqueness</span>
+              <span className="text-purple-300 font-bold text-lg">{stats.avgUniqueness}%</span>
+            </div>
+            
+            {/* Perfect Unique */}
+            <div className="flex items-center justify-between">
+              <span className="text-white/70 text-sm">Totally Unique (100%)</span>
+              <span className="text-pink-300 font-bold text-lg">{stats.perfectUnique} people</span>
+            </div>
+            
+            {/* Divider */}
+            <div className="h-px bg-white/10 my-4" />
+            
+            {/* Most Common Activity */}
+            {stats.mostCommon.count > 1 && (
+              <div>
+                <span className="text-white/70 text-xs block mb-2">Most Common Activity:</span>
+                <div className="bg-white/5 rounded-lg p-3 border border-blue-400/20">
+                  <p className="text-white/90 text-sm mb-1 line-clamp-1">{stats.mostCommon.content}</p>
+                  <span className="text-blue-300 text-xs">👥 {stats.mostCommon.count} people</span>
+                </div>
+              </div>
+            )}
+            
+            {/* Top Vibes */}
+            {stats.topVibes.length > 0 && (
+              <div>
+                <span className="text-white/70 text-xs block mb-2">Top Vibes Today:</span>
+                <div className="space-y-1.5">
+                  {stats.topVibes.slice(0, 3).map((vibe, i) => (
+                    <div key={i} className="flex items-center justify-between text-sm">
+                      <span className="text-white/80">{vibe.vibe}</span>
+                      <span className="text-white/50">{vibe.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Empty State */}
+            {stats.totalPosts === 0 && (
+              <div className="text-center py-4">
+                <p className="text-white/60 text-sm">
+                  No posts yet today. Be the first! ✨
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
