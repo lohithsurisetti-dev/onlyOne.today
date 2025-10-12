@@ -83,6 +83,17 @@ function ResponseContent() {
     <div className="min-h-screen bg-gradient-to-br from-space-dark via-space-darker to-space-darkest relative overflow-hidden">
       <StarsBackground />
       
+      {/* Floating Plus Button */}
+      <button
+        onClick={() => router.push('/')}
+        className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg shadow-purple-500/50 hover:shadow-xl hover:shadow-purple-500/60 hover:scale-110 transition-all duration-300 flex items-center justify-center group"
+        title="Post another"
+      >
+        <svg className="w-6 h-6 text-white group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        </svg>
+      </button>
+      
       <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-8">
         {/* Compact Card */}
         <div className="w-full max-w-md bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl">
