@@ -294,50 +294,59 @@ export default function FeedPage() {
   const apiFilter = filter === 'trending' ? 'all' : filter
   const { posts: apiPosts, loading, error } = useRecentPosts(apiFilter, 100, 0, refreshKey)
   
-  // Transform API posts and inject ghost posts
-  const allPosts: DisplayPost[] = React.useMemo(() => {
-    // Transform real posts
-    const realPosts = apiPosts.map(post => {
-      // Only recalculate if content_hash exists (for newer posts)
-      let liveUniquenessScore = post.uniqueness_score
-      let liveMatchCount = post.match_count
-      
-      if (post.content_hash) {
-        // Live recalculation: count how many posts have the same content_hash
-        const similarPostsCount = apiPosts.filter(p => 
-          p.content_hash && p.content_hash === post.content_hash && p.id !== post.id
-        ).length
+  // State for posts with ghost posts injected
+  const [allPosts, setAllPosts] = useState<DisplayPost[]>([])
+  
+  // Transform API posts and inject ghost posts (async)
+  React.useEffect(() => {
+    const loadPostsWithGhosts = async () => {
+      // Transform real posts
+      const realPosts = apiPosts.map(post => {
+        // Only recalculate if content_hash exists (for newer posts)
+        let liveUniquenessScore = post.uniqueness_score
+        let liveMatchCount = post.match_count
         
-        // Recalculate uniqueness based on current feed
-        liveMatchCount = similarPostsCount
-        liveUniquenessScore = Math.max(0, 100 - (liveMatchCount * 10))
-      }
+        if (post.content_hash) {
+          // Live recalculation: count how many posts have the same content_hash
+          const similarPostsCount = apiPosts.filter(p => 
+            p.content_hash && p.content_hash === post.content_hash && p.id !== post.id
+          ).length
+          
+          // Recalculate uniqueness based on current feed
+          liveMatchCount = similarPostsCount
+          liveUniquenessScore = Math.max(0, 100 - (liveMatchCount * 10))
+        }
+        
+        return {
+          id: post.id,
+          content: post.content,
+          type: liveUniquenessScore >= 70 ? 'unique' as const : 'common' as const,
+          time: formatTimeAgo(new Date(post.created_at)),
+          score: liveUniquenessScore,
+          count: liveMatchCount + 1, // Include self
+          funny_count: post.funny_count || 0,
+          creative_count: post.creative_count || 0,
+          must_try_count: post.must_try_count || 0,
+          total_reactions: post.total_reactions || 0,
+          isGhost: false,
+        }
+      })
       
-      return {
-        id: post.id,
-        content: post.content,
-        type: liveUniquenessScore >= 70 ? 'unique' as const : 'common' as const,
-        time: formatTimeAgo(new Date(post.created_at)),
-        score: liveUniquenessScore,
-        count: liveMatchCount + 1, // Include self
-        funny_count: post.funny_count || 0,
-        creative_count: post.creative_count || 0,
-        must_try_count: post.must_try_count || 0,
-        total_reactions: post.total_reactions || 0,
-        isGhost: false,
-      }
-    })
+      // Inject ghost posts if needed (mix with real posts) - ASYNC
+      const postsWithGhosts = await injectGhostPosts(realPosts, 20)
+      
+      // Convert ghost posts to display format
+      const displayPosts = postsWithGhosts.map(post => {
+        if (isGhostPost(post)) {
+          return formatGhostPost(post)
+        }
+        return post
+      })
+      
+      setAllPosts(displayPosts)
+    }
     
-    // Inject ghost posts if needed (mix with real posts)
-    const postsWithGhosts = injectGhostPosts(realPosts, 20)
-    
-    // Convert ghost posts to display format
-    return postsWithGhosts.map(post => {
-      if (isGhostPost(post)) {
-        return formatGhostPost(post)
-      }
-      return post
-    })
+    loadPostsWithGhosts()
   }, [apiPosts])
   
   const filteredPosts = React.useMemo(() => {
