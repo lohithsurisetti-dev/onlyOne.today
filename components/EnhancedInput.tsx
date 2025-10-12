@@ -7,6 +7,13 @@ import { RadioGroup } from './ui/RadioGroup'
 import { Select } from './ui/Select'
 import Card from './ui/Card'
 
+interface LocationData {
+  city: string
+  state: string
+  country: string
+  countryCode: string
+}
+
 interface EnhancedInputProps {
   onSubmit: (data: {
     content: string
@@ -14,6 +21,9 @@ interface EnhancedInputProps {
     scope: 'city' | 'state' | 'country' | 'world'
     location?: string
   }) => void
+  onScopeChange?: (scope: 'city' | 'state' | 'country' | 'world') => void
+  userLocation?: LocationData | null
+  locationError?: string | null
   isLoading?: boolean
   error?: string | null
   stats?: {
@@ -28,11 +38,27 @@ interface EnhancedInputProps {
   } | null
 }
 
-const EnhancedInput: React.FC<EnhancedInputProps> = ({ onSubmit, isLoading = false, error = null, stats = null }) => {
+const EnhancedInput: React.FC<EnhancedInputProps> = ({ 
+  onSubmit, 
+  onScopeChange, 
+  userLocation, 
+  locationError, 
+  isLoading = false, 
+  error = null, 
+  stats = null 
+}) => {
   const [inputType, setInputType] = useState<'action' | 'day'>('action')
   const [scope, setScope] = useState<'city' | 'state' | 'country' | 'world'>('world')
   const [content, setContent] = useState('')
   const [lastSubmitTime, setLastSubmitTime] = useState(0)
+  
+  // Notify parent when scope changes
+  const handleScopeChange = (newScope: 'city' | 'state' | 'country' | 'world') => {
+    setScope(newScope)
+    if (onScopeChange) {
+      onScopeChange(newScope)
+    }
+  }
 
   const inputTypeOptions = [
     {
@@ -51,25 +77,25 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({ onSubmit, isLoading = fal
     {
       value: 'world',
       label: 'Worldwide',
-      icon: '🌍',
+      icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
       description: 'Compare with everyone globally'
     },
     {
       value: 'country',
       label: 'Your Country',
-      icon: '🏳️',
+      icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" /></svg>,
       description: 'Compare within your country'
     },
     {
       value: 'state',
       label: 'Your State/Region',
-      icon: '🏛️',
+      icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>,
       description: 'Compare within your state or region'
     },
     {
       value: 'city',
       label: 'Your City',
-      icon: '🏙️',
+      icon: <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V9.99l7-3.5v6.5z"/></svg>,
       description: 'Compare within your city'
     }
   ]
@@ -142,8 +168,16 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({ onSubmit, isLoading = fal
             </label>
             <Select
               options={[
-                { value: 'action', label: 'Single Action', icon: '⚡' },
-                { value: 'day', label: 'Daily Routine', icon: '📅' }
+                { 
+                  value: 'action', 
+                  label: 'Single Action', 
+                  icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                },
+                { 
+                  value: 'day', 
+                  label: 'Daily Routine', 
+                  icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                }
               ]}
               value={inputType}
               onChange={(value) => setInputType(value as 'action' | 'day')}
@@ -159,9 +193,39 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({ onSubmit, isLoading = fal
             <Select
               options={scopeOptions}
               value={scope}
-              onChange={(value) => setScope(value as any)}
+              onChange={(value) => handleScopeChange(value as any)}
               className="text-sm"
             />
+            
+            {/* Location status - shown only when scope needs location */}
+            {scope !== 'world' && (
+              <div className="mt-2 text-xs text-white/60">
+                {userLocation?.city ? (
+                  <span className="flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5 text-green-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                    </svg>
+                    <span>
+                      {userLocation.city}, {userLocation.state}, {userLocation.country}
+                    </span>
+                  </span>
+                ) : locationError ? (
+                  <span className="flex items-center gap-1 text-yellow-400">
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    <span>Location unavailable - comparing worldwide instead</span>
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
+                      <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                    </svg>
+                    <span>Detecting your location...</span>
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -184,25 +248,44 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({ onSubmit, isLoading = fal
         
         {/* Compact Info Inside Card */}
         <div className="text-center pt-2">
-          <p className="text-white/50 text-base mb-2">
-            ✨ Uniqueness • 🤝 Commonality • 🌍 Anonymous
+          <p className="text-white/50 text-base mb-2 flex items-center justify-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+            </svg>
+            <span>Uniqueness</span>
+            <span>•</span>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <span>Commonality</span>
+            <span>•</span>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Anonymous</span>
           </p>
           
           {/* Live Stats */}
           {stats && (
             <div className="flex items-center justify-center gap-4 text-xs text-white/40">
               <span className="flex items-center gap-1">
-                <span>📝</span>
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
                 <span>{stats.today.totalPosts} today</span>
               </span>
               <span>•</span>
               <span className="flex items-center gap-1">
-                <span>⭐</span>
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
                 <span>{stats.today.uniquePosts} unique</span>
               </span>
               <span>•</span>
               <span className="flex items-center gap-1">
-                <span>🛡️</span>
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
                 <span>{stats.today.blockedPosts} blocked</span>
               </span>
             </div>

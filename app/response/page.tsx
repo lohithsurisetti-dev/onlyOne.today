@@ -48,7 +48,13 @@ function ResponseContent() {
         try {
           const result = await calculateTemporalUniqueness(
             postResult.post.content_hash,
-            content
+            content,
+            postResult.post.scope || 'world',
+            {
+              city: postResult.post.location_city || undefined,
+              state: postResult.post.location_state || undefined,
+              country: postResult.post.location_country || undefined,
+            }
           )
           setTemporal(result)
         } catch (error) {

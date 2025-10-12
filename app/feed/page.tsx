@@ -8,7 +8,15 @@ import GlobalPulse from '@/components/GlobalPulse'
 import { useRecentPosts } from '@/lib/hooks/usePosts'
 import { getShareMessage } from '@/lib/services/witty-messages'
 import { detectVibeSync } from '@/lib/services/vibe-detector'
-import { injectGhostPosts, formatGhostPost, isGhostPost } from '@/lib/services/ghost-posts'
+import { formatGhostPost, isGhostPost } from '@/lib/services/ghost-posts'
+import { fetchTrendingPosts } from '@/lib/services/trending-client'
+
+interface UserLocation {
+  city: string
+  state: string
+  country: string
+  countryCode: string
+}
 
 // Helper function to format time ago
 function formatTimeAgo(date: Date): string {
@@ -38,6 +46,10 @@ interface DisplayPost {
   content: string
   type: 'unique' | 'common'
   time: string
+  scope?: 'city' | 'state' | 'country' | 'world'
+  location_city?: string | null
+  location_state?: string | null
+  location_country?: string | null
   score?: number
   count?: number
   funny_count?: number
@@ -73,19 +85,103 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
   const needsTruncation = post.content.length > 80
   const displayContent = expanded || !needsTruncation ? post.content : post.content.substring(0, 80) + '...'
   
+  // Get scope icon and label with actual location name
+  const getScopeInfo = (scope?: string, post?: DisplayPost) => {
+    const scopes: Record<string, { iconSvg: JSX.Element; getLabel: (p?: DisplayPost) => string }> = {
+      'city': { 
+        iconSvg: (
+          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V9.99l7-3.5v6.5z"/>
+          </svg>
+        ),
+        getLabel: (p) => p?.location_city || 'City' 
+      },
+      'state': { 
+        iconSvg: (
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+        ),
+        getLabel: (p) => p?.location_state || 'State' 
+      },
+      'country': { 
+        iconSvg: (
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+          </svg>
+        ),
+        getLabel: (p) => p?.location_country || 'Country' 
+      },
+      'world': { 
+        iconSvg: (
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        ),
+        getLabel: () => 'World' 
+      },
+    }
+    const scopeData = scopes[scope || 'world'] || scopes['world']
+    return {
+      iconSvg: scopeData.iconSvg,
+      label: scopeData.getLabel(post)
+    }
+  }
+  
   // Get source icon for ghost posts
   const getSourceIcon = (source?: string) => {
-    const icons: Record<string, string> = {
-      'spotify': '🎵',
-      'reddit': '💬',
-      'google': '🔍',
-      'github': '💻',
-      'youtube': '📺',
-      'twitter': '🐦',
-      'instagram': '📸',
-      'curated': '✨',
+    const icons: Record<string, JSX.Element> = {
+      'spotify': (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+        </svg>
+      ),
+      'reddit': (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
+        </svg>
+      ),
+      'google': (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      ),
+      'github': (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
+        </svg>
+      ),
+      'youtube': (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+        </svg>
+      ),
+      'twitter': (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+        </svg>
+      ),
+      'instagram': (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/>
+        </svg>
+      ),
+      'sports': (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"/>
+        </svg>
+      ),
+      'curated': (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+        </svg>
+      ),
     }
-    return icons[source || ''] || '🌍'
+    return icons[source || ''] || (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    )
   }
   
   const handleReaction = async (reactionType: 'funny' | 'creative' | 'must_try') => {
@@ -112,12 +208,13 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
       return 'bg-gradient-to-br from-orange-900/20 to-red-900/20 border-orange-400/40 hover:border-orange-400/70 shadow-orange-500/10'
     }
     
+    // Unique posts (70%+)
     if (uniquenessScore >= 70) {
       return 'bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-purple-400/30 hover:border-purple-400/60'
-    } else if (commonalityScore >= 70) {
+    } 
+    // Common posts (< 70%)
+    else {
       return 'bg-gradient-to-br from-blue-900/30 to-cyan-900/30 border-blue-400/30 hover:border-blue-400/60'
-    } else {
-      return 'bg-gradient-to-br from-gray-900/30 to-slate-900/30 border-gray-400/30 hover:border-gray-400/60'
     }
   }
   
@@ -126,6 +223,13 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
       className={`group relative rounded-2xl p-3 backdrop-blur-md border transition-all duration-300 hover:scale-105 hover:shadow-xl flex flex-col justify-between ${getCardStyle()}`}
       style={{ minHeight: '140px' }}
     >
+      {/* Source Icon for Ghost Posts - Top Center (Fixed Position) */}
+      {isGhost && post.source && (
+        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 opacity-70 group-hover:opacity-90 transition-opacity">
+          {getSourceIcon(post.source)}
+        </div>
+      )}
+      
       {/* Share Button - Top Right */}
       <button
         onClick={(e) => {
@@ -142,16 +246,7 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
       
       {/* Content - Center Aligned */}
       <div className="flex-1 flex items-center justify-center">
-        <div>
-          {/* Source Icon for Ghost Posts */}
-          {isGhost && post.source && (
-            <div className="flex justify-center mb-2">
-              <span className="text-lg opacity-70">
-                {getSourceIcon(post.source)}
-              </span>
-            </div>
-          )}
-          
+        <div className={isGhost ? 'mt-4' : ''}>
           <p className={`text-sm leading-snug text-center ${isGhost ? 'text-white/60 italic' : 'text-white/90'} group-hover:text-white`}>
             {displayContent}
           </p>
@@ -170,12 +265,16 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
       <div className={`flex items-center text-xs mb-1.5 ${isGhost ? 'justify-center' : 'justify-between'}`}>
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1 text-purple-300/80">
-            <span>✨</span>
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+            </svg>
             <span className="font-medium">{uniquenessScore}%</span>
           </span>
           <span className="text-white/30">·</span>
           <span className="flex items-center gap-1 text-blue-300/80">
-            <span>👥</span>
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
             <span className="font-medium">{isGhost ? matchCount.toLocaleString() : matchCount}</span>
           </span>
         </div>
@@ -241,6 +340,7 @@ PostCard.displayName = 'PostCard'
 export default function FeedPage() {
   const router = useRouter()
   const [filter, setFilter] = useState<'all' | 'unique' | 'common' | 'trending'>('all')
+  const [scopeFilter, setScopeFilter] = useState<'all' | 'city' | 'state' | 'country' | 'world'>('world')
   const [reactionFilter, setReactionFilter] = useState<'all' | 'funny' | 'creative' | 'must_try'>('all')
   const [currentPage, setCurrentPage] = useState(1)
   const [refreshKey, setRefreshKey] = useState(0)
@@ -249,8 +349,43 @@ export default function FeedPage() {
   const [shareModalOpen, setShareModalOpen] = useState(false)
   const [selectedPost, setSelectedPost] = useState<DisplayPost | null>(null)
   const [showLegend, setShowLegend] = useState(false)
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null)
+  const [trendingLoading, setTrendingLoading] = useState(false)
+  const [trendingRefreshKey, setTrendingRefreshKey] = useState(0)
+  const [trendingRetryAttempt, setTrendingRetryAttempt] = useState(0)
   
   const postsPerPage = 24
+  
+  // Persist filter state across page refreshes
+  useEffect(() => {
+    // Load saved filter on mount
+    const savedFilter = localStorage.getItem('feedFilter') as 'all' | 'unique' | 'common' | 'trending' | null
+    if (savedFilter) {
+      setFilter(savedFilter)
+    }
+  }, [])
+  
+  useEffect(() => {
+    // Save filter whenever it changes
+    localStorage.setItem('feedFilter', filter)
+  }, [filter])
+  
+  // Detect user location on mount
+  useEffect(() => {
+    const detectUserLocation = async () => {
+      try {
+        const response = await fetch('/api/location')
+        const data = await response.json()
+        if (data.success && data.location) {
+          setUserLocation(data.location)
+          console.log('📍 User location detected:', data.location)
+        }
+      } catch (error) {
+        console.error('Failed to detect location:', error)
+      }
+    }
+    detectUserLocation()
+  }, [])
   
   // Handle share
   const handleShare = (post: DisplayPost) => {
@@ -317,36 +452,37 @@ export default function FeedPage() {
   
   // Fetch real posts from API (trending filter shows all posts, filtering happens client-side)
   const apiFilter = filter === 'trending' ? 'all' : filter
-  const { posts: apiPosts, loading, error } = useRecentPosts(apiFilter, 100, 0, refreshKey)
+  const { posts: apiPosts, loading: apiLoading, error } = useRecentPosts(apiFilter, 100, 0, refreshKey)
   
   // State for posts with ghost posts injected
   const [allPosts, setAllPosts] = useState<DisplayPost[]>([])
+  const [postsLoading, setPostsLoading] = useState(true)
   
   // Transform API posts and inject ghost posts (async)
   React.useEffect(() => {
+    // Don't process posts while API is still loading
+    if (apiLoading) {
+      return
+    }
+    
     const loadPostsWithGhosts = async () => {
+      setPostsLoading(true)
       // Transform real posts
       const realPosts = apiPosts.map(post => {
-        // Only recalculate if content_hash exists (for newer posts)
-        let liveUniquenessScore = post.uniqueness_score
-        let liveMatchCount = post.match_count
-        
-        if (post.content_hash) {
-          // Live recalculation: count how many posts have the same content_hash
-          const similarPostsCount = apiPosts.filter(p => 
-            p.content_hash && p.content_hash === post.content_hash && p.id !== post.id
-          ).length
-          
-          // Recalculate uniqueness based on current feed
-          liveMatchCount = similarPostsCount
-          liveUniquenessScore = Math.max(0, 100 - (liveMatchCount * 10))
-        }
+        // Use database values directly - they're already accurate
+        // Don't recalculate based on limited feed view
+        const liveUniquenessScore = post.uniqueness_score
+        const liveMatchCount = post.match_count
         
         return {
           id: post.id,
           content: post.content,
           type: liveUniquenessScore >= 70 ? 'unique' as const : 'common' as const,
           time: formatTimeAgo(new Date(post.created_at)),
+          scope: post.scope,
+          location_city: post.location_city,
+          location_state: post.location_state,
+          location_country: post.location_country,
           score: liveUniquenessScore,
           count: liveMatchCount + 1, // Include self
           funny_count: post.funny_count || 0,
@@ -357,24 +493,97 @@ export default function FeedPage() {
         }
       })
       
-      // Inject ghost posts if needed (mix with real posts) - ASYNC
-      const postsWithGhosts = await injectGhostPosts(realPosts, 20)
+      // Only fetch ghost posts if we'll actually use them (for trending filter)
+      // This prevents unnecessary API calls
+      let postsWithGhosts: (typeof realPosts[0] | Awaited<ReturnType<typeof fetchTrendingPosts>>[0])[]
+      
+      // Note: Ghost posts are excluded from "All", "Unique", and "Common" filters anyway
+      // So we can skip fetching when not needed
+      if (filter === 'trending') {
+        console.log('🔄 Fetching trending posts...')
+        setTrendingLoading(true)
+        setTrendingRetryAttempt(0)
+        
+        // Use force refresh if user clicked the refresh button (trendingRefreshKey > 0)
+        const forceRefresh = trendingRefreshKey > 0
+        
+        // Retry logic with exponential backoff
+        const fetchWithRetry = async (maxRetries = 3): Promise<any[]> => {
+          for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            setTrendingRetryAttempt(attempt)
+            
+            try {
+              console.log(`🔄 Attempt ${attempt}/${maxRetries} - Fetching trending posts... ${forceRefresh ? '(FORCE REFRESH)' : ''}`)
+              const posts = await fetchTrendingPosts(30, forceRefresh && attempt === 1) // Only force on first attempt
+              
+              if (posts.length > 0) {
+                console.log(`✅ Got ${posts.length} trending posts on attempt ${attempt}`)
+                return posts
+              }
+              
+              console.warn(`⚠️ Attempt ${attempt} returned 0 posts`)
+              
+              // If not the last attempt, wait with exponential backoff
+              if (attempt < maxRetries) {
+                const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000) // Max 5 seconds
+                console.log(`⏳ Waiting ${delay}ms before retry ${attempt + 1}...`)
+                await new Promise(resolve => setTimeout(resolve, delay))
+              }
+            } catch (error) {
+              console.error(`❌ Attempt ${attempt} failed:`, error)
+              
+              // If not the last attempt, wait before retrying
+              if (attempt < maxRetries) {
+                const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000)
+                console.log(`⏳ Waiting ${delay}ms before retry ${attempt + 1}...`)
+                await new Promise(resolve => setTimeout(resolve, delay))
+              }
+            }
+          }
+          
+          console.warn('⚠️ All retry attempts exhausted, returning empty array')
+          return []
+        }
+        
+        try {
+          const ghostPosts = await fetchWithRetry(3)
+          
+          if (ghostPosts.length > 0) {
+            // Mix real posts with ghost posts and shuffle
+            postsWithGhosts = [...realPosts, ...ghostPosts].sort(() => Math.random() - 0.5)
+          } else {
+            console.warn('⚠️ No trending posts after all retries, showing real posts only')
+            postsWithGhosts = realPosts
+          }
+        } catch (error) {
+          console.error('❌ Failed to fetch trending after retries:', error)
+          postsWithGhosts = realPosts
+        } finally {
+          setTrendingLoading(false)
+          setTrendingRetryAttempt(0)
+        }
+      } else {
+        postsWithGhosts = realPosts
+      }
       
       // Convert ghost posts to display format
       const displayPosts = postsWithGhosts.map(post => {
         if (isGhostPost(post)) {
           return formatGhostPost(post)
         }
-        return post
+        return post as DisplayPost
       })
       
-      setAllPosts(displayPosts)
+      setAllPosts(displayPosts as DisplayPost[])
+      setPostsLoading(false)
     }
     
     loadPostsWithGhosts()
-  }, [apiPosts])
+  }, [apiPosts, apiLoading, filter, trendingRefreshKey])
   
   const filteredPosts = React.useMemo(() => {
+    console.log(`🔍 Filtering: allPosts=${allPosts.length}, filter=${filter}, ghostPosts=${allPosts.filter(p => p.isGhost).length}`)
+    
     let filtered = allPosts.filter(post => {
       // Filter by type
       let passesTypeFilter = true
@@ -383,14 +592,31 @@ export default function FeedPage() {
       else if (filter === 'common') passesTypeFilter = post.type === 'common' && !post.isGhost
       else if (filter === 'trending') passesTypeFilter = post.isGhost === true
       
-      // Filter by reaction
+      // Filter by scope (skip for ghost posts)
+      let passesScopeFilter = true
+      if (!post.isGhost && scopeFilter !== 'world') {
+        // Check actual location field, not just scope
+        if (scopeFilter === 'city') {
+          passesScopeFilter = post.location_city === userLocation?.city
+        } else if (scopeFilter === 'state') {
+          passesScopeFilter = post.location_state === userLocation?.state
+        } else if (scopeFilter === 'country') {
+          passesScopeFilter = post.location_country === userLocation?.country
+        }
+      }
+      
+      // Filter by reaction (skip for ghost posts)
       let passesReactionFilter = true
+      if (!post.isGhost) {
       if (reactionFilter === 'funny') passesReactionFilter = (post.funny_count || 0) > 0
       else if (reactionFilter === 'creative') passesReactionFilter = (post.creative_count || 0) > 0
       else if (reactionFilter === 'must_try') passesReactionFilter = (post.must_try_count || 0) > 0
+      }
       
-      return passesTypeFilter && passesReactionFilter
+      return passesTypeFilter && passesScopeFilter && passesReactionFilter
     })
+    
+    console.log(`✅ Filtered result: ${filtered.length} posts (${filtered.filter(p => p.isGhost).length} ghost posts)`)
     
     // Sort by reaction count if filtering
     if (reactionFilter !== 'all') {
@@ -406,7 +632,7 @@ export default function FeedPage() {
     }
     
     return filtered
-  }, [allPosts, filter, reactionFilter])
+  }, [allPosts, filter, scopeFilter, reactionFilter, userLocation])
   
   // Pagination
   const totalPages = Math.ceil(filteredPosts.length / postsPerPage)
@@ -414,10 +640,18 @@ export default function FeedPage() {
   const endIndex = startIndex + postsPerPage
   const currentPosts = filteredPosts.slice(startIndex, endIndex)
   
+  // Reset scope and reaction filters when switching to trending
+  React.useEffect(() => {
+    if (filter === 'trending') {
+      setScopeFilter('world')
+      setReactionFilter('all')
+    }
+  }, [filter])
+  
   // Reset to page 1 when filters change
   React.useEffect(() => {
     setCurrentPage(1)
-  }, [filter, reactionFilter])
+  }, [filter, scopeFilter, reactionFilter])
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-space-dark via-space-darker to-space-darkest relative overflow-hidden">
@@ -435,36 +669,30 @@ export default function FeedPage() {
       </button>
       
       <div className="relative z-10">
-        {/* Header */}
+        {/* Header - Compact */}
         <header className="sticky top-0 z-30 backdrop-blur-xl bg-space-dark/80 border-b border-white/10">
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              {/* Back Button */}
+          <div className="max-w-7xl mx-auto px-4 py-3">
+            <div className="flex items-center gap-4">
+              {/* Back Button - Left Aligned */}
               <button
                 onClick={() => router.push('/')}
-                className="text-white/60 hover:text-white transition-colors"
+                className="text-white/60 hover:text-white transition-colors shrink-0"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
               
-              {/* Title */}
-              <h1 className="text-xl font-bold text-white">
-                Explore Feed
-              </h1>
-              
-              <div className="w-6" /> {/* Spacer */}
-            </div>
-            
-            {/* Filters & Legend Row */}
-            <div className="flex items-center justify-between gap-4 mt-4">
-              {/* Filters */}
-              <div className="flex gap-2 overflow-x-auto pb-2 flex-1">
+              {/* Filters - Center Aligned */}
+              <div className="flex-1 space-y-2">
+                {/* Row 1: Type + Scope Filters */}
+                <div className="flex flex-wrap gap-1.5 justify-center items-center">
+                  {/* Filter Label */}
+                  <span className="text-xs text-white/60 font-medium mr-1">Filter:</span>
                 {/* Type Filters */}
                 <button
-                  onClick={() => setFilter('all')}
-                  className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-all ${
+                  onClick={() => setFilter(filter === 'all' ? 'all' : 'all')}
+                  className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-all ${
                     filter === 'all'
                       ? 'bg-white/20 text-white border border-white/30'
                       : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
@@ -473,44 +701,143 @@ export default function FeedPage() {
                   All
                 </button>
               <button
-                onClick={() => setFilter('unique')}
-                className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-all ${
+                onClick={() => setFilter(filter === 'unique' ? 'all' : 'unique')}
+                className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-all flex items-center gap-1 ${
                   filter === 'unique'
                     ? 'bg-purple-500/30 text-white border border-purple-400/50'
                     : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
                 }`}
               >
-                ✨ Unique
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
+                <span className="hidden sm:inline">Unique</span>
               </button>
               <button
-                onClick={() => setFilter('common')}
-                className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-all ${
+                onClick={() => setFilter(filter === 'common' ? 'all' : 'common')}
+                className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-all flex items-center gap-1 ${
                   filter === 'common'
                     ? 'bg-blue-500/30 text-white border border-blue-400/50'
                     : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
                 }`}
               >
-                👥 Common
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span className="hidden sm:inline">Common</span>
               </button>
               <button
-                onClick={() => setFilter('trending')}
-                className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-all ${
+                onClick={() => setFilter(filter === 'trending' ? 'all' : 'trending')}
+                className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-all flex items-center gap-1 ${
                   filter === 'trending'
                     ? 'bg-gradient-to-r from-orange-500/30 to-red-500/30 text-white border border-orange-400/50'
                     : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
                 }`}
               >
-                👻 Trending
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+                <span className="hidden sm:inline">Trending</span>
+                {trendingLoading && (
+                  <svg className="w-3 h-3 animate-spin ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                )}
               </button>
               
               {/* Divider */}
-              <div className="w-px bg-white/20 mx-2" />
+              <div className="w-px h-6 bg-white/20" />
               
-              {/* Reaction Filters */}
+              {/* Scope Label */}
+              <span className={`text-xs font-medium mr-1 ${filter === 'trending' ? 'text-white/30' : 'text-white/60'}`}>Scope:</span>
+              
+              {/* Scope Filters */}
               <button
-                onClick={() => setReactionFilter(reactionFilter === 'funny' ? 'all' : 'funny')}
-                className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-all ${
-                  reactionFilter === 'funny'
+                onClick={() => filter !== 'trending' && setScopeFilter(scopeFilter === 'world' ? 'world' : 'world')}
+                disabled={filter === 'trending'}
+                className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-all flex items-center gap-1 ${
+                  filter === 'trending' 
+                    ? 'bg-white/5 text-white/20 border border-white/10 cursor-not-allowed'
+                    : scopeFilter === 'world'
+                      ? 'bg-cyan-500/30 text-white border border-cyan-400/50'
+                      : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                }`}
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="hidden sm:inline">World</span>
+              </button>
+              {userLocation?.country && (
+                <button
+                  onClick={() => filter !== 'trending' && setScopeFilter(scopeFilter === 'country' ? 'world' : 'country')}
+                  disabled={filter === 'trending'}
+                  className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-all flex items-center gap-1 ${
+                    filter === 'trending'
+                      ? 'bg-white/5 text-white/20 border border-white/10 cursor-not-allowed'
+                      : scopeFilter === 'country'
+                        ? 'bg-cyan-500/30 text-white border border-cyan-400/50'
+                        : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                  }`}
+                  title={filter === 'trending' ? 'Not available for trending posts' : `Filter posts from ${userLocation.country}`}
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                  </svg>
+                  <span className="hidden sm:inline">{userLocation.country}</span>
+                </button>
+              )}
+              {userLocation?.state && (
+                <button
+                  onClick={() => filter !== 'trending' && setScopeFilter(scopeFilter === 'state' ? 'world' : 'state')}
+                  disabled={filter === 'trending'}
+                  className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-all flex items-center gap-1 ${
+                    filter === 'trending'
+                      ? 'bg-white/5 text-white/20 border border-white/10 cursor-not-allowed'
+                      : scopeFilter === 'state'
+                        ? 'bg-cyan-500/30 text-white border border-cyan-400/50'
+                        : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                  }`}
+                  title={filter === 'trending' ? 'Not available for trending posts' : `Filter posts from ${userLocation.state}`}
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                  <span className="hidden sm:inline">{userLocation.state}</span>
+                </button>
+              )}
+              {userLocation?.city && (
+                <button
+                  onClick={() => filter !== 'trending' && setScopeFilter(scopeFilter === 'city' ? 'world' : 'city')}
+                  disabled={filter === 'trending'}
+                  className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-all flex items-center gap-1 ${
+                    filter === 'trending'
+                      ? 'bg-white/5 text-white/20 border border-white/10 cursor-not-allowed'
+                      : scopeFilter === 'city'
+                        ? 'bg-cyan-500/30 text-white border border-cyan-400/50'
+                        : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                  }`}
+                  title={filter === 'trending' ? 'Not available for trending posts' : `Filter posts from ${userLocation.city}`}
+                >
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V9.99l7-3.5v6.5z"/>
+                  </svg>
+                  <span className="hidden sm:inline">{userLocation.city}</span>
+                </button>
+              )}
+              </div>
+              
+              {/* Row 2: Reaction Filters */}
+              <div className="flex flex-wrap gap-1.5 justify-center items-center">
+                {/* Reactions Label */}
+                <span className={`text-xs font-medium mr-1 ${filter === 'trending' ? 'text-white/30' : 'text-white/60'}`}>Reactions:</span>
+              <button
+                onClick={() => filter !== 'trending' && setReactionFilter(reactionFilter === 'funny' ? 'all' : 'funny')}
+                disabled={filter === 'trending'}
+                className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-all ${
+                  filter === 'trending'
+                    ? 'bg-white/5 text-white/20 border border-white/10 cursor-not-allowed'
+                    : reactionFilter === 'funny'
                     ? 'bg-yellow-500/30 text-white border border-yellow-400/50'
                     : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
                 }`}
@@ -518,9 +845,12 @@ export default function FeedPage() {
                 😂 Funny
               </button>
               <button
-                onClick={() => setReactionFilter(reactionFilter === 'creative' ? 'all' : 'creative')}
-                className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-all ${
-                  reactionFilter === 'creative'
+                onClick={() => filter !== 'trending' && setReactionFilter(reactionFilter === 'creative' ? 'all' : 'creative')}
+                disabled={filter === 'trending'}
+                className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-all ${
+                  filter === 'trending'
+                    ? 'bg-white/5 text-white/20 border border-white/10 cursor-not-allowed'
+                    : reactionFilter === 'creative'
                     ? 'bg-purple-500/30 text-white border border-purple-400/50'
                     : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
                 }`}
@@ -528,9 +858,12 @@ export default function FeedPage() {
                 🎨 Creative
               </button>
               <button
-                onClick={() => setReactionFilter(reactionFilter === 'must_try' ? 'all' : 'must_try')}
-                className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-all ${
-                  reactionFilter === 'must_try'
+                onClick={() => filter !== 'trending' && setReactionFilter(reactionFilter === 'must_try' ? 'all' : 'must_try')}
+                disabled={filter === 'trending'}
+                className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-all ${
+                  filter === 'trending'
+                    ? 'bg-white/5 text-white/20 border border-white/10 cursor-not-allowed'
+                    : reactionFilter === 'must_try'
                     ? 'bg-green-500/30 text-white border border-green-400/50'
                     : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
                 }`}
@@ -538,52 +871,8 @@ export default function FeedPage() {
                 🔥 Must Try
               </button>
               </div>
-              
-              {/* Legend - Right Side (Desktop) */}
-              <div className="hidden lg:flex items-center gap-3 px-4 py-2 bg-white/5 rounded-full border border-white/10 text-xs text-white/70 whitespace-nowrap">
-                <span className="flex items-center gap-1">
-                  <span className="text-purple-300">✨</span>
-                  <span>Unique %</span>
-                </span>
-                <span className="text-white/30">·</span>
-                <span className="flex items-center gap-1">
-                  <span className="text-blue-300">👥</span>
-                  <span>Others</span>
-                </span>
               </div>
-              
-              {/* Info Button (Mobile) */}
-              <button
-                onClick={() => setShowLegend(!showLegend)}
-                className="lg:hidden p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
-                title="Show legend"
-              >
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </button>
             </div>
-            
-            {/* Expandable Legend (Mobile) */}
-            {showLegend && (
-              <div className="mt-3 p-4 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 animate-fade-in lg:hidden">
-                <div className="text-xs text-white/80 space-y-2">
-                  <p className="font-semibold text-white mb-2">📊 How to read the cards:</p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-purple-300">✨</span>
-                    <span><span className="font-medium">Uniqueness %</span> = How rare this action is</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-blue-300">👥</span>
-                    <span><span className="font-medium">Others</span> = How many people did the same</span>
-                  </div>
-                  <div className="flex items-center gap-2 pt-2 border-t border-white/10">
-                    <span>💡</span>
-                    <span className="text-white/60">Higher uniqueness = more rare. More people = trending!</span>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </header>
         
@@ -592,20 +881,36 @@ export default function FeedPage() {
           {/* Global Pulse Sidebar */}
           <div className="grid lg:grid-cols-[1fr,300px] gap-6">
             <div>
-              {loading && (
+              {(apiLoading || postsLoading || trendingLoading) && (
                 <div className="text-center text-white/60 py-12">
-                  Loading posts...
+                  <div className="inline-flex items-center gap-3">
+                    <svg className="w-6 h-6 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span>
+                      {trendingLoading 
+                        ? trendingRetryAttempt > 1 
+                          ? `Loading trending posts... (retry ${trendingRetryAttempt}/3)`
+                          : 'Loading trending posts...'
+                        : 'Loading posts...'}
+                    </span>
+                  </div>
                 </div>
               )}
               
-              {!loading && filteredPosts.length === 0 && (
+              {!apiLoading && !postsLoading && !trendingLoading && filteredPosts.length === 0 && (
                 <div className="text-center text-white/60 py-12">
                   <p className="text-lg mb-2">No posts found</p>
-                  <p className="text-sm">Try changing your filters or be the first to post!</p>
+                  <p className="text-sm">
+                    {filter === 'trending' 
+                      ? 'Trending data is loading... Click "🔄 Refresh" to try again.' 
+                      : 'Try changing your filters or be the first to post!'
+                    }
+                  </p>
                 </div>
               )}
               
-              {!loading && filteredPosts.length > 0 && (
+              {!apiLoading && !postsLoading && !trendingLoading && filteredPosts.length > 0 && (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {currentPosts.map((post) => (
@@ -619,32 +924,69 @@ export default function FeedPage() {
                 />
               ))}
               </div>
+            </>
+          )}
               
-              {/* Pagination */}
+          {/* Compact Pagination Bar (show when pagination needed OR trending active) */}
+          {(totalPages > 1 || filter === 'trending') && (
+            <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[100] flex items-center gap-2 px-4 py-2 bg-space-dark/95 backdrop-blur-xl rounded-full border border-white/30 shadow-2xl">
               {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-3 mt-12 mb-8 p-4 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10">
+                <>
                   <button
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
-                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 text-white font-medium disabled:opacity-30 disabled:cursor-not-allowed hover:border-purple-400/60 transition-all"
+                    className="p-1.5 rounded-full hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    title="Previous page"
                   >
-                    ← Previous
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
                   </button>
                   
-                  <span className="text-white font-medium px-6">
-                    Page {currentPage} of {totalPages}
+                  <span className="text-xs text-white/70 px-2">
+                    {currentPage} / {totalPages}
                   </span>
                   
                   <button
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
-                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 text-white font-medium disabled:opacity-30 disabled:cursor-not-allowed hover:border-purple-400/60 transition-all"
+                    className="p-1.5 rounded-full hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    title="Next page"
                   >
-                    Next →
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
                   </button>
-                </div>
+                </>
               )}
-            </>
+              
+              {/* Refresh button for trending */}
+              {filter === 'trending' && (
+                <>
+                  {totalPages > 1 && <div className="w-px h-4 bg-white/20" />}
+                  <button
+                    onClick={() => setTrendingRefreshKey(prev => prev + 1)}
+                    disabled={trendingLoading}
+                    className="p-1.5 rounded-full hover:bg-orange-500/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    title="Refresh trending data"
+                  >
+                    <svg 
+                      className={`w-4 h-4 text-white ${trendingLoading ? 'animate-spin' : ''}`} 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" 
+                      />
+                    </svg>
+                  </button>
+                </>
+              )}
+            </div>
           )}
             </div>
             

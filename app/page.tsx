@@ -3,9 +3,17 @@
 import React, { useState } from 'react'
 import { EnhancedInput } from '@/components/EnhancedInput'
 import StarsBackground from '@/components/StarsBackground'
+import { LocationDetectorSilent } from '@/components/LocationDetectorSilent'
 import { useRouter } from 'next/navigation'
 import { useCreatePost } from '@/lib/hooks/usePosts'
 import { usePlatformStats } from '@/lib/hooks/useStats'
+
+interface LocationData {
+  city: string
+  state: string
+  country: string
+  countryCode: string
+}
 
 export default function Home() {
   const router = useRouter()
@@ -13,6 +21,34 @@ export default function Home() {
   const { stats } = usePlatformStats()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [moderationError, setModerationError] = useState<string | null>(null)
+  const [userLocation, setUserLocation] = useState<LocationData | null>(null)
+  const [locationError, setLocationError] = useState<string | null>(null)
+  const [selectedScope, setSelectedScope] = useState<'city' | 'state' | 'country' | 'world'>('world')
+
+  // Handle scope changes
+  const handleScopeChange = (scope: 'city' | 'state' | 'country' | 'world') => {
+    setSelectedScope(scope)
+    // Reset location error when scope changes
+    if (scope === 'world') {
+      setLocationError(null)
+    }
+  }
+
+  // Handle location detection
+  const handleLocationDetected = (location: LocationData) => {
+    setUserLocation(location)
+    setLocationError(null)
+    console.log('📍 Location detected:', location)
+  }
+
+  const handleLocationError = (error: string) => {
+    // Treat location error as "worldwide mode" - not actually an error
+    setLocationError('worldwide')
+    console.log('📍 Using worldwide mode (location detection unavailable)')
+  }
+  
+  // Check if current scope needs location
+  const needsLocation = selectedScope !== 'world'
 
   const handleSubmit = async (data: {
     content: string
@@ -24,15 +60,15 @@ export default function Home() {
     setModerationError(null) // Clear previous errors
 
     try {
-      // Create the post via API
+      // Create the post via API with location data
       const result = await createPost({
         content: data.content,
         inputType: data.inputType,
         scope: data.scope,
-        // TODO: Add real location detection
-        locationCity: undefined,
-        locationState: undefined,
-        locationCountry: undefined,
+        // Use detected location (if available)
+        locationCity: userLocation?.city,
+        locationState: userLocation?.state,
+        locationCountry: userLocation?.country,
       })
 
       if (result) {
@@ -74,7 +110,9 @@ export default function Home() {
         {/* Top Bar with Install Button */}
         <div className="absolute top-0 right-0 p-4 sm:p-6 z-20">
           <div className="bg-white/5 backdrop-blur-sm rounded-full border border-white/10 px-4 py-2 hover:bg-white/10 transition-colors flex items-center gap-2">
-            <span className="text-sm">✨</span>
+            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+            </svg>
             <span className="text-white text-xs font-medium hidden sm:inline">Install app for more features</span>
             <button className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-full transition-colors border border-white/10">
               Install
@@ -98,11 +136,22 @@ export default function Home() {
             {/* Main Input Section */}
             <div className="space-y-6">
               <EnhancedInput 
-                onSubmit={handleSubmit} 
+                onSubmit={handleSubmit}
+                onScopeChange={handleScopeChange}
+                userLocation={userLocation}
+                locationError={locationError}
                 isLoading={isSubmitting}
                 error={moderationError}
                 stats={stats}
               />
+              
+              {/* Location Detection - Runs silently in background when needed */}
+              {needsLocation && !userLocation && (
+                <LocationDetectorSilent
+                  onLocationDetected={handleLocationDetected}
+                  onLocationError={handleLocationError}
+                />
+              )}
               
               <div className="flex justify-center">
                 <button

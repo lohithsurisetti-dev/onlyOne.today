@@ -28,8 +28,20 @@ export const LocationDetector: React.FC<LocationDetectorProps> = ({
     setError(null)
 
     try {
-      // Using a free geolocation API
-      const response = await fetch('https://ipapi.co/json/')
+      // Try ipapi.co first (with timeout)
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 5000) // 5 second timeout
+      
+      const response = await fetch('https://ipapi.co/json/', {
+        signal: controller.signal,
+      })
+      
+      clearTimeout(timeout)
+
+      if (!response.ok) {
+        throw new Error(`API returned ${response.status}`)
+      }
+
       const data = await response.json()
 
       if (data.error) {
@@ -46,9 +58,24 @@ export const LocationDetector: React.FC<LocationDetectorProps> = ({
       setLocation(locationData)
       onLocationDetected(locationData)
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to detect location'
+      console.error('Location detection failed:', err)
+      
+      // Graceful fallback - location is optional
+      const errorMessage = err instanceof Error && err.name === 'AbortError' 
+        ? 'Location detection timed out. Using worldwide comparison.'
+        : 'Could not detect location. Using worldwide comparison.'
+      
       setError(errorMessage)
       onLocationError(errorMessage)
+      
+      // Set a default "worldwide" location so app can continue
+      const defaultLocation: LocationData = {
+        city: '',
+        state: '',
+        country: '',
+        countryCode: ''
+      }
+      onLocationDetected(defaultLocation)
     } finally {
       setLoading(false)
     }
@@ -69,16 +96,24 @@ export const LocationDetector: React.FC<LocationDetectorProps> = ({
       )}
 
       {error && (
-        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
-          <p className="text-red-400 text-sm">
-            {error}
-          </p>
-          <button
-            onClick={detectLocation}
-            className="mt-2 text-red-400 hover:text-red-300 text-sm underline"
-          >
-            Try again
-          </button>
+        <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
+          <div className="flex items-start space-x-2">
+            <span className="text-yellow-400 text-lg mt-0.5">⚠️</span>
+            <div className="flex-1">
+              <p className="text-yellow-400 text-sm font-medium">
+                Location detection unavailable
+              </p>
+              <p className="text-yellow-300/70 text-xs mt-1">
+                No worries! You can still use the app with worldwide comparisons.
+              </p>
+              <button
+                onClick={detectLocation}
+                className="mt-2 text-yellow-400 hover:text-yellow-300 text-xs underline"
+              >
+                Try detecting again
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

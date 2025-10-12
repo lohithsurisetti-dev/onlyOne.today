@@ -53,7 +53,7 @@ export async function createPost(data: {
     locationState: data.locationState,
     locationCountry: data.locationCountry,
   })
-
+  
   const matchCount = similarPosts.length
   const uniquenessScore = calculateUniquenessScore(matchCount)
 
@@ -238,7 +238,7 @@ export async function getRecentPosts(params: {
 
   let query = supabase
     .from('posts')
-    .select('id, content, input_type, scope, uniqueness_score, match_count, funny_count, creative_count, must_try_count, total_reactions, created_at, content_hash')
+    .select('id, content, input_type, scope, location_city, location_state, location_country, uniqueness_score, match_count, funny_count, creative_count, must_try_count, total_reactions, created_at, content_hash')
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)
     .limit(limit) // Explicit limit for speed

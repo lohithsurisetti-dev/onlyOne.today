@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react'
 interface SelectOption {
   value: string
   label: string
-  icon?: string
+  icon?: string | React.ReactNode
 }
 
 interface SelectProps {
@@ -52,7 +52,11 @@ export const Select: React.FC<SelectProps> = ({
       >
         <div className="flex items-center space-x-3">
           {selectedOption?.icon && (
-            <span className="text-lg">{selectedOption.icon}</span>
+            typeof selectedOption.icon === 'string' ? (
+              <span className="text-lg">{selectedOption.icon}</span>
+            ) : (
+              <span className="flex items-center">{selectedOption.icon}</span>
+            )
           )}
           <span className={selectedOption ? 'text-text-primary' : 'text-text-secondary'}>
             {selectedOption?.label || placeholder}
@@ -89,7 +93,11 @@ export const Select: React.FC<SelectProps> = ({
               `}
             >
               {option.icon && (
-                <span className="text-lg">{option.icon}</span>
+                typeof option.icon === 'string' ? (
+                  <span className="text-lg">{option.icon}</span>
+                ) : (
+                  <span className="flex items-center">{option.icon}</span>
+                )
               )}
               <span>{option.label}</span>
             </button>

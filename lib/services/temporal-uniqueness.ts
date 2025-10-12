@@ -39,10 +39,17 @@ export interface TemporalUniqueness {
 
 /**
  * Calculate temporal uniqueness for a content hash
+ * Now respects scope and location for accurate comparisons
  */
 export async function calculateTemporalUniqueness(
   contentHash: string,
-  content: string
+  content: string,
+  scope: 'city' | 'state' | 'country' | 'world' = 'world',
+  location?: {
+    city?: string
+    state?: string
+    country?: string
+  }
 ): Promise<TemporalUniqueness> {
   const supabase = createClient()
   const now = new Date()
@@ -52,30 +59,51 @@ export async function calculateTemporalUniqueness(
   const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
   const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
   
-  // Fetch posts for each time window
+  // Helper to apply scope filter
+  const applyScopeFilter = (query: any) => {
+    if (scope === 'city' && location?.city) {
+      return query.eq('location_city', location.city)
+    } else if (scope === 'state' && location?.state) {
+      return query.eq('location_state', location.state)
+    } else if (scope === 'country' && location?.country) {
+      return query.eq('location_country', location.country)
+    }
+    // world scope - no filter
+    return query
+  }
+  
+  // Fetch posts for each time window (with scope filtering)
   const [todayResult, weekResult, monthResult, allTimeResult] = await Promise.all([
     // Today
-    supabase
-      .from('posts')
-      .select('id, content_hash')
-      .gte('created_at', oneDayAgo.toISOString()),
+    applyScopeFilter(
+      supabase
+        .from('posts')
+        .select('id, content_hash')
+        .gte('created_at', oneDayAgo.toISOString())
+    ),
     
     // This Week
-    supabase
-      .from('posts')
-      .select('id, content_hash')
-      .gte('created_at', oneWeekAgo.toISOString()),
+    applyScopeFilter(
+      supabase
+        .from('posts')
+        .select('id, content_hash')
+        .gte('created_at', oneWeekAgo.toISOString())
+    ),
     
     // This Month
-    supabase
-      .from('posts')
-      .select('id, content_hash')
-      .gte('created_at', oneMonthAgo.toISOString()),
+    applyScopeFilter(
+      supabase
+        .from('posts')
+        .select('id, content_hash')
+        .gte('created_at', oneMonthAgo.toISOString())
+    ),
     
     // All Time
-    supabase
-      .from('posts')
-      .select('id, content_hash'),
+    applyScopeFilter(
+      supabase
+        .from('posts')
+        .select('id, content_hash')
+    ),
   ])
   
   // Calculate uniqueness for each period
@@ -84,9 +112,13 @@ export async function calculateTemporalUniqueness(
       return { uniqueness: 100, matchCount: 0, totalPosts: 0 }
     }
     
-    const matchCount = posts.filter(p => p.content_hash === contentHash).length - 1 // Exclude self
+    // Count matching posts (exclude self by subtracting 1)
+    const matchCount = posts.filter(p => p.content_hash === contentHash).length - 1
     const totalPosts = posts.length
-    const uniqueness = Math.max(0, 100 - ((matchCount / totalPosts) * 100))
+    
+    // Use same formula as main uniqueness calculation: 100 - (matches * 10)
+    // This ensures consistency with the main score
+    const uniqueness = Math.max(0, 100 - (matchCount * 10))
     
     return { uniqueness: Math.round(uniqueness), matchCount, totalPosts }
   }
@@ -96,13 +128,25 @@ export async function calculateTemporalUniqueness(
   const thisMonth = calculateForPeriod(monthResult.data)
   const allTime = calculateForPeriod(allTimeResult.data)
   
-  // Determine trend
+  // Determine trend (compare recent vs historical activity)
   let trend: 'rising' | 'falling' | 'stable' = 'stable'
   
-  if (allTime.matchCount > thisMonth.matchCount * 2) {
-    trend = 'rising' // Getting more common over time
-  } else if (thisMonth.matchCount > allTime.matchCount * 0.5) {
-    trend = 'falling' // Getting less common
+  // Calculate average daily match rate
+  const todayRate = today.matchCount // matches in last 24 hours
+  const weekRate = thisWeek.matchCount / 7 // avg matches per day over week
+  const monthRate = thisMonth.matchCount / 30 // avg matches per day over month
+  
+  // Rising: Recent activity is higher than historical average
+  if (todayRate > monthRate * 1.5 || weekRate > monthRate * 1.3) {
+    trend = 'rising' // Getting more common recently
+  } 
+  // Falling: Recent activity is lower than historical average
+  else if (todayRate < monthRate * 0.5 || weekRate < monthRate * 0.7) {
+    trend = 'falling' // Getting less common recently
+  }
+  // Stable: Activity is relatively consistent
+  else {
+    trend = 'stable'
   }
   
   // Generate insight
