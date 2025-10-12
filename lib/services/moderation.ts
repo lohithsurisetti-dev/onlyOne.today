@@ -1,0 +1,235 @@
+/**
+ * Content Moderation Service
+ * 
+ * Balanced moderation approach:
+ * - Prevent obvious policy violations (contact info, explicit content)
+ * - Don't be overly strict to maintain engagement
+ * - Focus on safety without killing creativity
+ */
+
+export interface ModerationResult {
+  allowed: boolean
+  reason?: string
+  severity?: 'low' | 'medium' | 'high'
+}
+
+/**
+ * Moderate user-generated content
+ */
+export function moderateContent(content: string): ModerationResult {
+  if (!content || content.trim().length === 0) {
+    return { allowed: false, reason: 'Content cannot be empty', severity: 'low' }
+  }
+  
+  const text = content.toLowerCase().trim()
+  
+  // 1. Check for phone numbers (various formats)
+  const phonePatterns = [
+    /\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b/, // 123-456-7890, 123.456.7890, 123 456 7890
+    /\b\d{10}\b/, // 1234567890
+    /\b\+\d{1,3}[-.\s]?\d{3,4}[-.\s]?\d{3,4}[-.\s]?\d{3,4}\b/, // +1-123-456-7890
+    /\b\(\d{3}\)\s?\d{3}[-.\s]?\d{4}\b/, // (123) 456-7890
+    /\b\d{3}[-.\s]?\d{4}\b/, // Simple: 123-4567 or 1234567
+  ]
+  
+  for (const pattern of phonePatterns) {
+    if (pattern.test(content)) {
+      return { 
+        allowed: false, 
+        reason: 'Phone numbers are not allowed for your safety', 
+        severity: 'high' 
+      }
+    }
+  }
+  
+  // 2. Check for email addresses
+  const emailPattern = /\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b/i
+  if (emailPattern.test(content)) {
+    return { 
+      allowed: false, 
+      reason: 'Email addresses are not allowed for your safety', 
+      severity: 'high' 
+    }
+  }
+  
+  // 3. Check for URLs (http/https/www)
+  const urlPatterns = [
+    /https?:\/\//i,
+    /www\./i,
+    /\b[a-z0-9-]+\.(com|org|net|io|co|app|dev|me|info|biz)\b/i,
+  ]
+  
+  for (const pattern of urlPatterns) {
+    if (pattern.test(content)) {
+      return { 
+        allowed: false, 
+        reason: 'URLs and links are not allowed', 
+        severity: 'medium' 
+      }
+    }
+  }
+  
+  // 4. Check for social media handles
+  const socialHandlePatterns = [
+    /@[a-z0-9_]{3,}/i, // Twitter/Instagram/etc handles
+    /\b(instagram|twitter|facebook|snapchat|tiktok|telegram|whatsapp)\b/i,
+  ]
+  
+  for (const pattern of socialHandlePatterns) {
+    if (pattern.test(content)) {
+      return { 
+        allowed: false, 
+        reason: 'Social media handles and usernames are not allowed', 
+        severity: 'medium' 
+      }
+    }
+  }
+  
+  // 5. Check for explicit sexual content (not overly strict)
+  const explicitSexualTerms = [
+    'porn',
+    'xxx',
+    'nsfw',
+    'nude',
+    'naked',
+    'sex video',
+    'explicit',
+  ]
+  
+  for (const term of explicitSexualTerms) {
+    if (text.includes(term)) {
+      return { 
+        allowed: false, 
+        reason: 'Content contains inappropriate material', 
+        severity: 'high' 
+      }
+    }
+  }
+  
+  // 6. Check for violence and threats (focused on serious cases)
+  const violentThreats = [
+    'kill myself',
+    'suicide',
+    'end my life',
+    'hurt myself',
+    'self harm',
+    'terroris', // catches terrorist, terrorism
+    'bomb',
+    'shoot up',
+    'mass shooting',
+  ]
+  
+  for (const term of violentThreats) {
+    if (text.includes(term)) {
+      return { 
+        allowed: false, 
+        reason: 'Content contains concerning language. Please seek help if needed.', 
+        severity: 'high' 
+      }
+    }
+  }
+  
+  // 7. Check for spam patterns
+  const spamPatterns = [
+    /(.)\1{10,}/, // Repeated characters (aaaaaaaaaa)
+    /\b(buy now|click here|limited time|free money|make \$\d+|get rich)\b/i,
+    /\b(viagra|cialis|crypto|bitcoin|investment)\b/i,
+  ]
+  
+  for (const pattern of spamPatterns) {
+    if (pattern.test(content)) {
+      return { 
+        allowed: false, 
+        reason: 'Content appears to be spam', 
+        severity: 'medium' 
+      }
+    }
+  }
+  
+  // 8. Check for extreme hate speech (focused on clear cases)
+  const hateSlurs = [
+    // Note: This is a basic list. In production, use a more comprehensive database
+    // and consider context. We're being conservative here.
+  ]
+  
+  for (const slur of hateSlurs) {
+    if (text.includes(slur)) {
+      return { 
+        allowed: false, 
+        reason: 'Content contains hate speech or offensive language', 
+        severity: 'high' 
+      }
+    }
+  }
+  
+  // 9. Check for excessive length (anti-spam)
+  if (content.length > 500) {
+    return { 
+      allowed: false, 
+      reason: 'Content is too long. Please keep it brief.', 
+      severity: 'low' 
+    }
+  }
+  
+  // 10. Check for too short (likely not meaningful)
+  if (content.trim().length < 3) {
+    return { 
+      allowed: false, 
+      reason: 'Content is too short. Please be more descriptive.', 
+      severity: 'low' 
+    }
+  }
+  
+  // All checks passed
+  return { allowed: true }
+}
+
+/**
+ * Clean and sanitize content (for display)
+ */
+export function sanitizeContent(content: string): string {
+  // Remove excessive whitespace
+  let cleaned = content.trim().replace(/\s+/g, ' ')
+  
+  // Remove any remaining potentially dangerous characters
+  // But keep emojis and special characters that make content fun
+  cleaned = cleaned.replace(/<script[^>]*>.*?<\/script>/gi, '')
+  cleaned = cleaned.replace(/<[^>]+>/g, '') // Remove HTML tags
+  
+  return cleaned
+}
+
+/**
+ * Get user-friendly error message for moderation failures
+ */
+export function getModerationMessage(result: ModerationResult): string {
+  if (result.allowed) return ''
+  
+  const messages: Record<string, string> = {
+    'Phone numbers are not allowed for your safety': 
+      '📵 For your safety, please don\'t share phone numbers. Keep it anonymous!',
+    'Email addresses are not allowed for your safety': 
+      '📧 For your safety, please don\'t share email addresses. Keep it anonymous!',
+    'URLs and links are not allowed': 
+      '🔗 Links aren\'t allowed. Just share what you did!',
+    'Social media handles and usernames are not allowed': 
+      '📱 Social media handles aren\'t allowed. Keep it anonymous!',
+    'Content contains inappropriate material': 
+      '🚫 This content isn\'t appropriate for OnlyOne. Keep it wholesome!',
+    'Content contains concerning language. Please seek help if needed.': 
+      '💜 We noticed concerning language. If you need support, please reach out to a crisis helpline.',
+    'Content appears to be spam': 
+      '⛔ This looks like spam. Share your real activities!',
+    'Content contains hate speech or offensive language': 
+      '🛑 Hate speech isn\'t allowed. Be kind!',
+    'Content is too long. Please keep it brief.': 
+      '✂️ Keep it short and sweet! Max 500 characters.',
+    'Content is too short. Please be more descriptive.': 
+      '✏️ Tell us a bit more! What did you do?',
+    'Content cannot be empty': 
+      '📝 Please share what you did!',
+  }
+  
+  return messages[result.reason || ''] || result.reason || 'Content not allowed'
+}
+

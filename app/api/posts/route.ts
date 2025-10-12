@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createPost, getRecentPosts } from '@/lib/services/posts'
 import { rateLimit, getIP, RateLimitPresets, createRateLimitResponse } from '@/lib/utils/rate-limit'
+import { moderateContent, sanitizeContent, getModerationMessage } from '@/lib/services/moderation'
 
 /**
  * POST /api/posts - Create a new post
@@ -19,14 +20,35 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { content, inputType, scope, locationCity, locationState, locationCountry } = body
 
-    // Validation
-    if (!content || content.length < 3 || content.length > 500) {
+    // Basic validation
+    if (!content || typeof content !== 'string') {
       return NextResponse.json(
-        { error: 'Content must be between 3 and 500 characters' },
+        { error: 'Content is required' },
         { status: 400 }
       )
     }
 
+    // Content moderation - FIRST PRIORITY
+    const moderationResult = moderateContent(content)
+    
+    if (!moderationResult.allowed) {
+      const message = getModerationMessage(moderationResult)
+      console.log(`🚫 Content blocked for IP ${ip}: ${moderationResult.reason}`)
+      
+      return NextResponse.json(
+        { 
+          error: message,
+          moderationFailed: true,
+          severity: moderationResult.severity 
+        },
+        { status: 400 }
+      )
+    }
+
+    // Sanitize content (remove any HTML, extra whitespace, etc.)
+    const sanitizedContent = sanitizeContent(content)
+
+    // Additional validation
     if (!['action', 'day'].includes(inputType)) {
       return NextResponse.json(
         { error: 'Invalid input type' },
@@ -41,9 +63,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create the post
+    // Create the post with sanitized content
     const result = await createPost({
-      content,
+      content: sanitizedContent,
       inputType,
       scope,
       locationCity,
@@ -51,6 +73,7 @@ export async function POST(request: NextRequest) {
       locationCountry,
     })
 
+    console.log(`✅ Post created successfully from IP: ${ip}`)
     return NextResponse.json(result, { status: 201 })
   } catch (error) {
     console.error('Error in POST /api/posts:', error)
