@@ -14,22 +14,38 @@ export async function GET(request: NextRequest) {
     today.setHours(0, 0, 0, 0)
     const todayISO = today.toISOString()
     
-    const { count: totalPostsToday } = await supabase
+    console.log('📊 Fetching stats for today:', todayISO)
+    
+    const { count: totalPostsToday, error: todayError } = await supabase
       .from('posts')
-      .select('*', { count: 'only', head: true })
+      .select('*', { count: 'exact', head: true })
       .gte('created_at', todayISO)
     
+    if (todayError) {
+      console.error('Error fetching today posts:', todayError)
+    }
+    
     // Get total unique posts today (100% uniqueness)
-    const { count: uniquePostsToday } = await supabase
+    const { count: uniquePostsToday, error: uniqueError } = await supabase
       .from('posts')
-      .select('*', { count: 'only', head: true })
+      .select('*', { count: 'exact', head: true })
       .gte('created_at', todayISO)
       .eq('uniqueness_score', 100)
     
+    if (uniqueError) {
+      console.error('Error fetching unique posts:', uniqueError)
+    }
+    
     // Get total posts all time
-    const { count: totalPostsAllTime } = await supabase
+    const { count: totalPostsAllTime, error: allTimeError } = await supabase
       .from('posts')
-      .select('*', { count: 'only', head: true })
+      .select('*', { count: 'exact', head: true })
+    
+    if (allTimeError) {
+      console.error('Error fetching all time posts:', allTimeError)
+    }
+    
+    console.log('📊 Stats:', { totalPostsToday, uniquePostsToday, totalPostsAllTime })
     
     // Get moderation stats (blocked posts)
     const moderationStats = getModerationStats()
