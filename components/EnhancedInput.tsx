@@ -15,9 +15,10 @@ interface EnhancedInputProps {
     location?: string
   }) => void
   isLoading?: boolean
+  error?: string | null
 }
 
-const EnhancedInput: React.FC<EnhancedInputProps> = ({ onSubmit, isLoading = false }) => {
+const EnhancedInput: React.FC<EnhancedInputProps> = ({ onSubmit, isLoading = false, error = null }) => {
   const [inputType, setInputType] = useState<'action' | 'day'>('action')
   const [scope, setScope] = useState<'city' | 'state' | 'country' | 'world'>('world')
   const [content, setContent] = useState('')
@@ -113,6 +114,13 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({ onSubmit, isLoading = fal
             rows={inputType === 'action' ? 3 : 4}
             className="w-full"
           />
+          
+          {/* Error Message - Below Input */}
+          {error && (
+            <p className="text-red-400 text-sm mt-2">
+              {error}
+            </p>
+          )}
         </div>
 
         {/* Compact Options Row */}

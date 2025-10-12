@@ -95,31 +95,11 @@ export default function Home() {
           <div className="max-w-4xl mx-auto">
             {/* Main Input Section */}
             <div className="space-y-6">
-              <EnhancedInput onSubmit={handleSubmit} isLoading={isSubmitting} />
-              
-              {/* Moderation Error Display */}
-              {moderationError && (
-                <div className="max-w-xl mx-auto">
-                  <div className="bg-red-500/10 border border-red-400/30 rounded-2xl p-4 backdrop-blur-sm animate-fade-in">
-                    <div className="flex items-start gap-3">
-                      <span className="text-2xl">⚠️</span>
-                      <div className="flex-1">
-                        <p className="text-red-300 text-sm font-medium leading-relaxed">
-                          {moderationError}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => setModerationError(null)}
-                        className="text-red-300/60 hover:text-red-300 transition-colors"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+              <EnhancedInput 
+                onSubmit={handleSubmit} 
+                isLoading={isSubmitting}
+                error={moderationError}
+              />
               
               <div className="flex justify-center">
                 <button
