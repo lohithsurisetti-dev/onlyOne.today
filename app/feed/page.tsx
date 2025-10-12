@@ -4,9 +4,11 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import StarsBackground from '@/components/StarsBackground'
 import ShareModal from '@/components/ShareModal'
+import GlobalPulse from '@/components/GlobalPulse'
 import { useRecentPosts } from '@/lib/hooks/usePosts'
 import { getShareMessage } from '@/lib/services/witty-messages'
 import { detectVibeSync } from '@/lib/services/vibe-detector'
+import { injectGhostPosts, formatGhostPost, isGhostPost } from '@/lib/services/ghost-posts'
 
 // Helper function to format time ago
 function formatTimeAgo(date: Date): string {
@@ -42,6 +44,7 @@ interface DisplayPost {
   creative_count?: number
   must_try_count?: number
   total_reactions?: number
+  isGhost?: boolean
 }
 
 interface PostCardProps {
@@ -55,6 +58,7 @@ const PostCard = React.memo(({ post, onReact, onShare, userReactions }: PostCard
   const uniquenessScore = post.score || 0
   const commonalityScore = 100 - uniquenessScore
   const matchCount = post.count || 0
+  const isGhost = post.isGhost || false
   
   const [reactions, setReactions] = useState({
     funny: post.funny_count || 0,
@@ -63,6 +67,9 @@ const PostCard = React.memo(({ post, onReact, onShare, userReactions }: PostCard
   })
   
   const handleReaction = async (reactionType: 'funny' | 'creative' | 'must_try') => {
+    // Ghost posts can't be reacted to
+    if (isGhost) return
+    
     if (onReact) {
       onReact(post.id, reactionType)
       
@@ -91,6 +98,13 @@ const PostCard = React.memo(({ post, onReact, onShare, userReactions }: PostCard
     <div
       className={`group relative rounded-2xl p-4 backdrop-blur-md border transition-all duration-300 hover:scale-105 hover:shadow-xl ${getCardStyle()}`}
     >
+      {/* Ghost Badge - Top Left */}
+      {isGhost && (
+        <div className="absolute top-2 left-2 px-2 py-1 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm">
+          <span className="text-xs text-white/70">👻 Trending</span>
+        </div>
+      )}
+      
       {/* Share Button - Top Right */}
       <button
         onClick={(e) => {
@@ -106,7 +120,7 @@ const PostCard = React.memo(({ post, onReact, onShare, userReactions }: PostCard
       </button>
       
       {/* Content */}
-      <p className="text-white/90 text-sm leading-relaxed mb-3 line-clamp-2 group-hover:text-white">
+      <p className={`text-sm leading-relaxed mb-3 line-clamp-2 group-hover:text-white ${isGhost ? 'text-white/60 italic' : 'text-white/90'}`}>
         {post.content}
       </p>
       
@@ -126,22 +140,23 @@ const PostCard = React.memo(({ post, onReact, onShare, userReactions }: PostCard
         <span className="text-white/50">{post.time}</span>
       </div>
       
-      {/* Reactions */}
-      <div className="flex gap-1.5">
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            handleReaction('funny')
-          }}
-          className={`flex items-center gap-0.5 px-2 py-1 rounded-full transition-all ${
-            userReactions?.has(`${post.id}-funny`)
-              ? 'bg-yellow-500/40 scale-105'
-              : 'bg-white/5 hover:bg-yellow-500/20 hover:scale-105'
-          }`}
-        >
-          <span className="text-xs">😂</span>
-          {reactions.funny > 0 && <span className="text-xs text-white/80">{reactions.funny}</span>}
-        </button>
+      {/* Reactions - Hidden for ghost posts */}
+      {!isGhost && (
+        <div className="flex gap-1.5">
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              handleReaction('funny')
+            }}
+            className={`flex items-center gap-0.5 px-2 py-1 rounded-full transition-all ${
+              userReactions?.has(`${post.id}-funny`)
+                ? 'bg-yellow-500/40 scale-105'
+                : 'bg-white/5 hover:bg-yellow-500/20 hover:scale-105'
+            }`}
+          >
+            <span className="text-xs">😂</span>
+            {reactions.funny > 0 && <span className="text-xs text-white/80">{reactions.funny}</span>}
+          </button>
         
         <button
           onClick={(e) => {
@@ -172,7 +187,20 @@ const PostCard = React.memo(({ post, onReact, onShare, userReactions }: PostCard
           <span className="text-xs">🔥</span>
           {reactions.must_try > 0 && <span className="text-xs text-white/80">{reactions.must_try}</span>}
         </button>
-      </div>
+        </div>
+      )}
+      
+      {/* Call to action for ghost posts */}
+      {isGhost && (
+        <div className="mt-2 pt-2 border-t border-white/10">
+          <button
+            onClick={() => onShare?.(post)}
+            className="w-full text-xs text-white/60 hover:text-white/90 transition-colors"
+          >
+            Did you do this too? →
+          </button>
+        </div>
+      )}
     </div>
   )
 })
@@ -259,9 +287,10 @@ export default function FeedPage() {
   // Fetch real posts from API
   const { posts: apiPosts, loading, error } = useRecentPosts(filter, 100, 0, refreshKey)
   
-  // Transform API posts to display format with live uniqueness recalculation
+  // Transform API posts and inject ghost posts
   const allPosts: DisplayPost[] = React.useMemo(() => {
-    return apiPosts.map(post => {
+    // Transform real posts
+    const realPosts = apiPosts.map(post => {
       // Only recalculate if content_hash exists (for newer posts)
       let liveUniquenessScore = post.uniqueness_score
       let liveMatchCount = post.match_count
@@ -288,7 +317,19 @@ export default function FeedPage() {
         creative_count: post.creative_count || 0,
         must_try_count: post.must_try_count || 0,
         total_reactions: post.total_reactions || 0,
+        isGhost: false,
       }
+    })
+    
+    // Inject ghost posts if needed (mix with real posts)
+    const postsWithGhosts = injectGhostPosts(realPosts, 20)
+    
+    // Convert ghost posts to display format
+    return postsWithGhosts.map(post => {
+      if (isGhostPost(post)) {
+        return formatGhostPost(post)
+      }
+      return post
     })
   }, [apiPosts])
   
@@ -495,20 +536,23 @@ export default function FeedPage() {
         
         {/* Feed Grid */}
         <main className="max-w-7xl mx-auto px-4 py-8">
-          {loading && (
-            <div className="text-center text-white/60 py-12">
-              Loading posts...
-            </div>
-          )}
-          
-          {!loading && filteredPosts.length === 0 && (
-            <div className="text-center text-white/60 py-12">
-              <p className="text-lg mb-2">No posts found</p>
-              <p className="text-sm">Try changing your filters or be the first to post!</p>
-            </div>
-          )}
-          
-          {!loading && filteredPosts.length > 0 && (
+          {/* Global Pulse Sidebar */}
+          <div className="grid lg:grid-cols-[1fr,300px] gap-6">
+            <div>
+              {loading && (
+                <div className="text-center text-white/60 py-12">
+                  Loading posts...
+                </div>
+              )}
+              
+              {!loading && filteredPosts.length === 0 && (
+                <div className="text-center text-white/60 py-12">
+                  <p className="text-lg mb-2">No posts found</p>
+                  <p className="text-sm">Try changing your filters or be the first to post!</p>
+                </div>
+              )}
+              
+              {!loading && filteredPosts.length > 0 && (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {currentPosts.map((post) => (
@@ -548,6 +592,15 @@ export default function FeedPage() {
               )}
             </>
           )}
+            </div>
+            
+            {/* Global Pulse Sidebar (Desktop Only) */}
+            <aside className="hidden lg:block">
+              <div className="sticky top-24">
+                <GlobalPulse posts={allPosts} />
+              </div>
+            </aside>
+          </div>
         </main>
       </div>
       

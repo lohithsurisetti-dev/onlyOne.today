@@ -8,6 +8,7 @@ import ShareModal from '@/components/ShareModal'
 import type { CreatePostResult } from '@/lib/hooks/usePosts'
 import { detectVibeSync } from '@/lib/services/vibe-detector'
 import { getWittyResponse, getWittyRank, getVibeCelebration } from '@/lib/services/witty-messages'
+import { calculateTemporalUniqueness, formatTemporalStats, getTemporalEmoji, type TemporalUniqueness } from '@/lib/services/temporal-uniqueness'
 
 function ResponseContent() {
   const searchParams = useSearchParams()
@@ -20,6 +21,8 @@ function ResponseContent() {
   const [postResult, setPostResult] = useState<CreatePostResult | null>(null)
   const [shareType, setShareType] = useState<'uniqueness' | 'commonality'>('uniqueness')
   const [vibe, setVibe] = useState<string>('')
+  const [temporal, setTemporal] = useState<TemporalUniqueness | null>(null)
+  const [loadingTemporal, setLoadingTemporal] = useState(false)
   
   // Load post result from sessionStorage
   useEffect(() => {
@@ -36,6 +39,26 @@ function ResponseContent() {
       setVibe(detectedVibe)
     }
   }, [content])
+  
+  // Load temporal uniqueness
+  useEffect(() => {
+    async function loadTemporal() {
+      if (postResult?.post?.content_hash) {
+        setLoadingTemporal(true)
+        try {
+          const result = await calculateTemporalUniqueness(
+            postResult.post.content_hash,
+            content
+          )
+          setTemporal(result)
+        } catch (error) {
+          console.error('Failed to load temporal uniqueness:', error)
+        }
+        setLoadingTemporal(false)
+      }
+    }
+    loadTemporal()
+  }, [postResult, content])
   
   const getScopeText = (scope: string) => {
     switch (scope) {
@@ -180,9 +203,41 @@ function ResponseContent() {
             {message}
           </p>
           
-          <p className="text-center text-white/60 text-xs mb-8">
+          <p className="text-center text-white/60 text-xs mb-6">
             {rank}
           </p>
+          
+          {/* Temporal Uniqueness Stats */}
+          {temporal && (
+            <div className="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-semibold text-white/80">📊 Across Time</span>
+                <span className="text-xs text-white/60">{getTemporalEmoji(temporal)} {temporal.trend}</span>
+              </div>
+              
+              <div className="grid grid-cols-4 gap-2 mb-3">
+                {formatTemporalStats(temporal).map((stat) => (
+                  <div key={stat.label} className="text-center">
+                    <div className="text-xs text-white/50 mb-1">{stat.icon}</div>
+                    <div className="text-lg font-bold text-purple-300">{stat.uniqueness}%</div>
+                    <div className="text-xs text-white/40">{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+              
+              <p className="text-xs text-white/70 italic text-center">
+                {temporal.insight}
+              </p>
+            </div>
+          )}
+          
+          {loadingTemporal && (
+            <div className="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
+              <div className="text-center text-white/50 text-xs">
+                Loading temporal analysis...
+              </div>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="space-y-3">
