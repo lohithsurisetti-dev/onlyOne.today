@@ -14,13 +14,13 @@ interface EnhancedInputProps {
     scope: 'city' | 'state' | 'country' | 'world'
     location?: string
   }) => void
+  isLoading?: boolean
 }
 
-const EnhancedInput: React.FC<EnhancedInputProps> = ({ onSubmit }) => {
+const EnhancedInput: React.FC<EnhancedInputProps> = ({ onSubmit, isLoading = false }) => {
   const [inputType, setInputType] = useState<'action' | 'day'>('action')
   const [scope, setScope] = useState<'city' | 'state' | 'country' | 'world'>('world')
   const [content, setContent] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const inputTypeOptions = [
     {
@@ -65,16 +65,11 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({ onSubmit }) => {
   const handleSubmit = async () => {
     if (!content.trim()) return
 
-    setIsSubmitting(true)
-    try {
-      await onSubmit({
-        content: content.trim(),
-        inputType,
-        scope,
-      })
-    } finally {
-      setIsSubmitting(false)
-    }
+    await onSubmit({
+      content: content.trim(),
+      inputType,
+      scope,
+    })
   }
 
   const getPlaceholder = () => {
@@ -144,11 +139,11 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({ onSubmit }) => {
         {/* Submit Button - Clean */}
         <Button
           onClick={handleSubmit}
-          disabled={!content.trim() || isSubmitting}
+          disabled={!content.trim() || isLoading}
           variant="primary"
           className="w-full py-3"
         >
-          {isSubmitting ? (
+          {isLoading ? (
             <div className="flex items-center justify-center">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
               Analyzing...

@@ -1,12 +1,15 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { EnhancedInput } from '@/components/EnhancedInput'
 import StarsBackground from '@/components/StarsBackground'
 import { useRouter } from 'next/navigation'
+import { useCreatePost } from '@/lib/hooks/usePosts'
 
 export default function Home() {
   const router = useRouter()
+  const { createPost, loading, error } = useCreatePost()
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleSubmit = async (data: {
     content: string
@@ -14,14 +17,45 @@ export default function Home() {
     scope: 'city' | 'state' | 'country' | 'world'
     location?: string
   }) => {
-    // Navigate to response page with enhanced data
-    const params = new URLSearchParams({
-      content: data.content,
-      type: data.inputType,
-      scope: data.scope,
-    })
-    
-    router.push(`/response?${params.toString()}`)
+    setIsSubmitting(true)
+
+    try {
+      // Create the post via API
+      const result = await createPost({
+        content: data.content,
+        inputType: data.inputType,
+        scope: data.scope,
+        // TODO: Add real location detection
+        locationCity: undefined,
+        locationState: undefined,
+        locationCountry: undefined,
+      })
+
+      if (result) {
+        // Store result in sessionStorage to pass to response page
+        sessionStorage.setItem('postResult', JSON.stringify(result))
+
+        // Navigate to appropriate response page
+        const isUnique = result.uniquenessScore >= 70
+        const params = new URLSearchParams({
+          postId: result.post.id,
+          content: data.content,
+          type: data.inputType,
+          scope: data.scope,
+        })
+
+        if (isUnique) {
+          router.push(`/response?${params.toString()}`)
+        } else {
+          router.push(`/response/commonality?${params.toString()}`)
+        }
+      }
+    } catch (err) {
+      console.error('Error submitting post:', err)
+      alert('Failed to submit post. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -29,7 +63,7 @@ export default function Home() {
       <StarsBackground />
       
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-12">
-        <EnhancedInput onSubmit={handleSubmit} />
+        <EnhancedInput onSubmit={handleSubmit} isLoading={isSubmitting} />
         
         {/* See What Others Did Button */}
         <button

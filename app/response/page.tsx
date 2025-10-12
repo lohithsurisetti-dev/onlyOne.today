@@ -1,13 +1,14 @@
 'use client'
 
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Suspense, useState } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import StarsBackground from '@/components/StarsBackground'
 import Card from '@/components/ui/Card'
 import CircularProgress from '@/components/ui/CircularProgress'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import ShareModal from '@/components/ShareModal'
+import type { CreatePostResult } from '@/lib/hooks/usePosts'
 
 function ResponseContent() {
   const searchParams = useSearchParams()
@@ -15,9 +16,19 @@ function ResponseContent() {
   const content = searchParams.get('content') || 'Your moment'
   const inputType = searchParams.get('type') || 'action'
   const scope = searchParams.get('scope') || 'world'
+  const postId = searchParams.get('postId')
   const [showShareModal, setShowShareModal] = useState(false)
+  const [postResult, setPostResult] = useState<CreatePostResult | null>(null)
   
-  // Mock data - will be replaced with real API data
+  // Load post result from sessionStorage
+  useEffect(() => {
+    const storedResult = sessionStorage.getItem('postResult')
+    if (storedResult) {
+      setPostResult(JSON.parse(storedResult))
+    }
+  }, [])
+  
+  // Use real data if available, otherwise fall back to mock
   const getScopeText = (scope: string) => {
     switch (scope) {
       case 'city': return 'in your city'
@@ -36,13 +47,26 @@ function ResponseContent() {
     }
   }
 
+  // Calculate display data
+  const uniquenessScore = postResult?.uniquenessScore ?? 94
+  const matchCount = postResult?.matchCount ?? 0
+  const similarCount = matchCount + 1 // Including self
+  
   const mockData = {
-    uniquenessScore: 94,
-    commonalityScore: 6,
-    similarCount: 3,
-    trendContext: `While millions followed trends ${getScopeText(scope)}, you did something unique ✨`,
-    rank: `Top 1% most unique ${getScopeText(scope)}`,
-    timestamp: '2 minutes ago',
+    uniquenessScore,
+    commonalityScore: 100 - uniquenessScore,
+    similarCount,
+    trendContext: matchCount === 0 
+      ? `You're the only one ${getScopeText(scope)} who did this today! ✨`
+      : `You're one of ${similarCount} people ${getScopeText(scope)} who did this! ✨`,
+    rank: uniquenessScore >= 90 
+      ? `Top 1% most unique ${getScopeText(scope)}`
+      : uniquenessScore >= 70
+        ? `Top 10% most unique ${getScopeText(scope)}`
+        : `Common ${getScopeText(scope)}`,
+    timestamp: postResult?.post?.created_at 
+      ? new Date(postResult.post.created_at).toLocaleString()
+      : 'Just now',
     scope: scope,
     scopeEmoji: getScopeEmoji(scope),
     inputType: inputType,

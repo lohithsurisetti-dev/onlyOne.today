@@ -1,25 +1,55 @@
 'use client'
 
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Suspense, useState } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import StarsBackground from '@/components/StarsBackground'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import ShareModal from '@/components/ShareModal'
+import type { CreatePostResult } from '@/lib/hooks/usePosts'
 
 function CommonalityResponseContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const content = searchParams.get('content') || 'Your moment'
+  const inputType = searchParams.get('type') || 'action'
+  const scope = searchParams.get('scope') || 'world'
   const [showShareModal, setShowShareModal] = useState(false)
+  const [postResult, setPostResult] = useState<CreatePostResult | null>(null)
+  
+  // Load post result from sessionStorage
+  useEffect(() => {
+    const storedResult = sessionStorage.getItem('postResult')
+    if (storedResult) {
+      setPostResult(JSON.parse(storedResult))
+    }
+  }, [])
+  
+  // Calculate display data
+  const commonalityScore = postResult ? 100 - postResult.uniquenessScore : 89
+  const count = postResult ? postResult.matchCount + 1 : 127
+  
+  const getScopeText = (scope: string) => {
+    switch (scope) {
+      case 'city': return 'in your city'
+      case 'state': return 'in your state'
+      case 'country': return 'in your country'
+      default: return 'worldwide'
+    }
+  }
   
   // Mock data
   const mockData = {
-    commonalityScore: 89,
-    count: 127,
-    message: "You're one of 127 people who shared this feeling today. You're not alone 💙",
-    kindredPosts: [
+    commonalityScore,
+    count,
+    message: count === 2
+      ? `You and 1 other person ${getScopeText(scope)} did this today. You're connected! 💙`
+      : `You're one of ${count} people ${getScopeText(scope)} who did this today. You're not alone 💙`,
+    kindredPosts: postResult?.similarPosts?.slice(0, 3).map(post => ({
+      content: post.content,
+      time: new Date(post.created_at).toLocaleString(),
+    })) || [
       { content: 'Stayed in bed till noon', time: '2 hours ago' },
       { content: 'Couldn\'t focus today', time: '4 hours ago' },
       { content: 'Felt overwhelmed', time: '5 hours ago' },

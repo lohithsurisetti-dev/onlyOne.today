@@ -117,6 +117,36 @@ Practical guide for running and developing the application:
 
 ---
 
+### 🗄️ [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)
+Complete guide to setting up the Supabase backend:
+- Creating a Supabase project
+- Running the database schema
+- Configuring environment variables
+- Testing the connection
+- Database schema overview
+- API endpoints
+- Performance optimizations
+- Troubleshooting
+
+**Follow this** to set up the backend database and API.
+
+---
+
+### 🚀 [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)
+Step-by-step guide to deploy OnlyOne.today to production:
+- Deploying to Vercel
+- Configuring environment variables
+- Setting up cron jobs for trending data
+- Adding custom domains
+- Monitoring and analytics
+- Security checklist
+- Performance optimization
+- Post-deployment tasks
+
+**Follow this** to deploy the app live.
+
+---
+
 ## 🎯 Quick Concept Summary
 
 **The Hook:**

@@ -4,10 +4,21 @@ const nextConfig = {
   images: {
     domains: ['localhost'],
   },
+  webpack: (config, { isServer }) => {
+    // Handle Transformers.js model files
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'sharp$': false,
+      'onnxruntime-node$': false,
+    }
+    
+    return config
+  },
   experimental: {
     serverActions: {
       enabled: true,
     },
+    serverComponentsExternalPackages: ['@xenova/transformers', 'natural'],
   },
 }
 
