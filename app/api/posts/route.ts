@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createPost, getRecentPosts } from '@/lib/services/posts'
 import { rateLimit, getIP, RateLimitPresets, createRateLimitResponse } from '@/lib/utils/rate-limit'
-import { moderateContent, sanitizeContent, getModerationMessage } from '@/lib/services/moderation'
+import { sanitizeContent } from '@/lib/services/moderation'
+import { moderateWithOptions, trackModerationResult } from '@/lib/services/moderation-hybrid'
 
 /**
  * POST /api/posts - Create a new post
@@ -28,18 +29,27 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Content moderation - FIRST PRIORITY
-    const moderationResult = moderateContent(content)
+    // Hybrid Content Moderation - Static + AI
+    // This catches:
+    // 1. Static rules: phone, email, URLs, etc. (fast)
+    // 2. AI detection: toxic language, hate speech, etc. (smart)
+    const moderationResult = await moderateWithOptions(content, {
+      useAI: true,        // Enable AI detection
+      logResults: true,   // Log for analytics
+    })
+    
+    // Track stats for analytics
+    trackModerationResult(moderationResult)
     
     if (!moderationResult.allowed) {
-      const message = getModerationMessage(moderationResult)
-      console.log(`🚫 Content blocked for IP ${ip}: ${moderationResult.reason}`)
+      console.log(`🚫 Content blocked by ${moderationResult.blockedBy} for IP ${ip}: ${moderationResult.reason}`)
       
       return NextResponse.json(
         { 
-          error: message,
+          error: moderationResult.message || moderationResult.reason,
           moderationFailed: true,
-          severity: moderationResult.severity 
+          severity: moderationResult.severity,
+          blockedBy: moderationResult.blockedBy 
         },
         { status: 400 }
       )
