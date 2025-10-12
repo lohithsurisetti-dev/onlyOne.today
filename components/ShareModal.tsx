@@ -16,6 +16,7 @@ interface ShareModalProps {
   scope?: string
   inputType?: string
   vibe?: string
+  isGhost?: boolean
 }
 
 export default function ShareModal({
@@ -29,6 +30,7 @@ export default function ShareModal({
   scope = 'world',
   inputType = 'action',
   vibe,
+  isGhost = false,
 }: ShareModalProps) {
   const [imageUrl, setImageUrl] = useState('')
   const [copied, setCopied] = useState(false)
@@ -52,9 +54,14 @@ export default function ShareModal({
         params.set('vibe', vibe)
       }
       
+      // Add ghost flag
+      if (isGhost) {
+        params.set('isGhost', 'true')
+      }
+      
       setImageUrl(`/api/share-preview?${params.toString()}`)
     }
-  }, [isOpen, content, score, type, message, rank, vibe])
+  }, [isOpen, content, score, type, message, rank, vibe, isGhost])
   
   const handleDownload = async () => {
     setDownloading(true)

@@ -51,20 +51,26 @@ interface PostCardProps {
   post: DisplayPost
   onReact?: (postId: string | number, reactionType: 'funny' | 'creative' | 'must_try') => void
   onShare?: (post: DisplayPost) => void
+  onGhostClick?: () => void
   userReactions?: Set<string>
 }
 
-const PostCard = React.memo(({ post, onReact, onShare, userReactions }: PostCardProps) => {
+const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactions }: PostCardProps) => {
   const uniquenessScore = post.score || 0
   const commonalityScore = 100 - uniquenessScore
   const matchCount = post.count || 0
   const isGhost = post.isGhost || false
+  const [expanded, setExpanded] = useState(false)
   
   const [reactions, setReactions] = useState({
     funny: post.funny_count || 0,
     creative: post.creative_count || 0,
     must_try: post.must_try_count || 0,
   })
+  
+  // Determine if content needs truncation
+  const needsTruncation = post.content.length > 80
+  const displayContent = expanded || !needsTruncation ? post.content : post.content.substring(0, 80) + '...'
   
   const handleReaction = async (reactionType: 'funny' | 'creative' | 'must_try') => {
     // Ghost posts can't be reacted to
@@ -85,6 +91,11 @@ const PostCard = React.memo(({ post, onReact, onShare, userReactions }: PostCard
   
   // Determine gradient based on dominant trait
   const getCardStyle = () => {
+    // Special styling for ghost posts
+    if (isGhost) {
+      return 'bg-gradient-to-br from-orange-900/20 to-red-900/20 border-orange-400/40 hover:border-orange-400/70 shadow-orange-500/10'
+    }
+    
     if (uniquenessScore >= 70) {
       return 'bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-purple-400/30 hover:border-purple-400/60'
     } else if (commonalityScore >= 70) {
@@ -96,15 +107,9 @@ const PostCard = React.memo(({ post, onReact, onShare, userReactions }: PostCard
   
   return (
     <div
-      className={`group relative rounded-2xl p-4 backdrop-blur-md border transition-all duration-300 hover:scale-105 hover:shadow-xl ${getCardStyle()}`}
+      className={`group relative rounded-2xl p-3 backdrop-blur-md border transition-all duration-300 hover:scale-105 hover:shadow-xl flex flex-col justify-between ${getCardStyle()}`}
+      style={{ minHeight: '140px' }}
     >
-      {/* Ghost Badge - Top Left */}
-      {isGhost && (
-        <div className="absolute top-2 left-2 px-2 py-1 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm">
-          <span className="text-xs text-white/70">👻 Trending</span>
-        </div>
-      )}
-      
       {/* Share Button - Top Right */}
       <button
         onClick={(e) => {
@@ -119,13 +124,25 @@ const PostCard = React.memo(({ post, onReact, onShare, userReactions }: PostCard
         </svg>
       </button>
       
-      {/* Content */}
-      <p className={`text-sm leading-relaxed mb-3 line-clamp-2 group-hover:text-white ${isGhost ? 'text-white/60 italic' : 'text-white/90'}`}>
-        {post.content}
-      </p>
+      {/* Content - Center Aligned */}
+      <div className="flex-1 flex items-center justify-center">
+        <div>
+          <p className={`text-sm leading-snug text-center ${isGhost ? 'text-white/60 italic' : 'text-white/90'} group-hover:text-white`}>
+            {displayContent}
+          </p>
+          {needsTruncation && !expanded && (
+            <button
+              onClick={() => setExpanded(true)}
+              className="text-xs text-purple-300/70 hover:text-purple-300 mt-0.5 block mx-auto"
+            >
+              Read more
+            </button>
+          )}
+        </div>
+      </div>
       
-      {/* Footer - Show Both Metrics */}
-      <div className="flex items-center justify-between text-xs mb-2">
+      {/* Footer - Show Both Metrics (Bottom Aligned) */}
+      <div className={`flex items-center text-xs mb-1.5 ${isGhost ? 'justify-center' : 'justify-between'}`}>
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1 text-purple-300/80">
             <span>✨</span>
@@ -134,28 +151,28 @@ const PostCard = React.memo(({ post, onReact, onShare, userReactions }: PostCard
           <span className="text-white/30">·</span>
           <span className="flex items-center gap-1 text-blue-300/80">
             <span>👥</span>
-            <span className="font-medium">{matchCount}</span>
+            <span className="font-medium">{isGhost ? matchCount.toLocaleString() : matchCount}</span>
           </span>
         </div>
-        <span className="text-white/50">{post.time}</span>
+        {!isGhost && <span className="text-white/50">{post.time}</span>}
       </div>
       
       {/* Reactions - Hidden for ghost posts */}
       {!isGhost && (
-        <div className="flex gap-1.5">
+        <div className="flex gap-1">
           <button
             onClick={(e) => {
               e.stopPropagation()
               handleReaction('funny')
             }}
-            className={`flex items-center gap-0.5 px-2 py-1 rounded-full transition-all ${
+            className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs transition-all ${
               userReactions?.has(`${post.id}-funny`)
                 ? 'bg-yellow-500/40 scale-105'
                 : 'bg-white/5 hover:bg-yellow-500/20 hover:scale-105'
             }`}
           >
-            <span className="text-xs">😂</span>
-            {reactions.funny > 0 && <span className="text-xs text-white/80">{reactions.funny}</span>}
+            <span>😂</span>
+            {reactions.funny > 0 && <span className="text-white/80">{reactions.funny}</span>}
           </button>
         
         <button
@@ -163,14 +180,14 @@ const PostCard = React.memo(({ post, onReact, onShare, userReactions }: PostCard
             e.stopPropagation()
             handleReaction('creative')
           }}
-          className={`flex items-center gap-0.5 px-2 py-1 rounded-full transition-all ${
+          className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs transition-all ${
             userReactions?.has(`${post.id}-creative`)
               ? 'bg-purple-500/40 scale-105'
               : 'bg-white/5 hover:bg-purple-500/20 hover:scale-105'
           }`}
         >
-          <span className="text-xs">🎨</span>
-          {reactions.creative > 0 && <span className="text-xs text-white/80">{reactions.creative}</span>}
+          <span>🎨</span>
+          {reactions.creative > 0 && <span className="text-white/80">{reactions.creative}</span>}
         </button>
         
         <button
@@ -178,29 +195,18 @@ const PostCard = React.memo(({ post, onReact, onShare, userReactions }: PostCard
             e.stopPropagation()
             handleReaction('must_try')
           }}
-          className={`flex items-center gap-0.5 px-2 py-1 rounded-full transition-all ${
+          className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs transition-all ${
             userReactions?.has(`${post.id}-must_try`)
               ? 'bg-green-500/40 scale-105'
               : 'bg-white/5 hover:bg-green-500/20 hover:scale-105'
           }`}
         >
-          <span className="text-xs">🔥</span>
-          {reactions.must_try > 0 && <span className="text-xs text-white/80">{reactions.must_try}</span>}
+          <span>🔥</span>
+          {reactions.must_try > 0 && <span className="text-white/80">{reactions.must_try}</span>}
         </button>
         </div>
       )}
       
-      {/* Call to action for ghost posts */}
-      {isGhost && (
-        <div className="mt-2 pt-2 border-t border-white/10">
-          <button
-            onClick={() => onShare?.(post)}
-            className="w-full text-xs text-white/60 hover:text-white/90 transition-colors"
-          >
-            Did you do this too? →
-          </button>
-        </div>
-      )}
     </div>
   )
 })
@@ -209,7 +215,7 @@ PostCard.displayName = 'PostCard'
 
 export default function FeedPage() {
   const router = useRouter()
-  const [filter, setFilter] = useState<'all' | 'unique' | 'common'>('all')
+  const [filter, setFilter] = useState<'all' | 'unique' | 'common' | 'trending'>('all')
   const [reactionFilter, setReactionFilter] = useState<'all' | 'funny' | 'creative' | 'must_try'>('all')
   const [currentPage, setCurrentPage] = useState(1)
   const [refreshKey, setRefreshKey] = useState(0)
@@ -284,8 +290,9 @@ export default function FeedPage() {
     }
   }
   
-  // Fetch real posts from API
-  const { posts: apiPosts, loading, error } = useRecentPosts(filter, 100, 0, refreshKey)
+  // Fetch real posts from API (trending filter shows all posts, filtering happens client-side)
+  const apiFilter = filter === 'trending' ? 'all' : filter
+  const { posts: apiPosts, loading, error } = useRecentPosts(apiFilter, 100, 0, refreshKey)
   
   // Transform API posts and inject ghost posts
   const allPosts: DisplayPost[] = React.useMemo(() => {
@@ -337,8 +344,10 @@ export default function FeedPage() {
     let filtered = allPosts.filter(post => {
       // Filter by type
       let passesTypeFilter = true
-      if (filter === 'unique') passesTypeFilter = post.type === 'unique'
-      else if (filter === 'common') passesTypeFilter = post.type === 'common'
+      if (filter === 'all') passesTypeFilter = !post.isGhost // Exclude ghost posts from "All"
+      else if (filter === 'unique') passesTypeFilter = post.type === 'unique' && !post.isGhost
+      else if (filter === 'common') passesTypeFilter = post.type === 'common' && !post.isGhost
+      else if (filter === 'trending') passesTypeFilter = post.isGhost === true
       
       // Filter by reaction
       let passesReactionFilter = true
@@ -448,6 +457,16 @@ export default function FeedPage() {
                 }`}
               >
                 👥 Common
+              </button>
+              <button
+                onClick={() => setFilter('trending')}
+                className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-all ${
+                  filter === 'trending'
+                    ? 'bg-gradient-to-r from-orange-500/30 to-red-500/30 text-white border border-orange-400/50'
+                    : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                }`}
+              >
+                👻 Trending
               </button>
               
               {/* Divider */}
@@ -561,6 +580,7 @@ export default function FeedPage() {
                   post={post}
                   onReact={handleReaction}
                   onShare={handleShare}
+                  onGhostClick={() => router.push('/')}
                   userReactions={userReactions}
                 />
               ))}
@@ -613,17 +633,23 @@ export default function FeedPage() {
             setSelectedPost(null)
           }}
           content={selectedPost.content}
-          score={selectedPost.type === 'unique' ? (selectedPost.score || 0) : (selectedPost.count || 0)}
-          type={selectedPost.type === 'unique' ? 'uniqueness' : 'commonality'}
-          message={getShareMessageForPost(selectedPost)}
+          score={selectedPost.isGhost ? (selectedPost.count || 0) : selectedPost.type === 'unique' ? (selectedPost.score || 0) : (selectedPost.count || 0)}
+          type={selectedPost.isGhost ? 'commonality' : selectedPost.type === 'unique' ? 'uniqueness' : 'commonality'}
+          message={selectedPost.isGhost 
+            ? `${(selectedPost.count || 0).toLocaleString()} people did this worldwide. What did YOU do instead? 🔥`
+            : getShareMessageForPost(selectedPost)
+          }
           rank={
-            selectedPost.type === 'unique'
-              ? `${selectedPost.score}% Unique`
-              : `${selectedPost.count} People`
+            selectedPost.isGhost
+              ? 'Global Trend'
+              : selectedPost.type === 'unique'
+                ? `${selectedPost.score}% Unique`
+                : `${selectedPost.count} People`
           }
           scope="world"
           inputType="action"
           vibe={detectVibeSync(selectedPost.content)}
+          isGhost={selectedPost.isGhost}
         />
       )}
     </div>

@@ -187,13 +187,16 @@ const CURATED_GHOST_POSTS: Omit<GhostPost, 'id'>[] = [
 ]
 
 /**
- * Get random ghost posts to inject into feed
+ * Get random ghost posts to inject into feed (no repeats)
  */
 export function getGhostPosts(count: number = 10): GhostPost[] {
-  // Shuffle and take N posts
+  // Shuffle to ensure variety
   const shuffled = [...CURATED_GHOST_POSTS].sort(() => Math.random() - 0.5)
   
-  return shuffled.slice(0, count).map((post, index) => ({
+  // Take unique posts only
+  const unique = shuffled.slice(0, Math.min(count, CURATED_GHOST_POSTS.length))
+  
+  return unique.map((post, index) => ({
     ...post,
     id: `ghost-${Date.now()}-${index}`,
   }))

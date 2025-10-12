@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 export interface Post {
   id: string
   content: string
+  content_hash: string | null
   input_type: 'action' | 'day'
   scope: 'city' | 'state' | 'country' | 'world'
   location_city: string | null

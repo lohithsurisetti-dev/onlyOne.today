@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
   const scope = searchParams.get('scope') || 'world'
   const inputType = searchParams.get('inputType') || 'action'
   const vibeParam = searchParams.get('vibe')
+  const isGhostPost = searchParams.get('isGhost') === 'true'
   
   // Detect vibe if not provided
   const vibe = vibeParam || detectVibeSync(content)
@@ -51,7 +52,10 @@ export async function GET(request: NextRequest) {
     .card {
       width: 1200px;
       height: 630px;
-      background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #2d1b4e 100%);
+      background: ${isGhostPost 
+        ? 'linear-gradient(135deg, #1a0a0a 0%, #2e1a1a 50%, #4e1b1b 100%)'
+        : 'linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #2d1b4e 100%)'
+      };
       position: relative;
       display: flex;
       flex-direction: column;
@@ -76,9 +80,11 @@ export async function GET(request: NextRequest) {
       position: absolute;
       width: 800px;
       height: 800px;
-      background: ${isUnique 
-        ? 'radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%)'
-        : 'radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%)'
+      background: ${isGhostPost
+        ? 'radial-gradient(circle, rgba(249, 115, 22, 0.3) 0%, transparent 70%)'
+        : isUnique 
+          ? 'radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%)'
+          : 'radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%)'
       };
       filter: blur(100px);
       top: 50%;
@@ -135,17 +141,21 @@ export async function GET(request: NextRequest) {
       width: 180px;
       height: 180px;
       border-radius: 50%;
-      background: ${isUnique 
-        ? 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)'
-        : 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)'
+      background: ${isGhostPost
+        ? 'linear-gradient(135deg, #f97316 0%, #ef4444 100%)'
+        : isUnique 
+          ? 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)'
+          : 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)'
       };
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      box-shadow: ${isUnique 
-        ? '0 0 60px rgba(139, 92, 246, 0.6)'
-        : '0 0 60px rgba(59, 130, 246, 0.6)'
+      box-shadow: ${isGhostPost
+        ? '0 0 60px rgba(249, 115, 22, 0.6)'
+        : isUnique 
+          ? '0 0 60px rgba(139, 92, 246, 0.6)'
+          : '0 0 60px rgba(59, 130, 246, 0.6)'
       };
     }
     
@@ -233,8 +243,8 @@ export async function GET(request: NextRequest) {
       
       <div class="score-section">
         <div class="score-circle">
-          <div class="score-number">${score}</div>
-          <div class="score-label">${isUnique ? 'Unique' : 'Common'}</div>
+          <div class="score-number">${isGhostPost ? (parseInt(score) / 1000000).toFixed(1) + 'M' : score + (type === 'commonality' ? '' : '%')}</div>
+          <div class="score-label">${isGhostPost ? 'People' : isUnique ? 'Unique' : 'Common'}</div>
         </div>
       </div>
     </div>
