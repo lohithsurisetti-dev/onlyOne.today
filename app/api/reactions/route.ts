@@ -1,12 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { addReaction, type ReactionType } from '@/lib/services/reactions'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { rateLimit, getIP, RateLimitPresets, createRateLimitResponse } from '@/lib/utils/rate-limit'
 
 /**
  * POST /api/reactions - Add or remove a reaction
  */
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const ip = getIP(request)
+    const rateLimitResult = rateLimit(ip, 'reactions', RateLimitPresets.REACTIONS)
+    
+    if (!rateLimitResult.success) {
+      console.log(`⚠️ Rate limit exceeded for reactions from IP: ${ip}`)
+      return createRateLimitResponse(rateLimitResult)
+    }
+    
     const body = await request.json()
     const { postId, reactionType } = body
 

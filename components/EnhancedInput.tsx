@@ -21,6 +21,7 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({ onSubmit, isLoading = fal
   const [inputType, setInputType] = useState<'action' | 'day'>('action')
   const [scope, setScope] = useState<'city' | 'state' | 'country' | 'world'>('world')
   const [content, setContent] = useState('')
+  const [lastSubmitTime, setLastSubmitTime] = useState(0)
 
   const inputTypeOptions = [
     {
@@ -64,6 +65,19 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({ onSubmit, isLoading = fal
 
   const handleSubmit = async () => {
     if (!content.trim()) return
+    
+    // Client-side throttling: minimum 3 seconds between submissions
+    const now = Date.now()
+    const timeSinceLastSubmit = now - lastSubmitTime
+    const minDelay = 3000 // 3 seconds
+    
+    if (timeSinceLastSubmit < minDelay) {
+      const remainingSeconds = Math.ceil((minDelay - timeSinceLastSubmit) / 1000)
+      alert(`Please wait ${remainingSeconds} more second${remainingSeconds > 1 ? 's' : ''} before submitting again.`)
+      return
+    }
+    
+    setLastSubmitTime(now)
 
     await onSubmit({
       content: content.trim(),

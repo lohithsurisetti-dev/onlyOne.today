@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import StarsBackground from '@/components/StarsBackground'
+import ShareModal from '@/components/ShareModal'
 import { useRecentPosts } from '@/lib/hooks/usePosts'
 
 // Helper function to format time ago
@@ -44,10 +45,11 @@ interface DisplayPost {
 interface PostCardProps {
   post: DisplayPost
   onReact?: (postId: string | number, reactionType: 'funny' | 'creative' | 'must_try') => void
+  onShare?: (post: DisplayPost) => void
   userReactions?: Set<string>
 }
 
-const PostCard = React.memo(({ post, onReact, userReactions }: PostCardProps) => {
+const PostCard = React.memo(({ post, onReact, onShare, userReactions }: PostCardProps) => {
   const isUnique = post.type === 'unique'
   const [reactions, setReactions] = useState({
     funny: post.funny_count || 0,
@@ -77,6 +79,20 @@ const PostCard = React.memo(({ post, onReact, userReactions }: PostCardProps) =>
           : 'bg-gradient-to-br from-blue-900/30 to-cyan-900/30 border-blue-400/30 hover:border-blue-400/60'
       }`}
     >
+      {/* Share Button - Top Right */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          onShare?.(post)
+        }}
+        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-sm"
+        title="Share this post"
+      >
+        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+        </svg>
+      </button>
+      
       {/* Content */}
       <p className="text-white/90 text-sm leading-relaxed mb-3 line-clamp-2 group-hover:text-white">
         {post.content}
@@ -160,12 +176,54 @@ export default function FeedPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [refreshKey, setRefreshKey] = useState(0)
   const [userReactions, setUserReactions] = useState<Set<string>>(new Set())
+  const [reactionCooldowns, setReactionCooldowns] = useState<Map<string, number>>(new Map())
+  const [shareModalOpen, setShareModalOpen] = useState(false)
+  const [selectedPost, setSelectedPost] = useState<DisplayPost | null>(null)
   
   const postsPerPage = 24
   
-  // Handle reactions
+  // Handle share
+  const handleShare = (post: DisplayPost) => {
+    setSelectedPost(post)
+    setShareModalOpen(true)
+  }
+  
+  // Generate viral share message based on post type
+  const getShareMessage = (post: DisplayPost) => {
+    if (post.type === 'unique') {
+      const messages = [
+        `I dare you to beat this ${post.score}% uniqueness! Can you? 🔥`,
+        `Challenge accepted? This is ${post.score}% unique - try to top it! ✨`,
+        `Only the brave try this... ${post.score}% uniqueness 💪`,
+        `Think you're unique? Beat this ${post.score}% score! 🎯`,
+      ]
+      return messages[Math.floor(Math.random() * messages.length)]
+    } else {
+      const messages = [
+        `${post.count} people did this. Join the club or do something different? 🤔`,
+        `Part of the ${post.count} who did this. What did YOU do? 👥`,
+        `${post.count} people can't be wrong... or can they? 😏`,
+        `Everyone's doing this (${post.count} people). Dare to be different? ✨`,
+      ]
+      return messages[Math.floor(Math.random() * messages.length)]
+    }
+  }
+  
+  // Handle reactions with client-side throttling
   const handleReaction = async (postId: string | number, reactionType: 'funny' | 'creative' | 'must_try') => {
     const reactionKey = `${postId}-${reactionType}`
+    const now = Date.now()
+    const cooldownTime = 1000 // 1 second between reactions
+    
+    // Check cooldown
+    const lastReactionTime = reactionCooldowns.get(reactionKey) || 0
+    if (now - lastReactionTime < cooldownTime) {
+      console.log('⏱️ Reaction throttled (too fast)')
+      return
+    }
+    
+    // Update cooldown
+    setReactionCooldowns(prev => new Map(prev).set(reactionKey, now))
     
     try {
       const response = await fetch('/api/reactions', {
@@ -190,6 +248,9 @@ export default function FeedPage() {
         setTimeout(() => {
           setRefreshKey(prev => prev + 1)
         }, 500)
+      } else if (response.status === 429) {
+        const data = await response.json()
+        alert(data.message || 'Too many reactions. Please slow down.')
       }
     } catch (error) {
       console.error('❌ Failed to add reaction:', error)
@@ -375,14 +436,15 @@ export default function FeedPage() {
           {!loading && filteredPosts.length > 0 && (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {currentPosts.map((post) => (
-                  <PostCard
-                    key={post.id}
-                    post={post}
-                    onReact={handleReaction}
-                    userReactions={userReactions}
-                  />
-                ))}
+              {currentPosts.map((post) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  onReact={handleReaction}
+                  onShare={handleShare}
+                  userReactions={userReactions}
+                />
+              ))}
               </div>
               
               {/* Pagination */}
@@ -413,6 +475,28 @@ export default function FeedPage() {
           )}
         </main>
       </div>
+      
+      {/* Share Modal */}
+      {selectedPost && (
+        <ShareModal
+          isOpen={shareModalOpen}
+          onClose={() => {
+            setShareModalOpen(false)
+            setSelectedPost(null)
+          }}
+          content={selectedPost.content}
+          score={selectedPost.type === 'unique' ? (selectedPost.score || 0) : (selectedPost.count || 0)}
+          type={selectedPost.type === 'unique' ? 'uniqueness' : 'commonality'}
+          message={getShareMessage(selectedPost)}
+          rank={
+            selectedPost.type === 'unique'
+              ? `${selectedPost.score}% Unique`
+              : `${selectedPost.count} People`
+          }
+          scope="world"
+          inputType="action"
+        />
+      )}
     </div>
   )
 }

@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit, getIP, RateLimitPresets, createRateLimitResponse } from '@/lib/utils/rate-limit'
 
 export async function GET(request: NextRequest) {
+  // Rate limiting
+  const ip = getIP(request)
+  const rateLimitResult = rateLimit(ip, 'share-generation', RateLimitPresets.SHARE_GENERATION)
+  
+  if (!rateLimitResult.success) {
+    console.log(`⚠️ Rate limit exceeded for share generation from IP: ${ip}`)
+    return createRateLimitResponse(rateLimitResult)
+  }
+  
   const { searchParams } = new URL(request.url)
   
   const content = searchParams.get('content') || 'Your unique moment'

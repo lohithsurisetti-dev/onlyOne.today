@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createPost, getRecentPosts } from '@/lib/services/posts'
+import { rateLimit, getIP, RateLimitPresets, createRateLimitResponse } from '@/lib/utils/rate-limit'
 
 /**
  * POST /api/posts - Create a new post
  */
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const ip = getIP(request)
+    const rateLimitResult = rateLimit(ip, 'post-creation', RateLimitPresets.POST_CREATION)
+    
+    if (!rateLimitResult.success) {
+      console.log(`⚠️ Rate limit exceeded for IP: ${ip}`)
+      return createRateLimitResponse(rateLimitResult)
+    }
+    
     const body = await request.json()
     const { content, inputType, scope, locationCity, locationState, locationCountry } = body
 
@@ -56,6 +66,15 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
+    // Rate limiting (generous for reads)
+    const ip = getIP(request)
+    const rateLimitResult = rateLimit(ip, 'feed-read', RateLimitPresets.FEED_READ)
+    
+    if (!rateLimitResult.success) {
+      console.log(`⚠️ Rate limit exceeded for feed read from IP: ${ip}`)
+      return createRateLimitResponse(rateLimitResult)
+    }
+    
     const searchParams = request.nextUrl.searchParams
     const filter = searchParams.get('filter') as 'all' | 'unique' | 'common' || 'all'
     const limit = parseInt(searchParams.get('limit') || '25')
