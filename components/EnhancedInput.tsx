@@ -16,9 +16,19 @@ interface EnhancedInputProps {
   }) => void
   isLoading?: boolean
   error?: string | null
+  stats?: {
+    today: {
+      totalPosts: number
+      uniquePosts: number
+      blockedPosts: number
+    }
+    allTime: {
+      totalPosts: number
+    }
+  } | null
 }
 
-const EnhancedInput: React.FC<EnhancedInputProps> = ({ onSubmit, isLoading = false, error = null }) => {
+const EnhancedInput: React.FC<EnhancedInputProps> = ({ onSubmit, isLoading = false, error = null, stats = null }) => {
   const [inputType, setInputType] = useState<'action' | 'day'>('action')
   const [scope, setScope] = useState<'city' | 'state' | 'country' | 'world'>('world')
   const [content, setContent] = useState('')
@@ -89,9 +99,9 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({ onSubmit, isLoading = fal
 
   const getPlaceholder = () => {
     if (inputType === 'action') {
-      return 'What did you do today? (e.g., "played cricket", "baked banana bread", "didn\'t check social media")'
+      return 'e.g., "played cricket", "baked banana bread", "didn\'t check social media"'
     } else {
-      return 'Describe your day or routine... (e.g., "woke up at 6am, had coffee, worked from home, went for a walk, cooked dinner, read a book")'
+      return 'e.g., "woke up at 6am, had coffee, worked from home, went for a walk, cooked dinner, read a book"'
     }
   }
 
@@ -101,7 +111,7 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({ onSubmit, isLoading = fal
         {/* Header Inside Card */}
         <div className="text-center mb-4">
           <h2 className="text-2xl font-bold text-white mb-2">
-            What did you do differently today?
+            What did you do today?
           </h2>
         </div>
         
@@ -174,9 +184,29 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({ onSubmit, isLoading = fal
         
         {/* Compact Info Inside Card */}
         <div className="text-center pt-2">
-          <p className="text-white/50 text-xs">
+          <p className="text-white/50 text-base mb-2">
             ✨ Uniqueness • 🤝 Commonality • 🌍 Anonymous
           </p>
+          
+          {/* Live Stats */}
+          {stats && (
+            <div className="flex items-center justify-center gap-4 text-xs text-white/40">
+              <span className="flex items-center gap-1">
+                <span>📝</span>
+                <span>{stats.today.totalPosts} today</span>
+              </span>
+              <span>•</span>
+              <span className="flex items-center gap-1">
+                <span>⭐</span>
+                <span>{stats.today.uniquePosts} unique</span>
+              </span>
+              <span>•</span>
+              <span className="flex items-center gap-1">
+                <span>🛡️</span>
+                <span>{stats.today.blockedPosts} blocked</span>
+              </span>
+            </div>
+          )}
         </div>
       </Card>
     </div>

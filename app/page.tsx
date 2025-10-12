@@ -5,10 +5,12 @@ import { EnhancedInput } from '@/components/EnhancedInput'
 import StarsBackground from '@/components/StarsBackground'
 import { useRouter } from 'next/navigation'
 import { useCreatePost } from '@/lib/hooks/usePosts'
+import { usePlatformStats } from '@/lib/hooks/useStats'
 
 export default function Home() {
   const router = useRouter()
   const { createPost, loading, error } = useCreatePost()
+  const { stats } = usePlatformStats()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [moderationError, setModerationError] = useState<string | null>(null)
 
@@ -99,6 +101,7 @@ export default function Home() {
                 onSubmit={handleSubmit} 
                 isLoading={isSubmitting}
                 error={moderationError}
+                stats={stats}
               />
               
               <div className="flex justify-center">
