@@ -69,35 +69,30 @@ export async function getGhostPosts(count: number = 10): Promise<GhostPost[]> {
 /**
  * Inject ghost posts into feed when user posts are low
  * 
- * Strategy:
- * - If < 10 real posts: Add 10-15 ghost posts
- * - If 10-20 real posts: Add 5-10 ghost posts
- * - If 20+ real posts: Add 0-5 ghost posts
+ * Strategy (UPDATED for more variety):
+ * - If < 10 real posts: Add 30-40 ghost posts
+ * - If 10-30 real posts: Add 15-25 ghost posts
+ * - If 30+ real posts: Add 5-10 ghost posts
  */
 export async function injectGhostPosts<T extends { id: string | number }>(
   realPosts: T[],
-  minPosts: number = 20
+  minPosts: number = 40
 ): Promise<(T | GhostPost)[]> {
   const realCount = realPosts.length
   
-  if (realCount >= minPosts) {
-    // Enough real posts, maybe add a few ghosts for variety
-    const ghostCount = Math.floor(Math.random() * 3) + 1 // 1-3 ghosts
-    const ghosts = await getGhostPosts(ghostCount)
-    
-    // Interleave ghosts randomly
-    const combined = [...realPosts]
-    ghosts.forEach(ghost => {
-      const randomIndex = Math.floor(Math.random() * (combined.length + 1))
-      combined.splice(randomIndex, 0, ghost as any)
-    })
-    
-    return combined
+  // Calculate how many ghost posts to add based on real post count
+  let ghostCount: number
+  
+  if (realCount < 10) {
+    ghostCount = Math.floor(Math.random() * 11) + 30 // 30-40 ghosts
+  } else if (realCount < 30) {
+    ghostCount = Math.floor(Math.random() * 11) + 15 // 15-25 ghosts
+  } else if (realCount < 50) {
+    ghostCount = Math.floor(Math.random() * 6) + 5 // 5-10 ghosts
+  } else {
+    ghostCount = Math.floor(Math.random() * 3) + 2 // 2-4 ghosts (minimal)
   }
   
-  // Need more posts
-  const needed = minPosts - realCount
-  const ghostCount = Math.min(needed + 5, 15) // Add extra for variety
   const ghosts = await getGhostPosts(ghostCount)
   
   // Mix real and ghost posts

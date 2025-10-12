@@ -21,7 +21,7 @@ export interface TrendingItem {
  */
 export async function getRedditTrending(): Promise<TrendingItem[]> {
   try {
-    const response = await fetch('https://www.reddit.com/r/all/hot.json?limit=25', {
+    const response = await fetch('https://www.reddit.com/r/all/hot.json?limit=100', {
       headers: { 
         'User-Agent': 'OnlyOne.today/1.0'
       }
@@ -35,7 +35,7 @@ export async function getRedditTrending(): Promise<TrendingItem[]> {
     
     return data.data.children
       .filter((post: any) => post.data.ups > 500) // Only popular posts
-      .slice(0, 10)
+      .slice(0, 50) // Take 50 instead of 10
       .map((post: any) => {
         // Shorten title if too long
         let title = post.data.title
@@ -94,17 +94,17 @@ export async function getSpotifyTrending(): Promise<TrendingItem[]> {
       throw new Error('No chart entries found')
     }
     
-    return entries.slice(0, 10).map((entry: any, index: number) => {
+    return entries.slice(0, 50).map((entry: any, index: number) => {
       const trackName = entry.trackMetadata?.trackName || 'Unknown Track'
       const artistName = entry.trackMetadata?.artists?.[0]?.name || entry.trackMetadata?.artistName || 'Unknown Artist'
       
       // Estimate streams based on chart position (higher = more streams)
-      // Position 1 = ~15M, Position 10 = ~10M
-      const estimatedStreams = Math.floor((15000000 - (index * 500000)) * (Math.random() * 0.3 + 0.85))
+      // Position 1 = ~15M, Position 50 = ~5M
+      const estimatedStreams = Math.floor((15000000 - (index * 200000)) * (Math.random() * 0.3 + 0.85))
       
       return {
         content: `Listening to "${trackName}" by ${artistName}`,
-        count: estimatedStreams,
+        count: Math.max(estimatedStreams, 3000000), // Minimum 3M
         source: 'spotify' as const
       }
     })
@@ -188,8 +188,7 @@ export async function getGoogleTrends(): Promise<TrendingItem[]> {
   } catch (error) {
     console.log('⚠️ Google Trends API unavailable, using curated trending topics')
     
-    // Fallback: Curated list of likely trending topics
-    // This ensures we always have some "Google" trends even if API fails
+    // Fallback: Curated trending topics (expanded list)
     const curatedTopics = [
       { query: 'AI and ChatGPT', count: 5000000 },
       { query: 'Taylor Swift', count: 3000000 },
@@ -201,11 +200,16 @@ export async function getGoogleTrends(): Promise<TrendingItem[]> {
       { query: 'YouTube trending', count: 3000000 },
       { query: 'NBA scores', count: 1500000 },
       { query: 'Stock market today', count: 2200000 },
+      { query: 'Celebrity news', count: 2800000 },
+      { query: 'Recipes', count: 3200000 },
+      { query: 'Travel deals', count: 1900000 },
+      { query: 'Fitness tips', count: 2100000 },
+      { query: 'Tech news', count: 2400000 },
     ]
     
-    // Shuffle and return 3-5 random ones
+    // Shuffle and return 10-15 random ones
     const shuffled = curatedTopics.sort(() => Math.random() - 0.5)
-    const count = Math.floor(Math.random() * 3) + 3 // 3-5 topics
+    const count = Math.floor(Math.random() * 6) + 10 // 10-15 topics
     
     return shuffled.slice(0, count).map(topic => ({
       content: `Searching for "${topic.query}"`,
