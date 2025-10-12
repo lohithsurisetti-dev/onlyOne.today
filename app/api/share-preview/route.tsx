@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit, getIP, RateLimitPresets, createRateLimitResponse } from '@/lib/utils/rate-limit'
+import { detectVibeSync } from '@/lib/services/vibe-detector'
 
 export async function GET(request: NextRequest) {
   // Rate limiting
@@ -19,6 +20,10 @@ export async function GET(request: NextRequest) {
   const message = searchParams.get('message') || 'While the world followed the trend, I did something truly unique.'
   const scope = searchParams.get('scope') || 'world'
   const inputType = searchParams.get('inputType') || 'action'
+  const vibeParam = searchParams.get('vibe')
+  
+  // Detect vibe if not provided
+  const vibe = vibeParam || detectVibeSync(content)
   
   const isUnique = type === 'uniqueness'
   
@@ -192,6 +197,20 @@ export async function GET(request: NextRequest) {
       font-size: 14px;
       color: rgba(255, 255, 255, 0.7);
     }
+    
+    .vibe-badge {
+      position: absolute;
+      top: 40px;
+      left: 40px;
+      padding: 10px 20px;
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(236, 72, 153, 0.3));
+      border: 1px solid rgba(139, 92, 246, 0.4);
+      border-radius: 50px;
+      font-size: 16px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+    }
   </style>
 </head>
 <body>
@@ -200,6 +219,8 @@ export async function GET(request: NextRequest) {
     <div class="glow"></div>
     
     <div class="logo">OnlyOne.today</div>
+    
+    ${vibe ? `<div class="vibe-badge">${vibe}</div>` : ''}
     
     <div class="scope-info">
       <span>${scope === 'world' ? '🌍' : scope === 'country' ? '🏳️' : scope === 'state' ? '🏛️' : '🏙️'}</span>

@@ -212,6 +212,7 @@ function ResponseContent() {
         rank={rank}
         scope={scope}
         inputType={inputType}
+        vibe={vibe}
       />
     </div>
   )

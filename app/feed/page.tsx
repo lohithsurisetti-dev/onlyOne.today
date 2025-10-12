@@ -6,6 +6,7 @@ import StarsBackground from '@/components/StarsBackground'
 import ShareModal from '@/components/ShareModal'
 import { useRecentPosts } from '@/lib/hooks/usePosts'
 import { getShareMessage } from '@/lib/services/witty-messages'
+import { detectVibeSync } from '@/lib/services/vibe-detector'
 
 // Helper function to format time ago
 function formatTimeAgo(date: Date): string {
@@ -541,6 +542,7 @@ export default function FeedPage() {
           }
           scope="world"
           inputType="action"
+          vibe={detectVibeSync(selectedPost.content)}
         />
       )}
     </div>
