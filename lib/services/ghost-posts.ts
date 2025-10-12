@@ -26,175 +26,7 @@ let lastFetch = 0
 const CACHE_DURATION = 10 * 60 * 1000 // 10 minutes
 
 /**
- * Curated ghost posts (fallback when APIs aren't available)
- * Updated periodically with real trending data
- */
-const CURATED_GHOST_POSTS: Omit<GhostPost, 'id'>[] = [
-  // Music trending
-  {
-    content: "Streamed Ordinary by Taylor Swift on repeat",
-    type: 'ghost',
-    source: 'spotify',
-    peopleCount: 2300000,
-    uniqueness: 0,
-    vibe: '🎵 Music Lover',
-    isGhost: true,
-  },
-  {
-    content: "Added latest Drake album to playlist",
-    type: 'ghost',
-    source: 'spotify',
-    peopleCount: 1800000,
-    uniqueness: 0,
-    vibe: '🎵 Music Lover',
-    isGhost: true,
-  },
-  
-  // Social media trending
-  {
-    content: "Scrolled Instagram for 2+ hours",
-    type: 'ghost',
-    source: 'curated',
-    peopleCount: 4500000,
-    uniqueness: 0,
-    vibe: '😴 Procrastinator',
-    isGhost: true,
-  },
-  {
-    content: "Posted a story on Instagram",
-    type: 'ghost',
-    source: 'curated',
-    peopleCount: 3200000,
-    uniqueness: 0,
-    vibe: '🤝 Social Butterfly',
-    isGhost: true,
-  },
-  {
-    content: "Watched TikTok videos for hours",
-    type: 'ghost',
-    source: 'curated',
-    peopleCount: 5100000,
-    uniqueness: 0,
-    vibe: '💤 Chill Vibes',
-    isGhost: true,
-  },
-  
-  // Food delivery
-  {
-    content: "Ordered food delivery instead of cooking",
-    type: 'ghost',
-    source: 'curated',
-    peopleCount: 2700000,
-    uniqueness: 0,
-    vibe: '🍳 Foodie Chef',
-    isGhost: true,
-  },
-  {
-    content: "Had coffee from Starbucks",
-    type: 'ghost',
-    source: 'curated',
-    peopleCount: 3800000,
-    uniqueness: 0,
-    vibe: '☕ Coffee Addict',
-    isGhost: true,
-  },
-  
-  // Entertainment
-  {
-    content: "Binge-watched Netflix series",
-    type: 'ghost',
-    source: 'curated',
-    peopleCount: 4200000,
-    uniqueness: 0,
-    vibe: '🏠 Homebody',
-    isGhost: true,
-  },
-  {
-    content: "Watched YouTube videos before bed",
-    type: 'ghost',
-    source: 'youtube',
-    peopleCount: 6100000,
-    uniqueness: 0,
-    vibe: '🌙 Night Owl',
-    isGhost: true,
-  },
-  
-  // Work/productivity
-  {
-    content: "Checked work emails on weekend",
-    type: 'ghost',
-    source: 'curated',
-    peopleCount: 1200000,
-    uniqueness: 0,
-    vibe: '🚀 Productivity Beast',
-    isGhost: true,
-  },
-  {
-    content: "Attended Zoom meetings from home",
-    type: 'ghost',
-    source: 'curated',
-    peopleCount: 2900000,
-    uniqueness: 0,
-    vibe: '🏠 Homebody',
-    isGhost: true,
-  },
-  
-  // Sports/events
-  {
-    content: "Watched the game on TV",
-    type: 'ghost',
-    source: 'curated',
-    peopleCount: 3400000,
-    uniqueness: 0,
-    vibe: '🤝 Social Butterfly',
-    isGhost: true,
-  },
-  
-  // Shopping
-  {
-    content: "Online shopping for hours",
-    type: 'ghost',
-    source: 'curated',
-    peopleCount: 2100000,
-    uniqueness: 0,
-    vibe: '✈️ Wanderlust',
-    isGhost: true,
-  },
-  
-  // Tech
-  {
-    content: "Used ChatGPT to write something",
-    type: 'ghost',
-    source: 'google-trends',
-    peopleCount: 1900000,
-    uniqueness: 0,
-    vibe: '🚀 Productivity Beast',
-    isGhost: true,
-  },
-  {
-    content: "Googled 'how to...' for basic things",
-    type: 'ghost',
-    source: 'google-trends',
-    peopleCount: 8700000,
-    uniqueness: 0,
-    vibe: '✨ Free Spirit',
-    isGhost: true,
-  },
-  
-  // Sleep
-  {
-    content: "Hit snooze 5 times this morning",
-    type: 'ghost',
-    source: 'curated',
-    peopleCount: 4800000,
-    uniqueness: 0,
-    vibe: '😴 Procrastinator',
-    isGhost: true,
-  },
-]
-
-/**
- * Get random ghost posts from real trending data (with fallback)
+ * Get random ghost posts from REAL trending data ONLY
  */
 export async function getGhostPosts(count: number = 10): Promise<GhostPost[]> {
   const now = Date.now()
@@ -208,35 +40,29 @@ export async function getGhostPosts(count: number = 10): Promise<GhostPost[]> {
       console.log(`✅ Cached ${trendingCache.length} trending items`)
     } catch (error) {
       console.error('❌ Failed to fetch trending data:', error)
-      // Keep using old cache or fall back to curated
+      // If fetch fails, return empty array (no fallback to static)
+      return []
     }
   }
   
-  // Use trending data if available, otherwise use curated fallback
-  if (trendingCache.length > 0) {
-    // Shuffle and select from trending cache
-    const shuffled = [...trendingCache].sort(() => Math.random() - 0.5)
-    const selected = shuffled.slice(0, count)
-    
-    return selected.map((trend, index) => ({
-      id: `ghost-${now}-${index}`,
-      content: trend.content,
-      type: 'ghost' as const,
-      source: trend.source,
-      peopleCount: trend.count,
-      uniqueness: 0,
-      isGhost: true,
-    }))
+  // Use only real trending data (no static fallback)
+  if (trendingCache.length === 0) {
+    console.log('⚠️ No trending data available')
+    return []
   }
   
-  // Fallback to curated posts
-  console.log('⚠️ Using curated fallback posts')
-  const shuffled = [...CURATED_GHOST_POSTS].sort(() => Math.random() - 0.5)
-  const unique = shuffled.slice(0, Math.min(count, CURATED_GHOST_POSTS.length))
+  // Shuffle and select from trending cache
+  const shuffled = [...trendingCache].sort(() => Math.random() - 0.5)
+  const selected = shuffled.slice(0, count)
   
-  return unique.map((post, index) => ({
-    ...post,
+  return selected.map((trend, index) => ({
     id: `ghost-${now}-${index}`,
+    content: trend.content,
+    type: 'ghost' as const,
+    source: trend.source,
+    peopleCount: trend.count,
+    uniqueness: 0,
+    isGhost: true,
   }))
 }
 
@@ -307,4 +133,5 @@ export function formatGhostPost(ghost: GhostPost) {
 export function isGhostPost(post: any): post is GhostPost {
   return post.isGhost === true || post.id?.toString().startsWith('ghost-')
 }
+
 
