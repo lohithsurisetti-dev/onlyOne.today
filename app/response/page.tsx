@@ -6,6 +6,8 @@ import StarsBackground from '@/components/StarsBackground'
 import Button from '@/components/ui/Button'
 import ShareModal from '@/components/ShareModal'
 import type { CreatePostResult } from '@/lib/hooks/usePosts'
+import { detectVibeSync } from '@/lib/services/vibe-detector'
+import { getWittyResponse, getWittyRank, getVibeCelebration } from '@/lib/services/witty-messages'
 
 function ResponseContent() {
   const searchParams = useSearchParams()
@@ -17,6 +19,7 @@ function ResponseContent() {
   const [showShareModal, setShowShareModal] = useState(false)
   const [postResult, setPostResult] = useState<CreatePostResult | null>(null)
   const [shareType, setShareType] = useState<'uniqueness' | 'commonality'>('uniqueness')
+  const [vibe, setVibe] = useState<string>('')
   
   // Load post result from sessionStorage
   useEffect(() => {
@@ -25,6 +28,14 @@ function ResponseContent() {
       setPostResult(JSON.parse(storedResult))
     }
   }, [])
+  
+  // Detect vibe
+  useEffect(() => {
+    if (content) {
+      const detectedVibe = detectVibeSync(content)
+      setVibe(detectedVibe)
+    }
+  }, [content])
   
   const getScopeText = (scope: string) => {
     switch (scope) {
@@ -52,15 +63,17 @@ function ResponseContent() {
   
   const isUnique = uniquenessScore >= 70
   
-  const message = matchCount === 0 
-    ? `You're the only one ${getScopeText(scope)} who did this today! ✨`
-    : `You're one of ${similarCount} people ${getScopeText(scope)} who did this! ✨`
+  // Use witty messages!
+  const message = getWittyResponse({
+    uniquenessScore,
+    matchCount,
+    vibe,
+    scope,
+  })
   
-  const rank = uniquenessScore >= 90 
-    ? `Top 1% most unique ${getScopeText(scope)}`
-    : uniquenessScore >= 70
-      ? `Top 10% most unique ${getScopeText(scope)}`
-      : `Common ${getScopeText(scope)}`
+  const rank = getWittyRank(uniquenessScore, scope)
+  
+  const vibeCelebration = vibe ? getVibeCelebration(vibe) : ''
   
   const handleShare = () => {
     setShowShareModal(true)
@@ -79,6 +92,15 @@ function ResponseContent() {
             Your Result ✨
           </h1>
           
+          {/* Vibe Badge - Hero */}
+          {vibe && (
+            <div className="flex justify-center mb-4">
+              <div className="px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full border border-purple-400/30 backdrop-blur-sm">
+                <span className="text-sm font-medium text-white">{vibe}</span>
+              </div>
+            </div>
+          )}
+          
           {/* Scope & Type Badges */}
           <div className="flex items-center justify-center gap-2 mb-6">
             <span className="text-sm px-3 py-1 bg-white/10 rounded-full text-white/80 flex items-center gap-1">
@@ -91,9 +113,16 @@ function ResponseContent() {
           </div>
 
           {/* Content */}
-          <h2 className="text-2xl font-bold text-white text-center mb-8">
+          <h2 className="text-2xl font-bold text-white text-center mb-6">
             {content}
           </h2>
+          
+          {/* Vibe Celebration */}
+          {vibeCelebration && (
+            <p className="text-center text-purple-300/80 text-sm italic mb-6">
+              {vibeCelebration}
+            </p>
+          )}
 
           {/* Toggle Buttons */}
           <div className="flex gap-2 mb-6">

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import StarsBackground from '@/components/StarsBackground'
 import ShareModal from '@/components/ShareModal'
 import { useRecentPosts } from '@/lib/hooks/usePosts'
+import { getShareMessage } from '@/lib/services/witty-messages'
 
 // Helper function to format time ago
 function formatTimeAgo(date: Date): string {
@@ -197,25 +198,13 @@ export default function FeedPage() {
     setShareModalOpen(true)
   }
   
-  // Generate viral share message based on post type
-  const getShareMessage = (post: DisplayPost) => {
-    if (post.type === 'unique') {
-      const messages = [
-        `I dare you to beat this ${post.score}% uniqueness! Can you? 🔥`,
-        `Challenge accepted? This is ${post.score}% unique - try to top it! ✨`,
-        `Only the brave try this... ${post.score}% uniqueness 💪`,
-        `Think you're unique? Beat this ${post.score}% score! 🎯`,
-      ]
-      return messages[Math.floor(Math.random() * messages.length)]
-    } else {
-      const messages = [
-        `${post.count} people did this. Join the club or do something different? 🤔`,
-        `Part of the ${post.count} who did this. What did YOU do? 👥`,
-        `${post.count} people can't be wrong... or can they? 😏`,
-        `Everyone's doing this (${post.count} people). Dare to be different? ✨`,
-      ]
-      return messages[Math.floor(Math.random() * messages.length)]
-    }
+  // Generate viral share message using witty library
+  const getShareMessageForPost = (post: DisplayPost) => {
+    return getShareMessage({
+      uniquenessScore: post.score || 0,
+      matchCount: post.count || 0,
+      isDare: true, // Always use dare style for feed shares
+    })
   }
   
   // Handle reactions with client-side throttling
@@ -544,7 +533,7 @@ export default function FeedPage() {
           content={selectedPost.content}
           score={selectedPost.type === 'unique' ? (selectedPost.score || 0) : (selectedPost.count || 0)}
           type={selectedPost.type === 'unique' ? 'uniqueness' : 'commonality'}
-          message={getShareMessage(selectedPost)}
+          message={getShareMessageForPost(selectedPost)}
           rank={
             selectedPost.type === 'unique'
               ? `${selectedPost.score}% Unique`
