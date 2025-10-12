@@ -50,7 +50,10 @@ interface PostCardProps {
 }
 
 const PostCard = React.memo(({ post, onReact, onShare, userReactions }: PostCardProps) => {
-  const isUnique = post.type === 'unique'
+  const uniquenessScore = post.score || 0
+  const commonalityScore = 100 - uniquenessScore
+  const matchCount = post.count || 0
+  
   const [reactions, setReactions] = useState({
     funny: post.funny_count || 0,
     creative: post.creative_count || 0,
@@ -71,13 +74,20 @@ const PostCard = React.memo(({ post, onReact, onShare, userReactions }: PostCard
     }
   }
   
+  // Determine gradient based on dominant trait
+  const getCardStyle = () => {
+    if (uniquenessScore >= 70) {
+      return 'bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-purple-400/30 hover:border-purple-400/60'
+    } else if (commonalityScore >= 70) {
+      return 'bg-gradient-to-br from-blue-900/30 to-cyan-900/30 border-blue-400/30 hover:border-blue-400/60'
+    } else {
+      return 'bg-gradient-to-br from-gray-900/30 to-slate-900/30 border-gray-400/30 hover:border-gray-400/60'
+    }
+  }
+  
   return (
     <div
-      className={`group relative rounded-2xl p-4 backdrop-blur-md border transition-all duration-300 hover:scale-105 hover:shadow-xl ${
-        isUnique
-          ? 'bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-purple-400/30 hover:border-purple-400/60'
-          : 'bg-gradient-to-br from-blue-900/30 to-cyan-900/30 border-blue-400/30 hover:border-blue-400/60'
-      }`}
+      className={`group relative rounded-2xl p-4 backdrop-blur-md border transition-all duration-300 hover:scale-105 hover:shadow-xl ${getCardStyle()}`}
     >
       {/* Share Button - Top Right */}
       <button
@@ -98,22 +108,20 @@ const PostCard = React.memo(({ post, onReact, onShare, userReactions }: PostCard
         {post.content}
       </p>
       
-      {/* Footer */}
-      <div className="flex items-center justify-between text-xs text-white/60 mb-2">
-        <span className="flex items-center gap-1">
-          {isUnique ? (
-            <>
-              <span>✨</span>
-              <span>Unique {post.score}%</span>
-            </>
-          ) : (
-            <>
-              <span>👥</span>
-              <span>{post.count} people</span>
-            </>
-          )}
-        </span>
-        <span>{post.time}</span>
+      {/* Footer - Show Both Metrics */}
+      <div className="flex items-center justify-between text-xs mb-2">
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1 text-purple-300/80">
+            <span>✨</span>
+            <span className="font-medium">{uniquenessScore}%</span>
+          </span>
+          <span className="text-white/30">·</span>
+          <span className="flex items-center gap-1 text-blue-300/80">
+            <span>👥</span>
+            <span className="font-medium">{matchCount}</span>
+          </span>
+        </div>
+        <span className="text-white/50">{post.time}</span>
       </div>
       
       {/* Reactions */}
