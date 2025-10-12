@@ -45,6 +45,7 @@ interface DisplayPost {
   must_try_count?: number
   total_reactions?: number
   isGhost?: boolean
+  source?: string
 }
 
 interface PostCardProps {
@@ -71,6 +72,21 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
   // Determine if content needs truncation
   const needsTruncation = post.content.length > 80
   const displayContent = expanded || !needsTruncation ? post.content : post.content.substring(0, 80) + '...'
+  
+  // Get source icon for ghost posts
+  const getSourceIcon = (source?: string) => {
+    const icons: Record<string, string> = {
+      'spotify': '🎵',
+      'reddit': '💬',
+      'google': '🔍',
+      'github': '💻',
+      'youtube': '📺',
+      'twitter': '🐦',
+      'instagram': '📸',
+      'curated': '✨',
+    }
+    return icons[source || ''] || '🌍'
+  }
   
   const handleReaction = async (reactionType: 'funny' | 'creative' | 'must_try') => {
     // Ghost posts can't be reacted to
@@ -127,6 +143,15 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
       {/* Content - Center Aligned */}
       <div className="flex-1 flex items-center justify-center">
         <div>
+          {/* Source Icon for Ghost Posts */}
+          {isGhost && post.source && (
+            <div className="flex justify-center mb-2">
+              <span className="text-lg opacity-70">
+                {getSourceIcon(post.source)}
+              </span>
+            </div>
+          )}
+          
           <p className={`text-sm leading-snug text-center ${isGhost ? 'text-white/60 italic' : 'text-white/90'} group-hover:text-white`}>
             {displayContent}
           </p>

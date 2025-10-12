@@ -170,21 +170,6 @@ export default function GlobalPulse({ posts, className = '', currentFilter = 'al
               </div>
             )}
             
-            {/* Top Vibes */}
-            {stats.topVibes.length > 0 && (
-              <div>
-                <span className="text-white/70 text-xs block mb-2">Top Vibes Today:</span>
-                <div className="space-y-1.5">
-                  {stats.topVibes.slice(0, 3).map((vibe, i) => (
-                    <div key={i} className="flex items-center justify-between text-sm">
-                      <span className="text-white/80">{vibe.vibe}</span>
-                      <span className="text-white/50">{vibe.count}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            
             {/* Empty State */}
             {stats.totalPosts === 0 && (
               <div className="text-center py-4">

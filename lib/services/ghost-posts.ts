@@ -297,6 +297,7 @@ export function formatGhostPost(ghost: GhostPost) {
     must_try_count: 0,
     total_reactions: 0,
     isGhost: true,
+    source: ghost.source,
   }
 }
 
