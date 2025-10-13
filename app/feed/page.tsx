@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import StarsBackground from '@/components/StarsBackground'
 import ShareModal from '@/components/ShareModal'
 import GlobalPulse from '@/components/GlobalPulse'
+import FilterSheet from '@/components/FilterSheet'
 import { useRecentPosts } from '@/lib/hooks/usePosts'
 import { getShareMessage } from '@/lib/services/witty-messages'
 import { detectVibeSync } from '@/lib/services/vibe-detector'
@@ -220,8 +221,8 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
   
   return (
     <div
-      className={`group relative rounded-2xl p-3 backdrop-blur-md border transition-all duration-300 hover:scale-105 hover:shadow-xl flex flex-col justify-between ${getCardStyle()}`}
-      style={{ minHeight: '140px' }}
+      className={`group relative rounded-2xl p-4 md:p-3 backdrop-blur-md border transition-all duration-300 hover:scale-105 hover:shadow-xl flex flex-col justify-between ${getCardStyle()}`}
+      style={{ minHeight: '160px' }}
     >
       {/* Source Icon for Ghost Posts - Top Center (Fixed Position) */}
       {isGhost && post.source && (
@@ -236,10 +237,10 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
           e.stopPropagation()
           onShare?.(post)
         }}
-        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-sm"
+        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-3 md:p-2 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-sm min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 flex items-center justify-center"
         title="Share this post"
       >
-        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-5 h-5 md:w-4 md:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
         </svg>
       </button>
@@ -247,13 +248,13 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
       {/* Content - Center Aligned */}
       <div className="flex-1 flex items-center justify-center">
         <div className={isGhost ? 'mt-4' : ''}>
-          <p className={`text-sm leading-snug text-center ${isGhost ? 'text-white/60 italic' : 'text-white/90'} group-hover:text-white`}>
+          <p className={`text-base md:text-sm leading-relaxed md:leading-snug text-center ${isGhost ? 'text-white/60 italic' : 'text-white/90'} group-hover:text-white`}>
             {displayContent}
           </p>
           {needsTruncation && !expanded && (
             <button
               onClick={() => setExpanded(true)}
-              className="text-xs text-purple-300/70 hover:text-purple-300 mt-0.5 block mx-auto"
+              className="text-sm md:text-xs text-purple-300/70 hover:text-purple-300 mt-1 block mx-auto"
             >
               Read more
             </button>
@@ -284,19 +285,19 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
       {/* Reactions - Hidden for ghost posts */}
       {!isGhost && (
         <div className="flex items-center justify-between">
-        <div className="flex gap-1">
+        <div className="flex gap-1.5 md:gap-1">
           <button
             onClick={(e) => {
               e.stopPropagation()
               handleReaction('funny')
             }}
-            className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs transition-all ${
+            className={`flex items-center gap-1 px-2.5 py-1.5 md:px-1.5 md:py-0.5 rounded-full text-sm md:text-xs transition-all min-h-[44px] md:min-h-0 ${
               userReactions?.has(`${post.id}-funny`)
                 ? 'bg-yellow-500/40 scale-105'
                 : 'bg-white/5 hover:bg-yellow-500/20 hover:scale-105'
             }`}
           >
-            <span>😂</span>
+            <span className="text-base md:text-xs">😂</span>
             {reactions.funny > 0 && <span className="text-white/80">{reactions.funny}</span>}
           </button>
         
@@ -305,13 +306,13 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
             e.stopPropagation()
             handleReaction('creative')
           }}
-          className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs transition-all ${
+          className={`flex items-center gap-1 px-2.5 py-1.5 md:px-1.5 md:py-0.5 rounded-full text-sm md:text-xs transition-all min-h-[44px] md:min-h-0 ${
             userReactions?.has(`${post.id}-creative`)
               ? 'bg-purple-500/40 scale-105'
               : 'bg-white/5 hover:bg-purple-500/20 hover:scale-105'
           }`}
         >
-          <span>🎨</span>
+          <span className="text-base md:text-xs">🎨</span>
           {reactions.creative > 0 && <span className="text-white/80">{reactions.creative}</span>}
         </button>
         
@@ -320,13 +321,13 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
             e.stopPropagation()
             handleReaction('must_try')
           }}
-          className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs transition-all ${
+          className={`flex items-center gap-1 px-2.5 py-1.5 md:px-1.5 md:py-0.5 rounded-full text-sm md:text-xs transition-all min-h-[44px] md:min-h-0 ${
             userReactions?.has(`${post.id}-must_try`)
               ? 'bg-green-500/40 scale-105'
               : 'bg-white/5 hover:bg-green-500/20 hover:scale-105'
           }`}
         >
-          <span>🔥</span>
+          <span className="text-base md:text-xs">🔥</span>
           {reactions.must_try > 0 && <span className="text-white/80">{reactions.must_try}</span>}
         </button>
           </div>
@@ -363,6 +364,7 @@ export default function FeedPage() {
   const [trendingLoading, setTrendingLoading] = useState(false)
   const [trendingRefreshKey, setTrendingRefreshKey] = useState(0)
   const [trendingRetryAttempt, setTrendingRetryAttempt] = useState(0)
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false)
   
   const postsPerPage = 24
   
@@ -721,10 +723,64 @@ export default function FeedPage() {
       </button>
       
       <div className="relative z-10">
-        {/* Header - Compact */}
+        {/* Header - Mobile Responsive */}
         <header className="sticky top-0 z-30 backdrop-blur-xl bg-space-dark/80 border-b border-white/10">
           <div className="max-w-7xl mx-auto px-4 py-3">
-            <div className="flex items-center gap-4">
+            {/* Mobile: Compact Header */}
+            <div className="flex items-center gap-3 md:hidden">
+              {/* Back Button */}
+              <button
+                onClick={() => router.push('/')}
+                className="text-white/60 hover:text-white transition-colors shrink-0"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              
+              {/* Active Filter Chip */}
+              <div className="flex-1 flex items-center gap-2 overflow-x-auto hide-scrollbar">
+                <button
+                  onClick={() => setFilterSheetOpen(true)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all flex items-center gap-2 ${
+                    filter === 'all' ? 'bg-white/20 text-white border border-white/30' :
+                    filter === 'unique' ? 'bg-purple-500/30 text-white border border-purple-400/50' :
+                    filter === 'common' ? 'bg-blue-500/30 text-white border border-blue-400/50' :
+                    'bg-gradient-to-r from-orange-500/30 to-red-500/30 text-white border border-orange-400/50'
+                  }`}
+                >
+                  {filter === 'all' ? '📋 All' :
+                   filter === 'unique' ? '✨ Unique' :
+                   filter === 'common' ? '👥 Common' :
+                   '🔥 Trending'}
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                
+                {/* Location Chip */}
+                {userLocation && filter !== 'trending' && scopeFilter !== 'world' && (
+                  <span className="px-3 py-1.5 rounded-full text-xs bg-cyan-500/20 text-cyan-200 border border-cyan-400/30 whitespace-nowrap">
+                    📍 {scopeFilter === 'city' ? userLocation.city :
+                        scopeFilter === 'state' ? userLocation.state :
+                        userLocation.country}
+                  </span>
+                )}
+                
+                {/* Trending Loading Indicator */}
+                {trendingLoading && (
+                  <span className="px-3 py-1.5 rounded-full text-xs bg-orange-500/20 text-orange-200 border border-orange-400/30 whitespace-nowrap flex items-center gap-1.5">
+                    <svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Loading...
+                  </span>
+                )}
+              </div>
+            </div>
+            
+            {/* Desktop: Full Filters */}
+            <div className="hidden md:flex items-center gap-4">
               {/* Back Button - Left Aligned */}
               <button
                 onClick={() => router.push('/')}
@@ -1095,6 +1151,213 @@ export default function FeedPage() {
           isGhost={selectedPost.isGhost}
         />
       )}
+      
+      {/* Mobile Filter Sheet */}
+      <FilterSheet isOpen={filterSheetOpen} onClose={() => setFilterSheetOpen(false)}>
+        <h2 className="text-xl font-bold text-white mb-6">Filters</h2>
+        
+        {/* Type Filters */}
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-white/60 mb-3">Type</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => {
+                setFilter('all')
+                setFilterSheetOpen(false)
+              }}
+              className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                filter === 'all'
+                  ? 'bg-white/20 text-white border-2 border-white/40'
+                  : 'bg-white/5 text-white/70 border-2 border-white/10 hover:bg-white/10'
+              }`}
+            >
+              📋 All Posts
+            </button>
+            <button
+              onClick={() => {
+                setFilter('unique')
+                setFilterSheetOpen(false)
+              }}
+              className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                filter === 'unique'
+                  ? 'bg-purple-500/30 text-white border-2 border-purple-400/50'
+                  : 'bg-white/5 text-white/70 border-2 border-white/10 hover:bg-white/10'
+              }`}
+            >
+              ✨ Unique
+            </button>
+            <button
+              onClick={() => {
+                setFilter('common')
+                setFilterSheetOpen(false)
+              }}
+              className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                filter === 'common'
+                  ? 'bg-blue-500/30 text-white border-2 border-blue-400/50'
+                  : 'bg-white/5 text-white/70 border-2 border-white/10 hover:bg-white/10'
+              }`}
+            >
+              👥 Common
+            </button>
+            <button
+              onClick={() => {
+                setFilter('trending')
+                setFilterSheetOpen(false)
+              }}
+              className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                filter === 'trending'
+                  ? 'bg-gradient-to-r from-orange-500/30 to-red-500/30 text-white border-2 border-orange-400/50'
+                  : 'bg-white/5 text-white/70 border-2 border-white/10 hover:bg-white/10'
+              }`}
+            >
+              🔥 Trending
+            </button>
+          </div>
+        </div>
+        
+        {/* Scope Filters */}
+        {filter !== 'trending' && (
+          <div className="mb-6">
+            <h3 className="text-sm font-medium text-white/60 mb-3">Location Scope</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => {
+                  setScopeFilter('world')
+                  setFilterSheetOpen(false)
+                }}
+                className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                  scopeFilter === 'world'
+                    ? 'bg-cyan-500/30 text-white border-2 border-cyan-400/50'
+                    : 'bg-white/5 text-white/70 border-2 border-white/10 hover:bg-white/10'
+                }`}
+              >
+                🌏 Worldwide
+              </button>
+              
+              {!userLocation && (
+                <button
+                  onClick={() => {
+                    detectUserLocation()
+                    setFilterSheetOpen(false)
+                  }}
+                  className="px-4 py-3 rounded-xl text-sm font-medium bg-white/5 text-white/70 border-2 border-purple-400/30 hover:bg-purple-500/10 hover:border-purple-400/50 transition-all"
+                >
+                  📍 Detect Location
+                </button>
+              )}
+              
+              {userLocation?.country && (
+                <button
+                  onClick={() => {
+                    setScopeFilter('country')
+                    setFilterSheetOpen(false)
+                  }}
+                  className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                    scopeFilter === 'country'
+                      ? 'bg-cyan-500/30 text-white border-2 border-cyan-400/50'
+                      : 'bg-white/5 text-white/70 border-2 border-white/10 hover:bg-white/10'
+                  }`}
+                >
+                  🇺🇸 {userLocation.country}
+                </button>
+              )}
+              
+              {userLocation?.state && (
+                <button
+                  onClick={() => {
+                    setScopeFilter('state')
+                    setFilterSheetOpen(false)
+                  }}
+                  className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                    scopeFilter === 'state'
+                      ? 'bg-cyan-500/30 text-white border-2 border-cyan-400/50'
+                      : 'bg-white/5 text-white/70 border-2 border-white/10 hover:bg-white/10'
+                  }`}
+                >
+                  🏛️ {userLocation.state}
+                </button>
+              )}
+              
+              {userLocation?.city && (
+                <button
+                  onClick={() => {
+                    setScopeFilter('city')
+                    setFilterSheetOpen(false)
+                  }}
+                  className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                    scopeFilter === 'city'
+                      ? 'bg-cyan-500/30 text-white border-2 border-cyan-400/50'
+                      : 'bg-white/5 text-white/70 border-2 border-white/10 hover:bg-white/10'
+                  }`}
+                >
+                  🏙️ {userLocation.city}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+        
+        {/* Reaction Filters */}
+        {filter !== 'trending' && (
+          <div className="mb-2">
+            <h3 className="text-sm font-medium text-white/60 mb-3">Reactions</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => {
+                  setReactionFilter('all')
+                  setFilterSheetOpen(false)
+                }}
+                className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                  reactionFilter === 'all'
+                    ? 'bg-white/20 text-white border-2 border-white/40'
+                    : 'bg-white/5 text-white/70 border-2 border-white/10 hover:bg-white/10'
+                }`}
+              >
+                All Reactions
+              </button>
+              <button
+                onClick={() => {
+                  setReactionFilter('funny')
+                  setFilterSheetOpen(false)
+                }}
+                className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                  reactionFilter === 'funny'
+                    ? 'bg-yellow-500/30 text-white border-2 border-yellow-400/50'
+                    : 'bg-white/5 text-white/70 border-2 border-white/10 hover:bg-white/10'
+                }`}
+              >
+                😂 Funny
+              </button>
+              <button
+                onClick={() => {
+                  setReactionFilter('creative')
+                  setFilterSheetOpen(false)
+                }}
+                className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                  reactionFilter === 'creative'
+                    ? 'bg-purple-500/30 text-white border-2 border-purple-400/50'
+                    : 'bg-white/5 text-white/70 border-2 border-white/10 hover:bg-white/10'
+                }`}
+              >
+                🎨 Creative
+              </button>
+              <button
+                onClick={() => {
+                  setReactionFilter('must_try')
+                  setFilterSheetOpen(false)
+                }}
+                className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                  reactionFilter === 'must_try'
+                    ? 'bg-green-500/30 text-white border-2 border-green-400/50'
+                    : 'bg-white/5 text-white/70 border-2 border-white/10 hover:bg-white/10'
+                }`}
+              >
+                🔥 Must Try
+              </button>
+            </div>
+          </div>
+        )}
+      </FilterSheet>
     </div>
   )
 }
