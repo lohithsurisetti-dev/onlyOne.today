@@ -144,7 +144,9 @@ export async function findSimilarPosts(params: {
     .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
     .limit(limit) // Reduced from limit*2 for speed
 
-  // Apply scope filters
+  // Apply scope filters - IMPORTANT: Only compare within same scope!
+  query = query.eq('scope', scope) // Always filter by scope first
+  
   if (scope === 'city' && locationCity) {
     query = query.eq('location_city', locationCity)
   } else if (scope === 'state' && locationState) {
@@ -152,6 +154,9 @@ export async function findSimilarPosts(params: {
   } else if (scope === 'country' && locationCountry) {
     query = query.eq('location_country', locationCountry)
   }
+  // For 'world' scope: no location filter needed (scope filter is enough)
+
+  console.log(`🔍 Finding similar posts with scope='${scope}' within last 24h`)
 
   const { data: allPosts, error } = await query
 
