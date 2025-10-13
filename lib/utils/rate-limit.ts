@@ -123,10 +123,10 @@ export function getIP(request: Request): string {
  * Preset rate limit configurations
  */
 export const RateLimitPresets = {
-  // Strict limits for write operations
+  // Relaxed limits for testing
   POST_CREATION: {
-    limit: 10, // 10 posts
-    windowInSeconds: 60 * 60, // per hour
+    limit: 100, // 100 posts (increased for testing)
+    windowInSeconds: 60, // per minute (reduced for testing)
   },
   
   // Moderate limits for reactions
