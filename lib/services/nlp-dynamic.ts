@@ -48,14 +48,29 @@ export function generateDynamicHash(content: string, corpusContext?: string[]): 
   const taggedWords = posTagger.tag(tokens).taggedWords
   
   // 3. Extract only semantically important words (Nouns & Verbs)
+  // Temporal nouns that should be filtered (often misclassified as NN by POS tagger)
+  const temporalNouns = new Set([
+    'today', 'yesterday', 'tomorrow',
+    'morning', 'afternoon', 'evening', 'night',
+    'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+    'now', 'later', 'soon'
+  ])
+  
   const importantWords = taggedWords
     .filter(tw => {
       const tag = tw.tag
+      const word = tw.token.toLowerCase()
+      
+      // Filter out temporal nouns (even if tagged as NN)
+      if (temporalNouns.has(word)) {
+        return false
+      }
+      
       // Keep:
       // - NN* (all nouns: NN, NNS, NNP, NNPS)
       // - VB* (all verbs: VB, VBD, VBG, VBN, VBP, VBZ)
       // Filter out:
-      // - RB* (adverbs: really, today, yesterday, very)
+      // - RB* (adverbs: really, very, quickly)
       // - JJ* (adjectives: big, small, beautiful)
       // - DT (determiners: the, a, an)
       // - IN (prepositions: in, on, at)
