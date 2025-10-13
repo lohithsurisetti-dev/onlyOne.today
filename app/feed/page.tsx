@@ -55,12 +55,12 @@ interface DisplayPost {
   location_country?: string | null
   score?: number
   count?: number
+  source?: 'reddit' | 'spotify' | 'google' | 'github' | 'google-trends' | 'youtube' | 'twitter' | 'curated' | 'sports'
   funny_count?: number
   creative_count?: number
   must_try_count?: number
   total_reactions?: number
   isGhost?: boolean
-  source?: string
 }
 
 interface PostCardProps {
@@ -1248,14 +1248,91 @@ export default function FeedPage() {
           )}
             </div>
             
-            {/* Global Stats Sidebar (Desktop Only) */}
+            {/* Sidebar (Desktop Only) */}
             <aside className="hidden lg:block">
               <div className="sticky top-24">
-                <GlobalStatsCard 
-                  posts={allPosts} 
-                  currentFilter={filter}
-                  userLocation={userLocation}
-                />
+                {filter === 'trending' ? (
+                  /* Trending Info Card */
+                  <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 backdrop-blur-sm rounded-2xl border border-orange-400/20 shadow-xl p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-3 bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-xl">
+                        <svg className="w-6 h-6 text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-white">Trending Globally</h3>
+                        <p className="text-xs text-orange-200/60">What the world is talking about</p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {/* Top Trending Topics */}
+                      {currentPosts.length > 0 && (
+                        <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                          <div className="text-xs font-semibold text-orange-300 uppercase mb-3 flex items-center gap-2">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                            </svg>
+                            <span>Top Trending</span>
+                          </div>
+                          <div className="space-y-2">
+                            {currentPosts.slice(0, 5).map((post, index) => (
+                              <div key={post.id} className="flex items-start gap-2 text-xs">
+                                <span className="text-orange-400 font-bold shrink-0 mt-0.5">#{index + 1}</span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-white/80 truncate font-medium">{post.content}</div>
+                                  {post.source && (
+                                    <div className="text-white/40 text-[10px] mt-0.5 capitalize">{post.source.replace('-', ' ')}</div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Data Sources */}
+                      <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                        <div className="text-[10px] font-semibold text-white/50 uppercase mb-2">Data Sources</div>
+                        <div className="space-y-2 text-xs text-white/50">
+                          <div className="flex items-center gap-2">
+                            <svg className="w-3.5 h-3.5 text-orange-400" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M13.54 12a6.8 6.8 0 01-6.77 0L0 8.27v6.46A1.5 1.5 0 001.5 16.5h13A1.5 1.5 0 0016 14.73V8.27z"/>
+                            </svg>
+                            <span>Google Trends</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <svg className="w-3.5 h-3.5 text-orange-400" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm5.5 17.9l-4.2-2.5L9 17.9l.8-4.7L6.4 10l4.7-.7L13.2 5l2.1 4.3 4.7.7-3.4 3.2.9 4.7z"/>
+                            </svg>
+                            <span>Sports & Events</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <svg className="w-3.5 h-3.5 text-orange-400" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 2L2 7v10c0 5.5 3.8 10.7 10 12 6.2-1.3 10-6.5 10-12V7l-10-5z"/>
+                            </svg>
+                            <span>Real-time Data</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="text-xs text-white/40 text-center pt-2">
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+                          <span>Refreshes every 10 min</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* Regular Stats Card */
+                  <GlobalStatsCard 
+                    posts={allPosts} 
+                    currentFilter={filter}
+                    userLocation={userLocation}
+                  />
+                )}
               </div>
             </aside>
           </div>
