@@ -14,7 +14,7 @@ import * as cheerio from 'cheerio'
 export interface TrendingItem {
   content: string
   count: number
-  source: 'reddit' | 'github' | 'google' | 'spotify' | 'sports'
+  source: 'reddit' | 'github' | 'google' | 'spotify' | 'sports' | 'curated'
 }
 
 /**
