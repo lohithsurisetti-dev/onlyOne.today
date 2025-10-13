@@ -166,10 +166,10 @@ export default function Home() {
 
         {/* Header */}
         <header className="text-center pt-12 pb-8 px-4">
-          <h1 className="text-5xl font-bold text-white mb-3">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-3">
             OnlyOne.today
           </h1>
-          <p className="text-white/70 text-lg">
+          <p className="text-white/70 text-base sm:text-lg md:text-xl max-w-2xl mx-auto">
             While the world follows the trend, you did something no one else did.
           </p>
         </header>
@@ -200,10 +200,10 @@ export default function Home() {
               <div className="flex justify-center">
                 <button
                   onClick={() => router.push('/feed')}
-                  className="px-6 py-2.5 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 text-white/90 hover:text-white hover:border-purple-400/60 transition-all duration-300 backdrop-blur-sm hover:scale-105 inline-flex items-center space-x-2"
+                  className="px-8 py-3.5 md:px-6 md:py-2.5 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 text-white/90 hover:text-white hover:border-purple-400/60 transition-all duration-300 backdrop-blur-sm hover:scale-105 inline-flex items-center space-x-2 min-h-[50px] md:min-h-0"
                 >
-                  <span className="text-sm font-medium">Explore Feed</span>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span className="text-base md:text-sm font-medium">Explore Feed</span>
+                  <svg className="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                   </svg>
                 </button>
