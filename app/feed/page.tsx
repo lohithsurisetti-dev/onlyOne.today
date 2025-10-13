@@ -7,6 +7,7 @@ import ShareModal from '@/components/ShareModal'
 import GlobalPulse from '@/components/GlobalPulse'
 import FilterSheet from '@/components/FilterSheet'
 import { useRecentPosts } from '@/lib/hooks/usePosts'
+import { usePlatformStats } from '@/lib/hooks/useStats'
 import { getShareMessage } from '@/lib/services/witty-messages'
 import { detectVibeSync } from '@/lib/services/vibe-detector'
 import { formatGhostPost, isGhostPost } from '@/lib/services/ghost-posts'
@@ -350,6 +351,7 @@ PostCard.displayName = 'PostCard'
 
 export default function FeedPage() {
   const router = useRouter()
+  const { stats } = usePlatformStats() // Fetch live stats
   const [filter, setFilter] = useState<'all' | 'unique' | 'common' | 'trending'>('all')
   const [scopeFilter, setScopeFilter] = useState<'all' | 'city' | 'state' | 'country' | 'world'>('world')
   const [reactionFilter, setReactionFilter] = useState<'all' | 'funny' | 'creative' | 'must_try'>('all')
@@ -739,7 +741,7 @@ export default function FeedPage() {
               </button>
               
               {/* Active Filter Chip */}
-              <div className="flex-1 flex items-center gap-2 overflow-x-auto hide-scrollbar">
+              <div className="flex-1 flex items-center gap-2 overflow-x-auto hide-scrollbar justify-between">
                 <button
                   onClick={() => setFilterSheetOpen(true)}
                   className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all flex items-center gap-2 ${
@@ -775,6 +777,16 @@ export default function FeedPage() {
                     </svg>
                     Loading...
                   </span>
+                )}
+                
+                {/* Live Post Counter */}
+                {stats && (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 shrink-0">
+                    <svg className="w-3.5 h-3.5 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span className="text-xs font-medium text-white">{stats.today.totalPosts}</span>
+                  </div>
                 )}
               </div>
             </div>
@@ -1076,8 +1088,19 @@ export default function FeedPage() {
                 )}
               </button>
             </div>
-                  </div>
-                  </div>
+              </div>
+              
+              {/* Live Post Counter - Right Aligned */}
+              {stats && (
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 shrink-0">
+                  <svg className="w-4 h-4 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span className="text-sm font-medium text-white">{stats.today.totalPosts}</span>
+                  <span className="text-xs text-white/50">today</span>
+              </div>
+            )}
+            </div>
           </div>
         </header>
         
