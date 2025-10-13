@@ -144,19 +144,31 @@ export async function findSimilarPosts(params: {
     .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
     .limit(limit) // Reduced from limit*2 for speed
 
-  // Apply scope filters - IMPORTANT: Only compare within same scope!
-  query = query.eq('scope', scope) // Always filter by scope first
+  // Apply HIERARCHICAL scope filters
+  // Hierarchy: City → State → Country → World
+  // Lower scopes are NOT affected by higher scopes
+  // Higher scopes ARE affected by all lower scopes
   
   if (scope === 'city' && locationCity) {
-    query = query.eq('location_city', locationCity)
+    // City: Only compare with city posts in same city (most protected)
+    query = query.eq('scope', 'city').eq('location_city', locationCity)
+    console.log(`🔍 City scope: Only comparing with city='${locationCity}'`)
+    
   } else if (scope === 'state' && locationState) {
-    query = query.eq('location_state', locationState)
+    // State: Compare with state + city posts in that state
+    query = query.in('scope', ['state', 'city']).eq('location_state', locationState)
+    console.log(`🔍 State scope: Comparing with state + city in '${locationState}'`)
+    
   } else if (scope === 'country' && locationCountry) {
-    query = query.eq('location_country', locationCountry)
+    // Country: Compare with country + state + city posts in that country
+    query = query.in('scope', ['country', 'state', 'city']).eq('location_country', locationCountry)
+    console.log(`🔍 Country scope: Comparing with country + state + city in '${locationCountry}'`)
+    
+  } else if (scope === 'world') {
+    // World: Compare with EVERYTHING (all scopes)
+    // No scope filter - sees all posts globally
+    console.log(`🔍 World scope: Comparing with ALL posts globally`)
   }
-  // For 'world' scope: no location filter needed (scope filter is enough)
-
-  console.log(`🔍 Finding similar posts with scope='${scope}' within last 24h`)
 
   const { data: allPosts, error } = await query
 
