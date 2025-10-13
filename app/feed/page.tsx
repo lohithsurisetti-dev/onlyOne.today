@@ -231,13 +231,13 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
         </div>
       )}
       
-      {/* Share Button - Top Right */}
+      {/* Share Button - Top Right (Always visible on mobile, hover on desktop) */}
       <button
         onClick={(e) => {
           e.stopPropagation()
           onShare?.(post)
         }}
-        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-3 md:p-2 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-sm min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 flex items-center justify-center"
+        className="absolute top-2 right-2 opacity-70 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 transition-opacity p-3 md:p-2 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-sm min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 flex items-center justify-center"
         title="Share this post"
       >
         <svg className="w-5 h-5 md:w-4 md:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
