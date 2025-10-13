@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { NextRequest } from 'next/server'
 import { getGhostPosts } from '@/lib/services/ghost-posts'
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 // Server-side cache for trending posts (5 minutes)
 // We cache a LARGE pool (100 posts) so clients can rotate through them
 let cachedTrendingPool: any = null

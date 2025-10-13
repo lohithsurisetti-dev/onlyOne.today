@@ -23,26 +23,31 @@ export interface TrendingItem {
 export async function getRedditTrending(): Promise<TrendingItem[]> {
   try {
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 2000) // 2 second timeout
+    const timeout = setTimeout(() => controller.abort(), 3000) // 3 second timeout (increased)
     
     const response = await fetch('https://www.reddit.com/r/all/hot.json?limit=50', {
       headers: { 
-        'User-Agent': 'OnlyOne.today/1.0'
+        'User-Agent': 'Mozilla/5.0 (compatible; OnlyOne.today/1.0; +https://onlyone.today)'
       },
       signal: controller.signal,
-      // @ts-ignore - Next.js specific caching
-      next: { revalidate: 300 } // Cache for 5 minutes
+      cache: 'no-store' // Don't cache in production
     })
     
     clearTimeout(timeout)
     
     if (!response.ok) {
-      throw new Error(`Reddit API error: ${response.status}`)
+      console.log(`⚠️ Reddit API returned ${response.status}, skipping`)
+      return []
     }
     
     const data = await response.json()
     
-    return data.data.children
+    if (!data?.data?.children) {
+      console.log('⚠️ Reddit returned unexpected format')
+      return []
+    }
+    
+    const trends = data.data.children
       .filter((post: any) => post.data.ups > 500) // Only popular posts
       .slice(0, 30) // Take 30 for speed
       .map((post: any) => {
@@ -58,8 +63,11 @@ export async function getRedditTrending(): Promise<TrendingItem[]> {
           source: 'reddit' as const
         }
       })
+    
+    console.log(`✅ Reddit: ${trends.length} trends fetched`)
+    return trends
   } catch (error) {
-    console.error('❌ Reddit trending fetch failed:', error)
+    console.log('⚠️ Reddit fetch skipped (rate limited or timeout)')
     return []
   }
 }
@@ -392,6 +400,11 @@ export async function getAllTrendingData(): Promise<TrendingItem[]> {
   }
   
   console.log(`📊 Total trending items: ${allTrends.length}`)
+  
+  // If we got NO data from any source, this shouldn't happen due to fallbacks
+  if (allTrends.length === 0) {
+    console.error('🚨 CRITICAL: All trending sources failed! This should not happen.')
+  }
   
   // Shuffle for variety
   return allTrends.sort(() => Math.random() - 0.5)
