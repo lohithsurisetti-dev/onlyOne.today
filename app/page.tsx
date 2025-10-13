@@ -175,7 +175,7 @@ export default function Home() {
           
           {/* Live Post Counter - Exciting Badge */}
           {stats && (
-            <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+            <div className="absolute top-4 right-4 sm:top-20 sm:right-6">
               <div className="relative group">
                 {/* Pulsing Glow Effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full opacity-50 blur-xl animate-pulse"></div>
