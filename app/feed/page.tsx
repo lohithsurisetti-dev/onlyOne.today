@@ -4,9 +4,8 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import StarsBackground from '@/components/StarsBackground'
 import ShareModal from '@/components/ShareModal'
-import GlobalPulse from '@/components/GlobalPulse'
+import GlobalStatsCard from '@/components/GlobalStatsCard'
 import FilterSheet from '@/components/FilterSheet'
-import TimezoneLeaderboard from '@/components/TimezoneLeaderboard'
 import TimezonePills from '@/components/TimezonePills'
 import { useRecentPosts } from '@/lib/hooks/usePosts'
 import { usePlatformStats } from '@/lib/hooks/useStats'
@@ -1249,11 +1248,14 @@ export default function FeedPage() {
           )}
             </div>
             
-            {/* Global Pulse Sidebar (Desktop Only) */}
+            {/* Global Stats Sidebar (Desktop Only) */}
             <aside className="hidden lg:block">
-              <div className="sticky top-24 space-y-4">
-                <GlobalPulse posts={allPosts} currentFilter={filter} />
-                <TimezoneLeaderboard userLocation={userLocation} />
+              <div className="sticky top-24">
+                <GlobalStatsCard 
+                  posts={allPosts} 
+                  currentFilter={filter}
+                  userLocation={userLocation}
+                />
               </div>
             </aside>
           </div>

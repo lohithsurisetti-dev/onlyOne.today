@@ -46,8 +46,9 @@ export async function GET(request: NextRequest) {
       throw error
     }
     
-    // Calculate city rankings
+    // Calculate rankings
     const cityMap = new Map<string, number>()
+    const stateMap = new Map<string, number>()
     const countryMap = new Map<string, number>()
     
     todayPosts?.forEach(post => {
@@ -55,6 +56,11 @@ export async function GET(request: NextRequest) {
       if (post.location_city) {
         const cityKey = `${post.location_city}, ${post.location_state || post.location_country}`
         cityMap.set(cityKey, (cityMap.get(cityKey) || 0) + 1)
+      }
+      
+      // Count by state
+      if (post.location_state) {
+        stateMap.set(post.location_state, (stateMap.get(post.location_state) || 0) + 1)
       }
       
       // Count by country
@@ -69,26 +75,38 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.count - a.count)
       .map((item, index) => ({ ...item, rank: index + 1 }))
     
+    const stateRankings = Array.from(stateMap.entries())
+      .map(([state, count], index) => ({ state, count, rank: index + 1 }))
+      .sort((a, b) => b.count - a.count)
+      .map((item, index) => ({ ...item, rank: index + 1 }))
+    
     const countryRankings = Array.from(countryMap.entries())
       .map(([country, count], index) => ({ country, count, rank: index + 1 }))
       .sort((a, b) => b.count - a.count)
       .map((item, index) => ({ ...item, rank: index + 1 }))
     
     // Find user's ranks
-    const userCityKey = userCity ? `${userCity}, ${searchParams.get('userState') || searchParams.get('userCountry')}` : null
+    const userState = searchParams.get('userState')
+    const userCityKey = userCity ? `${userCity}, ${userState || userCountry}` : null
     const userCityRank = userCityKey ? cityRankings.find(c => c.city === userCityKey) : null
+    const userStateRank = userState ? stateRankings.find(s => s.state === userState) : null
     const userCountryRank = userCountry ? countryRankings.find(c => c.country === userCountry) : null
     
-    // Return top 3 + user's rank (if not in top 3)
-    const topCities = cityRankings.slice(0, 3)
-    const topCountries = countryRankings.slice(0, 3)
+    // Return top 5 + user's rank (if not in top 5)
+    const topCities = cityRankings.slice(0, 5)
+    const topStates = stateRankings.slice(0, 5)
+    const topCountries = countryRankings.slice(0, 5)
     
-    // Add user's rank if not in top 3
-    if (userCityRank && userCityRank.rank > 3) {
+    // Add user's rank if not in top 5
+    if (userCityRank && userCityRank.rank > 5 && !topCities.find(c => c.city === userCityKey)) {
       topCities.push(userCityRank)
     }
     
-    if (userCountryRank && userCountryRank.rank > 3) {
+    if (userStateRank && userStateRank.rank > 5 && !topStates.find(s => s.state === userState)) {
+      topStates.push(userStateRank)
+    }
+    
+    if (userCountryRank && userCountryRank.rank > 5 && !topCountries.find(c => c.country === userCountry)) {
       topCountries.push(userCountryRank)
     }
     
@@ -97,6 +115,11 @@ export async function GET(request: NextRequest) {
         top: topCities,
         userRank: userCityRank || null,
         total: cityRankings.length
+      },
+      states: {
+        top: topStates,
+        userRank: userStateRank || null,
+        total: stateRankings.length
       },
       countries: {
         top: topCountries,
