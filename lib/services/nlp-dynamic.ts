@@ -14,9 +14,15 @@ const stemmer = natural.PorterStemmer
 // TF-IDF for identifying important words
 const TfIdf = natural.TfIdf
 
+// POS Tagger for grammatical analysis (identifies nouns, verbs, etc.)
+const lexicon = new natural.Lexicon('EN', 'NN', 'N')
+const ruleSet = new natural.RuleSet('EN')
+const posTagger = new natural.BrillPOSTagger(lexicon, ruleSet)
+
 /**
- * Dynamic content hash generation using TF-IDF for importance weighting
- * NO static stopwords - learns importance from content itself!
+ * Dynamic content hash generation using POS tagging
+ * Grammatically identifies important words (nouns & verbs only)
+ * 100% dynamic - no static lists!
  */
 export function generateDynamicHash(content: string, corpusContext?: string[]): {
   exact: string
@@ -28,45 +34,51 @@ export function generateDynamicHash(content: string, corpusContext?: string[]): 
   // 1. Tokenize (split into words)
   const tokens = tokenizer.tokenize(content.toLowerCase()) || []
   
-  // 2. Stem words first (normalize verb forms)
-  const stems = tokens
-    .filter(token => token.length > 2) // Only filter by length
-    .map(token => stemmer.stem(token))
-  
-  // 3. Calculate word importance using position + frequency
-  // Words that appear early AND are less common = more important
-  const wordFrequency = new Map<string, number>()
-  stems.forEach(stem => {
-    wordFrequency.set(stem, (wordFrequency.get(stem) || 0) + 1)
-  })
-  
-  // 4. Weight words by:
-  // - Position (earlier = more important)
-  // - Rarity (less frequent in this content = more specific)
-  const weightedStems = Array.from(new Set(stems)).map((stem, index) => {
-    const positionWeight = 1.0 / (stems.indexOf(stem) + 1) // First occurrence = highest
-    const rarityWeight = 1.0 / (wordFrequency.get(stem) || 1) // Rare words = important
-    const combinedWeight = positionWeight * 0.7 + rarityWeight * 0.3
-    
+  if (tokens.length === 0) {
     return {
-      stem,
-      weight: combinedWeight,
-      position: stems.indexOf(stem)
+      exact: '',
+      stems: [],
+      signature: '',
+      keywords: [],
+      coreAction: ''
     }
-  })
+  }
   
-  // 5. Sort by importance and take top stems
-  const importantStems = weightedStems
-    .sort((a, b) => b.weight - a.weight)
-    .map(w => w.stem)
+  // 2. POS Tagging - identify grammatical roles
+  const taggedWords = posTagger.tag(tokens).taggedWords
   
-  // 6. Create core action (top 2 most important stems)
-  // These represent the essential meaning
-  const coreStems = importantStems.slice(0, 2)
+  // 3. Extract only semantically important words (Nouns & Verbs)
+  const importantWords = taggedWords
+    .filter(tw => {
+      const tag = tw.tag
+      // Keep:
+      // - NN* (all nouns: NN, NNS, NNP, NNPS)
+      // - VB* (all verbs: VB, VBD, VBG, VBN, VBP, VBZ)
+      // Filter out:
+      // - RB* (adverbs: really, today, yesterday, very)
+      // - JJ* (adjectives: big, small, beautiful)
+      // - DT (determiners: the, a, an)
+      // - IN (prepositions: in, on, at)
+      // - CC (conjunctions: and, but, or)
+      return tag.startsWith('NN') || tag.startsWith('VB')
+    })
+    .map(tw => tw.token)
+    .filter(word => word.length > 2) // Filter very short words
+  
+  // 4. Stem the important words (normalize verb forms)
+  const stems = importantWords.map(word => stemmer.stem(word))
+  
+  // 5. Remove duplicates and sort by first appearance
+  const uniqueStems = Array.from(new Set(stems))
+  
+  // 6. Create core action (first 2 stems = verb + noun typically)
+  // "watched cricket" → ["watch", "cricket"]
+  // "played cricket today" → ["play", "cricket"] (today filtered by POS)
+  const coreStems = uniqueStems.slice(0, 2)
   const coreAction = coreStems.sort().join(':')
   
-  // 7. Create full signature (top 5 stems for broader matching)
-  const signature = importantStems.slice(0, 5).sort().join(':')
+  // 7. Create full signature (all important stems for broader matching)
+  const signature = uniqueStems.slice(0, 5).sort().join(':')
   
   // 8. Exact hash (for perfect matches)
   const exact = content
@@ -75,8 +87,8 @@ export function generateDynamicHash(content: string, corpusContext?: string[]): 
     .replace(/\s+/g, ':')
     .substring(0, 100)
   
-  // 9. Keywords are all unique stems, sorted by importance
-  const keywords = importantStems.slice(0, 10)
+  // 9. Keywords are all unique stems, in order
+  const keywords = uniqueStems.slice(0, 10)
   
   return {
     exact,
