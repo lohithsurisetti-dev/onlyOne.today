@@ -478,7 +478,7 @@ export async function findSimilarPosts(params: {
 }
 
 /**
- * Get recent posts for the feed (OPTIMIZED)
+ * Get recent posts for the feed with REAL-TIME score calculation
  */
 export async function getRecentPosts(params: {
   filter?: 'all' | 'unique' | 'common'
@@ -495,13 +495,7 @@ export async function getRecentPosts(params: {
     .range(offset, offset + limit - 1)
     .limit(limit) // Explicit limit for speed
 
-  // Apply filter
-  if (filter === 'unique') {
-    query = query.gte('uniqueness_score', 70)
-  } else if (filter === 'common') {
-    query = query.lt('uniqueness_score', 70)
-  }
-
+  // Note: We'll recalculate scores after fetching, so filter is applied post-processing
   const { data, error } = await query
 
   if (error) {
@@ -509,7 +503,48 @@ export async function getRecentPosts(params: {
     throw new Error('Failed to get posts')
   }
 
-  return data || []
+  if (!data || data.length === 0) {
+    return []
+  }
+
+  // REAL-TIME SCORE CALCULATION:
+  // Recalculate scores based on CURRENT matches (not frozen scores)
+  const postsWithFreshScores = await Promise.all(
+    data.map(async (post) => {
+      // Count how many posts have the same content_hash (globally)
+      const { count, error: countError } = await supabase
+        .from('posts')
+        .select('id', { count: 'exact', head: true })
+        .eq('content_hash', post.content_hash)
+        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+
+      if (countError) {
+        console.error('Error counting matches:', countError)
+        return post // Return original if count fails
+      }
+
+      // Calculate fresh score based on actual current matches
+      // Subtract 1 because count includes the post itself
+      const actualMatches = (count || 1) - 1
+      const freshScore = calculateUniquenessScore(actualMatches)
+
+      return {
+        ...post,
+        match_count: actualMatches,
+        uniqueness_score: freshScore
+      }
+    })
+  )
+
+  // Apply filter AFTER recalculation
+  let filteredPosts = postsWithFreshScores
+  if (filter === 'unique') {
+    filteredPosts = postsWithFreshScores.filter(p => p.uniqueness_score >= 70)
+  } else if (filter === 'common') {
+    filteredPosts = postsWithFreshScores.filter(p => p.uniqueness_score < 70)
+  }
+
+  return filteredPosts
 }
 
 /**
