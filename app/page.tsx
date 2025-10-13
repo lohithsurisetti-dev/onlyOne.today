@@ -151,13 +151,13 @@ export default function Home() {
       <StarsBackground />
       
       <div className="relative z-10 min-h-screen flex flex-col">
-        {/* Top Bar with Install Button */}
-        <div className="absolute top-0 right-0 p-4 sm:p-6 z-20">
+        {/* Top Bar with Install Button - Mobile: Below header, Desktop: Top right */}
+        <div className="hidden sm:block absolute top-0 right-0 p-6 z-20">
           <div className="bg-white/5 backdrop-blur-sm rounded-full border border-white/10 px-4 py-2 hover:bg-white/10 transition-colors flex items-center gap-2">
             <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
             </svg>
-            <span className="text-white text-xs font-medium hidden sm:inline">Install app for more features</span>
+            <span className="text-white text-xs font-medium">Install app for more features</span>
             <button className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-full transition-colors border border-white/10">
               Install
             </button>
@@ -165,7 +165,7 @@ export default function Home() {
         </div>
 
         {/* Header */}
-        <header className="text-center pt-12 pb-8 px-4">
+        <header className="text-center pt-12 sm:pt-12 pb-6 sm:pb-8 px-4">
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-3">
             OnlyOne.today
           </h1>
