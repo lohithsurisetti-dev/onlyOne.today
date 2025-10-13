@@ -153,12 +153,15 @@ export default function Home() {
       <div className="relative z-10 min-h-screen flex flex-col">
         {/* Desktop: Install Button at Top Right */}
         <div className="hidden sm:block absolute top-0 right-0 p-6 z-20">
-          <button className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-sm rounded-full border border-purple-400/30 px-4 py-2 hover:bg-purple-500/30 hover:border-purple-400/60 transition-all flex items-center gap-2 hover:scale-105">
+          <div className="bg-white/5 backdrop-blur-sm rounded-full border border-white/10 px-4 py-2 hover:bg-white/10 transition-colors flex items-center gap-2">
             <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
             </svg>
-            <span className="text-white text-sm font-medium">Install • 5+ Features</span>
-          </button>
+            <span className="text-white text-xs font-medium">Install app for more features</span>
+            <button className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-full transition-colors border border-white/10">
+              Install
+            </button>
+          </div>
         </div>
 
         {/* Header */}
@@ -206,11 +209,11 @@ export default function Home() {
                 </button>
                 
                 {/* Install Button - Mobile: Next to Explore Feed, Desktop: Hidden (shown at top-right) */}
-                <button className="sm:hidden px-8 py-3.5 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 text-white hover:bg-purple-500/30 hover:border-purple-400/60 transition-all duration-300 backdrop-blur-sm hover:scale-105 inline-flex items-center justify-center space-x-2 min-h-[50px]">
+                <button className="sm:hidden px-6 py-3.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white hover:border-white/40 transition-all duration-300 backdrop-blur-sm hover:scale-105 inline-flex items-center justify-center space-x-2 min-h-[50px]">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
-                  <span className="text-base font-medium">Install • 5+ Features</span>
+                  <span className="text-sm font-medium">Install app for more exciting features</span>
                 </button>
               </div>
             </div>
