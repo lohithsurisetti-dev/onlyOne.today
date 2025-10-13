@@ -68,26 +68,12 @@ export async function getGhostPosts(count: number = 10): Promise<GhostPost[]> {
   
   // Return from cache immediately (stale cache is better than slow response)
   if (trendingCache.length === 0) {
-    console.log('⚠️ No trending data in cache, using emergency fallback')
+    console.error('🚨 CRITICAL: No trending data available - all APIs failed!')
+    console.log('📝 This should be rare. Check API health.')
     
-    // Emergency fallback: minimal curated items (only when ALL APIs fail)
-    const emergencyFallback: TrendingItem[] = [
-      { content: 'Listening to music on Spotify', count: 2500000, source: 'spotify' },
-      { content: 'Working out at the gym', count: 1800000, source: 'curated' },
-      { content: 'Cooking dinner', count: 3200000, source: 'curated' },
-      { content: 'Reading a book', count: 1500000, source: 'curated' },
-      { content: 'Taking a walk outside', count: 2000000, source: 'curated' },
-    ]
-    
-    return emergencyFallback.slice(0, count).map((trend, index) => ({
-      id: `ghost-emergency-${now}-${index}`,
-      content: trend.content,
-      type: 'ghost' as const,
-      source: trend.source,
-      peopleCount: trend.count,
-      uniqueness: 0,
-      isGhost: true,
-    }))
+    // Return empty - let the retry mechanism handle it
+    // Emergency fallback removed - we want real data only
+    return []
   }
   
   // Shuffle and select from trending cache
