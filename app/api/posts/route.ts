@@ -3,6 +3,7 @@ import { createPost, getRecentPosts } from '@/lib/services/posts'
 import { rateLimit, getIP, RateLimitPresets, createRateLimitResponse } from '@/lib/utils/rate-limit'
 import { sanitizeContent } from '@/lib/services/moderation'
 import { moderateWithOptions, trackModerationResult } from '@/lib/services/moderation-hybrid'
+import { validateContentQuality } from '@/lib/services/content-quality'
 import { 
   validateBodySize, 
   validateJSON, 
@@ -111,7 +112,27 @@ export async function POST(request: NextRequest) {
     // 7. Sanitize content (remove any HTML, extra whitespace, etc.)
     const sanitizedContent = sanitizeInput(sanitizeContent(content))
 
-    // 8. Validate input type enum
+    // 8. Check content quality (semantic coherence, spam patterns)
+    const qualityCheck = validateContentQuality(sanitizedContent)
+    if (!qualityCheck.allowed) {
+      console.log(`🚫 Low quality content rejected from IP ${ip}: ${qualityCheck.reason}`)
+      console.log(`   Quality score: ${qualityCheck.score}/100`)
+      console.log(`   Issues: ${qualityCheck.issues.join(', ')}`)
+      
+      return NextResponse.json(
+        { 
+          error: 'Content does not meet quality standards',
+          reason: qualityCheck.reason,
+          qualityScore: qualityCheck.score,
+          suggestion: 'Please post meaningful activities or experiences'
+        },
+        { status: 400 }
+      )
+    }
+    
+    console.log(`✅ Content quality check passed (${qualityCheck.score}/100)`)
+
+    // 9. Validate input type enum
     const inputTypeValidation = validateEnum(inputType, ['action', 'day'], 'inputType')
     if (!inputTypeValidation.valid) {
       return NextResponse.json(
