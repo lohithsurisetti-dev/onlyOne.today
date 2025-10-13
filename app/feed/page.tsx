@@ -1154,7 +1154,24 @@ export default function FeedPage() {
       
       {/* Mobile Filter Sheet */}
       <FilterSheet isOpen={filterSheetOpen} onClose={() => setFilterSheetOpen(false)}>
-        <h2 className="text-xl font-bold text-white mb-6">Filters</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-white">Filters</h2>
+          
+          {/* Clear All Button */}
+          {(filter !== 'all' || scopeFilter !== 'world' || reactionFilter !== 'all') && (
+            <button
+              onClick={() => {
+                setFilter('all')
+                setScopeFilter('world')
+                setReactionFilter('all')
+                setFilterSheetOpen(false)
+              }}
+              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white text-xs font-medium transition-all border border-white/10"
+            >
+              Clear All
+            </button>
+          )}
+        </div>
         
         {/* Type Filters */}
         <div className="mb-6">
@@ -1175,7 +1192,8 @@ export default function FeedPage() {
             </button>
             <button
               onClick={() => {
-                setFilter('unique')
+                // Toggle: if already selected, go back to 'all'
+                setFilter(filter === 'unique' ? 'all' : 'unique')
                 setFilterSheetOpen(false)
               }}
               className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
@@ -1188,7 +1206,8 @@ export default function FeedPage() {
             </button>
             <button
               onClick={() => {
-                setFilter('common')
+                // Toggle: if already selected, go back to 'all'
+                setFilter(filter === 'common' ? 'all' : 'common')
                 setFilterSheetOpen(false)
               }}
               className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
@@ -1201,7 +1220,8 @@ export default function FeedPage() {
             </button>
             <button
               onClick={() => {
-                setFilter('trending')
+                // Toggle: if already selected, go back to 'all'
+                setFilter(filter === 'trending' ? 'all' : 'trending')
                 setFilterSheetOpen(false)
               }}
               className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
@@ -1249,7 +1269,8 @@ export default function FeedPage() {
               {userLocation?.country && (
                 <button
                   onClick={() => {
-                    setScopeFilter('country')
+                    // Toggle: if already selected, go back to 'world'
+                    setScopeFilter(scopeFilter === 'country' ? 'world' : 'country')
                     setFilterSheetOpen(false)
                   }}
                   className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
@@ -1265,7 +1286,8 @@ export default function FeedPage() {
               {userLocation?.state && (
                 <button
                   onClick={() => {
-                    setScopeFilter('state')
+                    // Toggle: if already selected, go back to 'world'
+                    setScopeFilter(scopeFilter === 'state' ? 'world' : 'state')
                     setFilterSheetOpen(false)
                   }}
                   className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
@@ -1281,7 +1303,8 @@ export default function FeedPage() {
               {userLocation?.city && (
                 <button
                   onClick={() => {
-                    setScopeFilter('city')
+                    // Toggle: if already selected, go back to 'world'
+                    setScopeFilter(scopeFilter === 'city' ? 'world' : 'city')
                     setFilterSheetOpen(false)
                   }}
                   className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
@@ -1317,7 +1340,8 @@ export default function FeedPage() {
               </button>
               <button
                 onClick={() => {
-                  setReactionFilter('funny')
+                  // Toggle: if already selected, go back to 'all'
+                  setReactionFilter(reactionFilter === 'funny' ? 'all' : 'funny')
                   setFilterSheetOpen(false)
                 }}
                 className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
@@ -1330,7 +1354,8 @@ export default function FeedPage() {
               </button>
               <button
                 onClick={() => {
-                  setReactionFilter('creative')
+                  // Toggle: if already selected, go back to 'all'
+                  setReactionFilter(reactionFilter === 'creative' ? 'all' : 'creative')
                   setFilterSheetOpen(false)
                 }}
                 className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
@@ -1343,7 +1368,8 @@ export default function FeedPage() {
               </button>
               <button
                 onClick={() => {
-                  setReactionFilter('must_try')
+                  // Toggle: if already selected, go back to 'all'
+                  setReactionFilter(reactionFilter === 'must_try' ? 'all' : 'must_try')
                   setFilterSheetOpen(false)
                 }}
                 className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
