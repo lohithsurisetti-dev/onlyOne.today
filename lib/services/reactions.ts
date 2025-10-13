@@ -77,7 +77,7 @@ export async function addReaction(
     
     if (postData) {
       const updates: any = {
-        total_reactions: Math.max(0, (postData.total_reactions || 0) - 1)
+        total_reactions: Math.max(0, ((postData as any).total_reactions || 0) - 1)
       }
       updates[countField] = Math.max(0, ((postData as any)[countField] || 0) - 1)
       
@@ -117,7 +117,7 @@ export async function addReaction(
   
   if (postData) {
     const updates: any = {
-      total_reactions: (postData.total_reactions || 0) + 1
+      total_reactions: ((postData as any).total_reactions || 0) + 1
     }
     updates[countField] = ((postData as any)[countField] || 0) + 1
     

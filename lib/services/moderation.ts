@@ -147,7 +147,7 @@ export function moderateContent(content: string): ModerationResult {
   }
   
   // 8. Check for extreme hate speech (focused on clear cases)
-  const hateSlurs = [
+  const hateSlurs: string[] = [
     // Note: This is a basic list. In production, use a more comprehensive database
     // and consider context. We're being conservative here.
   ]
