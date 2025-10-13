@@ -36,7 +36,7 @@ function ResponseContent() {
     setIsClient(true)
   }, [])
   
-  // Load post result from sessionStorage
+  // Load post result from sessionStorage AND fetch live data
   useEffect(() => {
     const storedResult = sessionStorage.getItem('postResult')
     if (storedResult) {
@@ -52,8 +52,40 @@ function ResponseContent() {
         // Fallback: auto-detect from score
         setShareType(result.uniquenessScore >= 70 ? 'uniqueness' : 'commonality')
       }
+      
+      // IMPORTANT: Fetch LIVE data from database to get updated score
+      // The sessionStorage data is from initial post time and becomes stale
+      // If others posted the same thing, the score changes!
+      if (result.post?.id) {
+        fetchLivePostData(result.post.id)
+      }
     }
   }, [viewParam])
+  
+  // Fetch live post data to get updated uniqueness score
+  const fetchLivePostData = async (postId: string) => {
+    try {
+      console.log(`🔄 Fetching live data for post ${postId}...`)
+      const response = await fetch(`/api/posts?id=${postId}`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        if (data.post) {
+          console.log(`✅ Live data fetched: ${data.post.uniqueness_score}% unique, ${data.post.match_count} matches`)
+          
+          // Update postResult with LIVE scores
+          setPostResult(prev => prev ? {
+            ...prev,
+            uniquenessScore: data.post.uniqueness_score,
+            matchCount: data.post.match_count
+          } : prev)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch live post data:', error)
+      // Continue with sessionStorage data if fetch fails
+    }
+  }
   
   // Detect vibe
   useEffect(() => {

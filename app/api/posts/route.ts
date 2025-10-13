@@ -203,10 +203,35 @@ export async function GET(request: NextRequest) {
     
     // 2. Validate query parameters
     const searchParams = request.nextUrl.searchParams
+    const postId = searchParams.get('id') // For fetching specific post
     const filter = searchParams.get('filter') || 'all'
     const limitParam = searchParams.get('limit') || '25'
     const offsetParam = searchParams.get('offset') || '0'
     
+    // If requesting specific post by ID, fetch that
+    if (postId) {
+      const { createClient } = await import('@/lib/supabase/server')
+      const supabase = createClient()
+      
+      const { data: post, error } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('id', postId)
+        .single()
+      
+      if (error || !post) {
+        return NextResponse.json(
+          { error: 'Post not found' },
+          { status: 404 }
+        )
+      }
+      
+      console.log(`✅ Fetched post ${postId}: ${post.uniqueness_score}% unique, ${post.match_count} matches`)
+      
+      return NextResponse.json({ post }, { status: 200 })
+    }
+    
+    // Otherwise, fetch recent posts list
     // Validate filter
     const filterValidation = validateEnum(filter, ['all', 'unique', 'common'], 'filter')
     if (!filterValidation.valid) {
