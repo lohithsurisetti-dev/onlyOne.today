@@ -5,10 +5,10 @@
  * Combines ML models with static rules for best results
  */
 
-import { pipeline, Pipeline } from '@xenova/transformers'
+import { pipeline } from '@xenova/transformers'
 
 // Cache the pipeline to avoid reloading
-let toxicityClassifier: Pipeline | null = null
+let toxicityClassifier: any = null
 
 export interface AIModerationResult {
   allowed: boolean
@@ -29,7 +29,7 @@ export interface AIModerationResult {
  * Initialize the AI moderation pipeline
  * Uses a text-classification model trained on toxic content
  */
-async function initializeAI(): Promise<Pipeline> {
+async function initializeAI(): Promise<any> {
   if (!toxicityClassifier) {
     console.log('🤖 Loading AI moderation model...')
     
