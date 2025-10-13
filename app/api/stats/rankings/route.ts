@@ -41,6 +41,13 @@ export async function GET(request: NextRequest) {
       .select('location_city, location_state, location_country')
       .gte('created_at', todayISO)
     
+    console.log('Rankings API Debug:', {
+      todayISO,
+      timezoneOffset,
+      postsCount: todayPosts?.length || 0,
+      postsWithLocation: todayPosts?.filter(p => p.location_city || p.location_state || p.location_country).length || 0
+    })
+    
     if (error) {
       console.error('Error fetching posts for rankings:', error)
       throw error
