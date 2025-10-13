@@ -55,24 +55,23 @@ export async function getGhostPosts(count: number = 10): Promise<GhostPost[]> {
   const now = Date.now()
   const cacheAge = now - lastFetch
   
-  // If cache is stale, trigger background refresh (but don't wait)
-  if (cacheAge > CACHE_DURATION && !isFetching) {
+  // If cache is empty OR stale, fetch fresh data
+  if (trendingCache.length === 0) {
+    console.log('⏳ Cache empty - fetching trending data...')
+    if (!isFetching) {
+      await refreshTrendingCache()
+    }
+  } else if (cacheAge > CACHE_DURATION && !isFetching) {
+    // Cache exists but is stale - refresh in background
     refreshTrendingCache() // Fire and forget
   }
   
-  // If no cache exists, wait for first fetch
-  if (trendingCache.length === 0 && cacheAge === now) {
-    console.log('⏳ First fetch: waiting for trending data...')
-    await refreshTrendingCache()
-  }
-  
-  // Return from cache immediately (stale cache is better than slow response)
+  // After fetch attempt, check if we got data
   if (trendingCache.length === 0) {
-    console.error('🚨 CRITICAL: No trending data available - all APIs failed!')
-    console.log('📝 This should be rare. Check API health.')
+    console.error('🚨 CRITICAL: Trending fetch failed - all APIs down!')
+    console.log('📝 APIs: Reddit, Spotify, Google, Sports all failed. This is very rare.')
     
-    // Return empty - let the retry mechanism handle it
-    // Emergency fallback removed - we want real data only
+    // Return empty - frontend retry will handle it
     return []
   }
   
