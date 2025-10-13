@@ -28,77 +28,111 @@ function ResponseContent() {
   const [vibeCelebration, setVibeCelebration] = useState<string>('')
   const [isClient, setIsClient] = useState(false)
   const [fetchingLive, setFetchingLive] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
   
   // Auto-detect view type from uniqueness score (fallback if no view param)
   const [shareType, setShareType] = useState<'uniqueness' | 'commonality'>('uniqueness')
+  
+  // Manual refresh function
+  const refreshLiveData = async () => {
+    if (postResult?.post?.id) {
+      setFetchingLive(true)
+      try {
+        console.log(`🔄 Manual refresh for post ${postResult.post.id}...`)
+        const response = await fetch(`/api/posts?id=${postResult.post.id}`, {
+          cache: 'no-store'
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          if (data.post) {
+            console.log(`✅ Refreshed: ${data.post.uniqueness_score}% unique, ${data.post.match_count} matches`)
+            
+            setPostResult(prev => prev ? {
+              ...prev,
+              uniquenessScore: data.post.uniqueness_score,
+              matchCount: data.post.match_count,
+              post: {
+                ...prev.post,
+                uniqueness_score: data.post.uniqueness_score,
+                match_count: data.post.match_count
+              }
+            } : prev)
+            
+            // Trigger temporal refresh too
+            setRefreshKey(prev => prev + 1)
+          }
+        }
+      } catch (error) {
+        console.error('Refresh failed:', error)
+      } finally {
+        setFetchingLive(false)
+      }
+    }
+  }
   
   // Set client-side flag to prevent hydration errors
   useEffect(() => {
     setIsClient(true)
   }, [])
   
-  // Load post result from sessionStorage AND fetch live data
+  // Load post result from sessionStorage AND auto-fetch live data
   useEffect(() => {
     const fetchData = async () => {
       const storedResult = sessionStorage.getItem('postResult')
-      if (storedResult) {
-        const result = JSON.parse(storedResult)
-        setPostResult(result)
-        
-        // Auto-set shareType based on view param or uniqueness score
-        if (viewParam === 'common') {
-          setShareType('commonality')
-        } else if (viewParam === 'unique') {
-          setShareType('uniqueness')
-        } else {
-          // Fallback: auto-detect from score
-          setShareType(result.uniquenessScore >= 70 ? 'uniqueness' : 'commonality')
-        }
-        
-        // IMPORTANT: Fetch LIVE data from database to get updated score
-        // The sessionStorage data is from initial post time and becomes stale
-        // If others posted the same thing, the score changes!
-        if (result.post?.id) {
-          setFetchingLive(true)
-          try {
-            console.log(`🔄 Fetching live data for post ${result.post.id}...`)
-            const response = await fetch(`/api/posts?id=${result.post.id}`, {
-              cache: 'no-store' // Always get fresh data
-            })
-            
-            if (response.ok) {
-              const data = await response.json()
-              if (data.post) {
-                console.log(`✅ Live data fetched: ${data.post.uniqueness_score}% unique, ${data.post.match_count} matches`)
-                console.log(`   Was: ${result.uniquenessScore}% → Now: ${data.post.uniqueness_score}%`)
-                
-                // Update postResult with LIVE scores
-                setPostResult({
-                  ...result,
-                  uniquenessScore: data.post.uniqueness_score,
-                  matchCount: data.post.match_count,
-                  post: {
-                    ...result.post,
-                    uniqueness_score: data.post.uniqueness_score,
-                    match_count: data.post.match_count
-                  }
-                })
-              }
-            } else {
-              console.error('Failed to fetch live data:', response.status, response.statusText)
+      if (!storedResult) return
+      
+      const result = JSON.parse(storedResult)
+      setPostResult(result)
+      
+      // Auto-set shareType based on view param or uniqueness score
+      if (viewParam === 'common') {
+        setShareType('commonality')
+      } else if (viewParam === 'unique') {
+        setShareType('uniqueness')
+      } else {
+        // Fallback: auto-detect from score
+        setShareType(result.uniquenessScore >= 70 ? 'uniqueness' : 'commonality')
+      }
+      
+      // IMPORTANT: Fetch LIVE data from database immediately
+      if (result.post?.id) {
+        setFetchingLive(true)
+        try {
+          console.log(`🔄 Auto-fetching live data for post ${result.post.id}...`)
+          const response = await fetch(`/api/posts?id=${result.post.id}`, {
+            cache: 'no-store'
+          })
+          
+          if (response.ok) {
+            const data = await response.json()
+            if (data.post) {
+              console.log(`✅ Live data: ${data.post.uniqueness_score}% unique, ${data.post.match_count} matches`)
+              console.log(`   Was: ${result.uniquenessScore}% → Now: ${data.post.uniqueness_score}%`)
+              
+              // Update with LIVE scores
+              setPostResult({
+                ...result,
+                uniquenessScore: data.post.uniqueness_score,
+                matchCount: data.post.match_count,
+                post: {
+                  ...result.post,
+                  uniqueness_score: data.post.uniqueness_score,
+                  match_count: data.post.match_count
+                }
+              })
             }
-          } catch (error) {
-            console.error('Failed to fetch live post data:', error)
-            // Continue with sessionStorage data if fetch fails
-          } finally {
-            setFetchingLive(false)
           }
+        } catch (error) {
+          console.error('Auto-fetch failed:', error)
+        } finally {
+          setFetchingLive(false)
         }
       }
     }
     
     fetchData()
-  }, [viewParam])
+  }, [viewParam, refreshKey])
   
   // Detect vibe
   useEffect(() => {
@@ -108,7 +142,7 @@ function ResponseContent() {
     }
   }, [content])
   
-  // Load temporal uniqueness
+  // Load temporal uniqueness (refreshes when refreshKey changes)
   useEffect(() => {
     async function loadTemporal() {
       if (postResult?.post?.content_hash) {
@@ -132,7 +166,7 @@ function ResponseContent() {
       }
     }
     loadTemporal()
-  }, [postResult, content])
+  }, [postResult, content, refreshKey])
   
   // Generate witty messages on client only (to avoid hydration errors)
   useEffect(() => {
@@ -216,6 +250,23 @@ function ResponseContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-space-dark via-space-darker to-space-darkest relative overflow-hidden">
       <StarsBackground />
+      
+      {/* Floating Refresh Button */}
+      <button
+        onClick={refreshLiveData}
+        disabled={fetchingLive}
+        className="fixed top-6 right-6 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 transition-all hover:scale-110 disabled:opacity-50"
+        title="Refresh live scores"
+      >
+        <svg 
+          className={`w-5 h-5 text-white ${fetchingLive ? 'animate-spin' : ''}`} 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      </button>
       
       <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-8">
         {/* Main Container - Centered Single Card */}
