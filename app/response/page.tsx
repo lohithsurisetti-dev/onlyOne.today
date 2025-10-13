@@ -29,11 +29,13 @@ function ResponseContent() {
   const [isClient, setIsClient] = useState(false)
   const [fetchingLive, setFetchingLive] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [hasAutoRefreshed, setHasAutoRefreshed] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
   
   // Auto-detect view type from uniqueness score (fallback if no view param)
   const [shareType, setShareType] = useState<'uniqueness' | 'commonality'>('uniqueness')
   
-  // Manual refresh function - wrapped in useCallback to avoid dependency issues
+  // Manual refresh function with animation
   const refreshLiveData = useCallback(async () => {
     if (!postResult?.post?.id) {
       console.log('⚠️ No post ID available for refresh')
@@ -41,6 +43,8 @@ function ResponseContent() {
     }
     
     setFetchingLive(true)
+    setIsAnimating(true)
+    
     try {
       console.log(`🔄 Fetching live data for post ${postResult.post.id}...`)
       const response = await fetch(`/api/posts?id=${postResult.post.id}`, {
@@ -55,8 +59,17 @@ function ResponseContent() {
         console.log(`📦 Response data:`, data)
         
         if (data.post) {
-          console.log(`✅ Live scores: ${data.post.uniqueness_score}% unique, ${data.post.match_count} matches`)
-          console.log(`   Old: ${postResult.uniquenessScore}% → New: ${data.post.uniqueness_score}%`)
+          const oldScore = postResult.uniquenessScore
+          const newScore = data.post.uniqueness_score
+          
+          console.log(`✅ Live scores: ${newScore}% unique, ${data.post.match_count} matches`)
+          console.log(`   Old: ${oldScore}% → New: ${newScore}%`)
+          
+          // Animate score change if different
+          if (oldScore !== newScore) {
+            // Brief delay to show animation start
+            await new Promise(resolve => setTimeout(resolve, 300))
+          }
           
           setPostResult(prev => prev ? {
             ...prev,
@@ -81,6 +94,7 @@ function ResponseContent() {
       console.error('❌ Refresh error:', error)
     } finally {
       setFetchingLive(false)
+      setTimeout(() => setIsAnimating(false), 1000) // Keep animation for 1s
     }
   }, [postResult])
   
@@ -89,7 +103,7 @@ function ResponseContent() {
     setIsClient(true)
   }, [])
   
-  // Load post result from sessionStorage (NO auto-refresh to avoid loops)
+  // Load post result from sessionStorage
   useEffect(() => {
     const storedResult = sessionStorage.getItem('postResult')
     if (storedResult) {
@@ -107,6 +121,21 @@ function ResponseContent() {
       }
     }
   }, [viewParam])
+  
+  // ONE-TIME auto-refresh on mount (with 1 second delay for dramatic effect)
+  useEffect(() => {
+    if (postResult?.post?.id && !hasAutoRefreshed) {
+      setHasAutoRefreshed(true) // Prevent infinite loops!
+      
+      // Delay 1 second for dramatic effect
+      const timer = setTimeout(() => {
+        console.log('🎬 Starting auto-refresh animation...')
+        refreshLiveData()
+      }, 1000)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [postResult?.post?.id, hasAutoRefreshed, refreshLiveData])
   
   // Detect vibe
   useEffect(() => {
@@ -275,9 +304,11 @@ function ResponseContent() {
                 {/* Circular Progress - Compact */}
                 <div className="flex justify-center mb-4">
                   <div className="relative w-44 h-44">
-                    {/* Reduced glow ring */}
-                    <div className={`absolute inset-0 rounded-full blur-xl opacity-40 ${
+                    {/* Reduced glow ring - intensifies during update */}
+                    <div className={`absolute inset-0 rounded-full blur-xl transition-all duration-500 ${
                       shareType === 'uniqueness' ? 'bg-purple-500/30' : 'bg-blue-500/30'
+                    } ${
+                      isAnimating ? 'opacity-80 scale-110 animate-pulse' : 'opacity-40'
                     }`} />
                     
                     <svg className="w-full h-full transform -rotate-90 relative">
@@ -301,7 +332,8 @@ function ResponseContent() {
                         strokeDashoffset={`${2 * Math.PI * 78 * (1 - (shareType === 'uniqueness' ? uniquenessScore : commonalityScore) / 100)}`}
                         strokeLinecap="round"
                         style={{ 
-                          transition: 'stroke-dashoffset 1s ease, stroke 0.5s ease'
+                          transition: 'stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s ease',
+                          filter: isAnimating ? 'drop-shadow(0 0 20px currentColor)' : 'none'
                         }}
                       />
                       <defs>
@@ -321,21 +353,29 @@ function ResponseContent() {
                     {/* Center content */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
                       <div className="text-xs font-semibold text-white/60 uppercase tracking-widest mb-1 flex items-center justify-center gap-2">
-                        <span>{shareType === 'uniqueness' ? 'Unique' : 'Common'}</span>
-                        {fetchingLive && (
-                          <svg className="w-3 h-3 animate-spin text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
+                        {fetchingLive ? (
+                          <>
+                            <svg className="w-3 h-3 animate-spin text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            <span className="text-purple-300 animate-pulse">Updating...</span>
+                          </>
+                        ) : (
+                          <span>{shareType === 'uniqueness' ? 'Unique' : 'Common'}</span>
                         )}
                       </div>
-                      <div className={`text-4xl font-black mb-1 transition-all ${
+                      <div className={`text-4xl font-black mb-1 transition-all duration-1000 ${
+                        isAnimating ? 'scale-125 blur-sm' : 'scale-100 blur-0'
+                      } ${
                         shareType === 'uniqueness' 
                           ? 'bg-gradient-to-br from-purple-300 via-pink-300 to-purple-400 bg-clip-text text-transparent' 
                           : 'bg-gradient-to-br from-blue-300 via-cyan-300 to-blue-400 bg-clip-text text-transparent'
                       }`}>
                         {shareType === 'uniqueness' ? uniquenessScore : commonalityScore}%
                       </div>
-                      <div className="px-3 py-1 bg-white/10 rounded-full backdrop-blur-sm">
+                      <div className={`px-3 py-1 bg-white/10 rounded-full backdrop-blur-sm transition-all duration-500 ${
+                        isAnimating ? 'scale-110 bg-white/20' : 'scale-100'
+                      }`}>
                         <span className="text-xs font-medium text-white/80">
                           {shareType === 'uniqueness' ? `${matchCount + 1} did this` : `${matchCount} others`}
                         </span>
