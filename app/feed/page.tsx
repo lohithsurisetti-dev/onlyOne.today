@@ -786,11 +786,9 @@ export default function FeedPage() {
                     <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full opacity-30 blur-md animate-pulse"></div>
                     
                     {/* Badge */}
-                    <div className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/40 shadow-md shadow-purple-500/20">
-                      <svg className="w-3.5 h-3.5 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                      </svg>
+                    <div className="relative flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/40 shadow-md shadow-purple-500/20">
                       <span className="text-xs font-bold text-white">{stats.today.totalPosts}</span>
+                      <span className="text-[10px] text-purple-200/70 font-medium whitespace-nowrap">posts today</span>
                     </div>
                   </div>
                 )}
@@ -1094,8 +1092,8 @@ export default function FeedPage() {
                 )}
               </button>
             </div>
-              </div>
-              
+            </div>
+            
               {/* Live Post Counter - Exciting Design */}
               {stats && (
                 <div className="relative shrink-0">
@@ -1103,17 +1101,12 @@ export default function FeedPage() {
                   <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full opacity-40 blur-lg animate-pulse"></div>
                   
                   {/* Badge */}
-                  <div className="relative flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-2 border-purple-400/50 backdrop-blur-sm shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all hover:scale-105">
-                    <svg className="w-5 h-5 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                    </svg>
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-lg font-bold text-white">{stats.today.totalPosts}</span>
-                      <span className="text-xs text-purple-200/80 font-medium">today</span>
-                    </div>
-                  </div>
+                  <div className="relative flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-2 border-purple-400/50 backdrop-blur-sm shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all hover:scale-105">
+                    <span className="text-base font-bold text-white">{stats.today.totalPosts}</span>
+                    <span className="text-xs text-purple-200/80 font-medium whitespace-nowrap">posts today</span>
                 </div>
-              )}
+              </div>
+            )}
             </div>
           </div>
         </header>
