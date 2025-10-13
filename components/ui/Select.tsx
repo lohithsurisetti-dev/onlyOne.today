@@ -43,7 +43,7 @@ export const Select: React.FC<SelectProps> = ({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={`
-          w-full flex items-center justify-between p-3 rounded-lg border-2 transition-all duration-200 text-sm
+          w-full flex items-center justify-between p-3.5 sm:p-3 rounded-lg border-2 transition-all duration-200 text-base sm:text-sm min-h-[50px] sm:min-h-0
           ${isOpen 
             ? 'border-purple-500 bg-purple-500/10' 
             : 'border-space-light hover:border-space-medium bg-space-dark/50'
@@ -85,7 +85,7 @@ export const Select: React.FC<SelectProps> = ({
                 setIsOpen(false)
               }}
               className={`
-                w-full flex items-center space-x-2 p-3 text-left transition-colors duration-200 text-sm
+                w-full flex items-center space-x-2 p-3.5 sm:p-3 text-left transition-colors duration-200 text-base sm:text-sm min-h-[50px] sm:min-h-0
                 ${value === option.value 
                   ? 'bg-purple-500/20 text-purple-400' 
                   : 'hover:bg-space-light/50 text-text-primary'

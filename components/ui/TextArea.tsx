@@ -22,10 +22,10 @@ export default function TextArea({
     <div className="relative flex flex-col w-full">
       <textarea
         className={`
-          w-full min-h-32 p-4 
+          w-full min-h-32 p-4 sm:p-4
           bg-space-mid/80 backdrop-blur-sm 
           border-2 border-space-light rounded-xl 
-          text-text-primary placeholder:text-text-muted
+          text-base sm:text-base text-text-primary placeholder:text-text-muted
           resize-none overflow-hidden
           focus:outline-none focus:border-accent-purple focus:ring-2 focus:ring-accent-purple/20
           hover:border-space-medium
@@ -37,7 +37,7 @@ export default function TextArea({
         {...props}
       />
       {showCounter && (
-        <span className="absolute bottom-3 right-4 text-xs text-text-muted">
+        <span className="absolute bottom-3 right-4 text-xs sm:text-xs text-text-muted">
           {count} / {maxLength}
         </span>
       )}
