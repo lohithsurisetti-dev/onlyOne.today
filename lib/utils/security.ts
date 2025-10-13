@@ -10,9 +10,16 @@ import { NextRequest, NextResponse } from 'next/server'
  * Security Headers Configuration
  * Protects against common web vulnerabilities
  */
-export function addSecurityHeaders(response: NextResponse): NextResponse {
-  // Prevent clickjacking
-  response.headers.set('X-Frame-Options', 'DENY')
+export function addSecurityHeaders(response: NextResponse, pathname?: string): NextResponse {
+  // Check if this is the share-preview route that needs to be embeddable
+  const isSharePreview = pathname?.includes('/api/share-preview')
+  
+  // Prevent clickjacking (allow same-origin for share-preview)
+  if (isSharePreview) {
+    response.headers.set('X-Frame-Options', 'SAMEORIGIN')
+  } else {
+    response.headers.set('X-Frame-Options', 'DENY')
+  }
   
   // Prevent MIME type sniffing
   response.headers.set('X-Content-Type-Options', 'nosniff')
@@ -29,7 +36,7 @@ export function addSecurityHeaders(response: NextResponse): NextResponse {
     'camera=(), microphone=(), geolocation=(), interest-cohort=()'
   )
   
-  // Content Security Policy
+  // Content Security Policy (allow same-origin framing for share-preview)
   response.headers.set(
     'Content-Security-Policy',
     [
@@ -39,7 +46,7 @@ export function addSecurityHeaders(response: NextResponse): NextResponse {
       "img-src 'self' data: https:",
       "font-src 'self' data:",
       "connect-src 'self' https://*.supabase.co",
-      "frame-ancestors 'none'",
+      isSharePreview ? "frame-ancestors 'self'" : "frame-ancestors 'none'",
     ].join('; ')
   )
   

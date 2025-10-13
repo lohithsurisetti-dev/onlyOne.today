@@ -6,8 +6,8 @@ export function middleware(request: NextRequest) {
   // Create response
   const response = NextResponse.next()
   
-  // Add security headers to all responses
-  return addSecurityHeaders(response)
+  // Add security headers to all responses (with pathname for context)
+  return addSecurityHeaders(response, request.nextUrl.pathname)
 }
 
 // Apply middleware to all routes except static files

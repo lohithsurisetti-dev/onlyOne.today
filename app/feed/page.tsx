@@ -370,22 +370,64 @@ export default function FeedPage() {
     localStorage.setItem('feedFilter', filter)
   }, [filter])
   
-  // Detect user location on mount
+  // Auto-load location on mount if permission was previously granted
   useEffect(() => {
-    const detectUserLocation = async () => {
-      try {
-        const response = await fetch('/api/location')
-        const data = await response.json()
-        if (data.success && data.location) {
-          setUserLocation(data.location)
-          console.log('📍 User location detected:', data.location)
-        }
-      } catch (error) {
-        console.error('Failed to detect location:', error)
-      }
+    const previousPermission = localStorage.getItem('locationPermission')
+    if (previousPermission === 'granted') {
+      // Silent load without asking again
+      fetch('/api/location')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.location) {
+            setUserLocation(data.location)
+            console.log('📍 Auto-loaded location (permission previously granted):', data.location)
+          }
+        })
+        .catch(err => console.error('Failed to auto-load location:', err))
     }
-    detectUserLocation()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Only run once on mount
+  
+  // Detect user location ONLY when needed (when user clicks location-based scope filter)
+  const detectUserLocation = async () => {
+    // Check if permission was previously granted
+    const previousPermission = localStorage.getItem('locationPermission')
+    let granted = previousPermission === 'granted'
+    
+    // If not previously asked, ask for permission
+    if (!previousPermission) {
+      granted = window.confirm(
+        "📍 Location Permission Required\n\n" +
+        "To filter posts by your location, we need to detect your city/state/country.\n\n" +
+        "• We only use your city/state/country for filtering\n" +
+        "• Your exact location is never stored\n" +
+        "• This is optional\n\n" +
+        "Allow location detection?"
+      )
+      
+      // Save permission choice
+      localStorage.setItem('locationPermission', granted ? 'granted' : 'denied')
+    }
+    
+    if (!granted) {
+      alert("Location permission denied. You can only use 'Worldwide' filter.")
+      setScopeFilter('world')
+      return
+    }
+    
+    try {
+      const response = await fetch('/api/location')
+      const data = await response.json()
+      if (data.success && data.location) {
+        setUserLocation(data.location)
+        console.log('📍 User location detected:', data.location)
+      }
+    } catch (error) {
+      console.error('Failed to detect location:', error)
+      alert("Failed to detect location. Using 'Worldwide' filter instead.")
+      setScopeFilter('world')
+    }
+  }
   
   // Handle share
   const handleShare = (post: DisplayPost) => {
@@ -768,6 +810,21 @@ export default function FeedPage() {
                 </svg>
                 <span className="hidden sm:inline">World</span>
               </button>
+              
+              {/* Show location-based filters if location is detected, otherwise show detection button */}
+              {!userLocation && filter !== 'trending' && (
+                <button
+                  onClick={detectUserLocation}
+                  className="px-3 py-1 rounded-full text-xs whitespace-nowrap transition-all flex items-center gap-1 bg-white/5 text-white/60 hover:bg-white/10 border border-white/10 hover:border-purple-400/50"
+                  title="Enable location-based filters"
+                >
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                    <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="hidden sm:inline">Detect Location</span>
+                </button>
+              )}
+              
               {userLocation?.country && (
                 <button
                   onClick={() => filter !== 'trending' && setScopeFilter(scopeFilter === 'country' ? 'world' : 'country')}

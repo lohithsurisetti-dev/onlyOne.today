@@ -66,42 +66,53 @@ export default function ShareModal({
   const handleDownload = async () => {
     setDownloading(true)
     try {
-      // Open the share card in a new window for download
-      const newWindow = window.open(imageUrl, '_blank', 'width=1200,height=630')
-      
-      if (newWindow) {
-        // Wait for the window to load
-        setTimeout(() => {
-          try {
-            const doc = newWindow.document
-            const element = doc.querySelector('.social-card') as HTMLElement
-            
-            if (element) {
-              toPng(element, {
+      // Use the iframe to capture the content
+      if (iframeRef.current?.contentWindow) {
+        const iframe = iframeRef.current
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document
+        
+        if (iframeDoc) {
+          // Wait a bit for iframe to fully load
+          await new Promise(resolve => setTimeout(resolve, 500))
+          
+          // Get the card element from iframe
+          const cardElement = iframeDoc.querySelector('.card') as HTMLElement
+          
+          if (cardElement) {
+            try {
+              const dataUrl = await toPng(cardElement, {
                 width: 1200,
                 height: 630,
                 pixelRatio: 2,
+                backgroundColor: '#0a0a1a'
               })
-                .then((dataUrl) => {
-                  const link = document.createElement('a')
-                  link.download = `onlyone-${Date.now()}.png`
-                  link.href = dataUrl
-                  link.click()
-                  newWindow.close()
-                })
-                .catch((err) => {
-                  console.error('Download failed:', err)
-                  // Fallback: keep window open for manual screenshot
-                })
+              
+              // Create download link
+              const link = document.createElement('a')
+              link.download = `onlyone-${Date.now()}.png`
+              link.href = dataUrl
+              link.click()
+            } catch (err) {
+              console.error('Screenshot failed:', err)
+              // Fallback: open in new window for manual download
+              window.open(imageUrl, '_blank', 'width=1200,height=630')
             }
-          } catch (err) {
-            console.error('Cross-origin error:', err)
-            // Window stays open for manual screenshot
+          } else {
+            // Fallback: open in new window
+            window.open(imageUrl, '_blank', 'width=1200,height=630')
           }
-        }, 1000)
+        } else {
+          // Fallback: open in new window
+          window.open(imageUrl, '_blank', 'width=1200,height=630')
+        }
+      } else {
+        // Fallback: open in new window
+        window.open(imageUrl, '_blank', 'width=1200,height=630')
       }
     } catch (error) {
       console.error('Download failed:', error)
+      // Final fallback
+      window.open(imageUrl, '_blank', 'width=1200,height=630')
     }
     setDownloading(false)
   }
@@ -127,29 +138,35 @@ export default function ShareModal({
   if (!isOpen) return null
   
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-5xl bg-card-dark rounded-2xl shadow-glow overflow-hidden animate-fade-in-up">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+      <div className="relative w-full max-w-3xl bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl overflow-hidden">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-2 rounded-lg bg-space-light/50 hover:bg-space-light transition-colors"
+          className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all hover:scale-110"
         >
-          <X size={24} className="text-text-secondary" />
+          <X size={20} className="text-white" />
         </button>
         
         {/* Content */}
-        <div className="p-8">
-          <h2 className="text-2xl font-bold text-text-primary mb-2">
-            Share Your Moment
-          </h2>
-          <p className="text-text-secondary mb-6">
-            Download or share this beautifully crafted card
-          </p>
+        <div className="p-6">
+          {/* Header */}
+          <div className="text-center mb-5">
+            <h2 className="text-2xl font-bold text-white mb-1 flex items-center justify-center gap-2">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              </svg>
+              Share Your Moment
+            </h2>
+            <p className="text-sm text-white/60">
+              Download or share your unique card
+            </p>
+          </div>
           
           {/* Preview */}
-          <div className="relative mb-6 rounded-xl overflow-hidden border border-space-light bg-black">
+          <div className="relative mb-5 rounded-2xl overflow-hidden border border-white/20 bg-black/50 shadow-2xl">
             <div className="relative w-full" style={{ paddingBottom: '52.5%', height: 0 }}>
-              <div className="absolute inset-0 flex items-center justify-center p-4">
+              <div className="absolute inset-0 flex items-center justify-center">
                 <div 
                   className="relative"
                   style={{
@@ -179,77 +196,102 @@ export default function ShareModal({
                 </div>
               </div>
             </div>
+            {/* View Full Size Button - Always Visible */}
+            <div className="absolute bottom-3 right-3">
+              <button
+                onClick={() => window.open(imageUrl, '_blank', 'width=1200,height=630')}
+                className="px-3 py-1.5 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-lg text-white text-xs font-medium transition-all flex items-center gap-1.5 shadow-lg"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+                View Full Size
+              </button>
+            </div>
           </div>
           
           {/* Action Buttons */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-            <Button
-              variant="primary"
-              size="lg"
+          <div className="grid grid-cols-2 gap-3 mb-5">
+            <button
               onClick={handleDownload}
               disabled={downloading}
-              className="w-full flex items-center justify-center gap-2"
+              className={`py-3 rounded-xl font-semibold text-sm transition-all shadow-lg hover:scale-105 ${
+                type === 'uniqueness'
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:shadow-purple-500/50'
+                  : 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:shadow-blue-500/50'
+              } disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100`}
             >
-              <Download size={20} />
-              {downloading ? 'Downloading...' : 'Download Image'}
-            </Button>
+              <div className="flex items-center justify-center gap-2">
+                <Download size={18} />
+                {downloading ? 'Downloading...' : 'Download'}
+              </div>
+            </button>
             
-            <Button
-              variant="secondary"
-              size="lg"
+            <button
               onClick={handleCopyLink}
-              className="w-full flex items-center justify-center gap-2"
+              className="py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-semibold transition-all hover:scale-105"
             >
-              {copied ? (
-                <>
-                  <Check size={20} />
-                  Copied!
-                </>
-              ) : (
-                <>
-                  <LinkIcon size={20} />
-                  Copy Link
-                </>
-              )}
-            </Button>
+              <div className="flex items-center justify-center gap-2">
+                {copied ? (
+                  <>
+                    <Check size={18} />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <LinkIcon size={18} />
+                    Copy Link
+                  </>
+                )}
+              </div>
+            </button>
+          </div>
+          
+          {/* Divider */}
+          <div className="relative mb-5">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-white/10"></div>
+            </div>
+            <div className="relative flex justify-center">
+              <span className="px-3 text-xs text-white/50 bg-gradient-to-br from-white/10 to-white/5 rounded-full py-1">
+                Share to social
+              </span>
+            </div>
           </div>
           
           {/* Social Share Buttons */}
-          <div className="space-y-3">
-            <p className="text-sm text-text-muted text-center">Share to social media</p>
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={handleShareTwitter}
-                className="flex items-center gap-2 px-6 py-3 bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white rounded-lg transition-colors font-medium"
-              >
-                <Twitter size={20} />
-                Twitter
-              </button>
-              
-              <button
-                onClick={handleShareFacebook}
-                className="flex items-center gap-2 px-6 py-3 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-lg transition-colors font-medium"
-              >
-                <Facebook size={20} />
-                Facebook
-              </button>
-              
-              <button
-                onClick={() => {
-                  if (navigator.share) {
-                    navigator.share({
-                      title: 'OnlyOne.today',
-                      text: content,
-                      url: window.location.href,
-                    })
-                  }
-                }}
-                className="flex items-center gap-2 px-6 py-3 bg-accent-purple hover:bg-accent-purple/90 text-white rounded-lg transition-colors font-medium"
-              >
-                <Share2 size={20} />
-                More
-              </button>
-            </div>
+          <div className="grid grid-cols-3 gap-2.5">
+            <button
+              onClick={handleShareTwitter}
+              className="flex items-center justify-center gap-1.5 py-2.5 bg-[#1DA1F2]/90 hover:bg-[#1DA1F2] text-white rounded-xl transition-all hover:scale-105 text-sm font-medium"
+            >
+              <Twitter size={16} />
+              Twitter
+            </button>
+            
+            <button
+              onClick={handleShareFacebook}
+              className="flex items-center justify-center gap-1.5 py-2.5 bg-[#1877F2]/90 hover:bg-[#1877F2] text-white rounded-xl transition-all hover:scale-105 text-sm font-medium"
+            >
+              <Facebook size={16} />
+              Facebook
+            </button>
+            
+            <button
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({
+                    title: 'OnlyOne.today',
+                    text: content,
+                    url: window.location.href,
+                  })
+                }
+              }}
+              className="flex items-center justify-center gap-1.5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all hover:scale-105 text-sm font-medium"
+            >
+              <Share2 size={16} />
+              More
+            </button>
           </div>
         </div>
       </div>

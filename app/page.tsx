@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { EnhancedInput } from '@/components/EnhancedInput'
 import StarsBackground from '@/components/StarsBackground'
 import { LocationDetectorSilent } from '@/components/LocationDetectorSilent'
@@ -24,9 +24,53 @@ export default function Home() {
   const [userLocation, setUserLocation] = useState<LocationData | null>(null)
   const [locationError, setLocationError] = useState<string | null>(null)
   const [selectedScope, setSelectedScope] = useState<'city' | 'state' | 'country' | 'world'>('world')
+  const [locationPermissionAsked, setLocationPermissionAsked] = useState(false)
+  const [locationPermissionGranted, setLocationPermissionGranted] = useState(false)
+
+  // Check if permission was previously granted on mount
+  useEffect(() => {
+    const previousPermission = localStorage.getItem('locationPermission')
+    if (previousPermission === 'granted') {
+      setLocationPermissionGranted(true)
+    }
+  }, [])
 
   // Handle scope changes
-  const handleScopeChange = (scope: 'city' | 'state' | 'country' | 'world') => {
+  const handleScopeChange = async (scope: 'city' | 'state' | 'country' | 'world') => {
+    // If user selects a location-based scope, ask for permission first
+    if (scope !== 'world') {
+      // Check if permission was previously granted
+      const previousPermission = localStorage.getItem('locationPermission')
+      let granted = previousPermission === 'granted'
+      
+      // If not previously asked, ask now
+      if (!previousPermission && !locationPermissionAsked) {
+        setLocationPermissionAsked(true)
+        
+        granted = window.confirm(
+          "📍 Location Permission Required\n\n" +
+          "To compare your action with others in your area, we need to detect your location.\n\n" +
+          "• We only use your city/state/country\n" +
+          "• Your exact location is never stored\n" +
+          "• This is optional - you can choose 'Worldwide' instead\n\n" +
+          "Allow location detection?"
+        )
+        
+        // Save permission choice
+        localStorage.setItem('locationPermission', granted ? 'granted' : 'denied')
+      }
+      
+      if (!granted) {
+        // Permission denied - revert to world
+        setLocationPermissionGranted(false)
+        setSelectedScope('world')
+        alert("Location permission denied. Using 'Worldwide' scope instead.")
+        return
+      }
+      
+      setLocationPermissionGranted(true)
+    }
+    
     setSelectedScope(scope)
     // Reset location error when scope changes
     if (scope === 'world') {
@@ -47,8 +91,8 @@ export default function Home() {
     console.log('📍 Using worldwide mode (location detection unavailable)')
   }
   
-  // Check if current scope needs location
-  const needsLocation = selectedScope !== 'world'
+  // Check if current scope needs location AND permission was granted
+  const needsLocation = selectedScope !== 'world' && locationPermissionGranted
 
   const handleSubmit = async (data: {
     content: string

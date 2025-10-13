@@ -8,18 +8,31 @@ OnlyOne.today uses location data to enable **local** comparisons while respectin
 
 ## 🌍 How Location Detection Works
 
-### Automatic Detection
-1. **On page load**, the `LocationDetector` component automatically detects your location
-2. Uses **ipapi.co** (free IP geolocation API)
-3. **No GPS/browser location permission required**
-4. Detects: City, State/Region, Country
+### Permission-Based Detection
+1. **User selects** a location-based scope (City/State/Country)
+2. **Permission dialog** appears asking for consent
+3. **Only if granted**, the app detects your location
+4. Uses **ip-api.com** (free IP geolocation API)
+5. **No GPS/browser location permission required**
+6. Detects: City, State/Region, Country
 
 ### Privacy-First Approach
+- ✅ **Explicit consent required** before any detection
 - ✅ **IP-based geolocation** (not GPS)
 - ✅ **No precise coordinates** stored (no lat/long)
 - ✅ **City-level precision** maximum
-- ✅ **Optional** - app works without location
+- ✅ **Fully optional** - app works without location
+- ✅ **No automatic tracking** - only when user requests
 - ✅ **No third-party tracking**
+- ✅ **Permission persisted** in localStorage (one-time ask)
+
+### Reset Location Permission
+If you want to reset your location permission:
+```javascript
+// Open browser console (F12) and run:
+localStorage.removeItem('locationPermission')
+// Then refresh the page
+```
 
 ---
 
