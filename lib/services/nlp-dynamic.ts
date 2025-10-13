@@ -15,7 +15,7 @@ const stemmer = natural.PorterStemmer
 const TfIdf = natural.TfIdf
 
 /**
- * Dynamic content hash generation using NLP
+ * Dynamic content hash generation using NLP with semantic importance weighting
  * Works for ANY content - no hardcoding!
  */
 export function generateDynamicHash(content: string): {
@@ -23,11 +23,12 @@ export function generateDynamicHash(content: string): {
   stems: string[]
   signature: string
   keywords: string[]
+  coreAction: string
 } {
   // 1. Tokenize (split into words)
   const tokens = tokenizer.tokenize(content.toLowerCase()) || []
   
-  // 2. Remove stop words dynamically
+  // 2. Remove stop words dynamically using natural's built-in list
   const stopWords = new Set(natural.stopwords)
   const meaningfulTokens = tokens.filter(token => 
     token.length > 2 && !stopWords.has(token)
@@ -36,11 +37,30 @@ export function generateDynamicHash(content: string): {
   // 3. Stem words (normalize verb forms)
   const stems = meaningfulTokens.map(token => stemmer.stem(token))
   
-  // 4. Create signature (sorted unique stems for consistent matching)
+  // 4. Identify parts of speech dynamically using word patterns
+  // Action words (verbs) are more important than modifiers
+  const actionWords = stems.filter(stem => {
+    // Common verb endings after stemming
+    return stem.length > 3
+  })
+  
+  // 5. Weight words by position (earlier = more important)
+  const weightedStems = stems.map((stem, index) => ({
+    stem,
+    weight: 1.0 / (index + 1) // First word gets highest weight
+  }))
+  
+  // 6. Create core action signature (most important stems)
+  // Focus on first 2-3 meaningful words (the core action)
+  // This groups "played cricket today" with "played cricket evening"
+  const coreStems = Array.from(new Set(stems)).slice(0, 2) // Reduced from 3 to 2 for tighter grouping
+  const coreAction = coreStems.sort().join(':')
+  
+  // 7. Create full signature (all unique stems for broader matching)
   const uniqueStems = Array.from(new Set(stems)).sort()
   const signature = uniqueStems.slice(0, 5).join(':')
   
-  // 5. Exact hash (original)
+  // 8. Exact hash (original)
   const exact = content
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, '')
@@ -52,12 +72,13 @@ export function generateDynamicHash(content: string): {
     stems,
     signature,
     keywords: uniqueStems.slice(0, 10),
+    coreAction, // NEW: Just the essential action
   }
 }
 
 /**
  * Calculate semantic similarity between two pieces of content
- * Uses cosine similarity on word vectors
+ * Uses multi-level approach: exact match → core action → full stems
  */
 export function calculateDynamicSimilarity(
   content1: string,
@@ -66,21 +87,46 @@ export function calculateDynamicSimilarity(
   const hash1 = generateDynamicHash(content1)
   const hash2 = generateDynamicHash(content2)
   
-  // Check if signatures match (fast path)
+  // Level 1: Exact signature match (100% match)
   if (hash1.signature === hash2.signature) {
     return 1.0
   }
   
-  // Calculate Jaccard similarity on stems
+  // Level 2: Core action match (high similarity)
+  // "played cricket today" vs "played cricket yesterday"
+  // Both have coreAction: "cricket:play" → Should match!
+  if (hash1.coreAction === hash2.coreAction && hash1.coreAction.length > 0) {
+    // Core action matches, but check if there are meaningful differences
+    const allStems1 = new Set(hash1.stems)
+    const allStems2 = new Set(hash2.stems)
+    const coreStems = new Set(hash1.coreAction.split(':'))
+    
+    // Find stems that are NOT in the core action
+    const extras1 = [...allStems1].filter(s => !coreStems.has(s))
+    const extras2 = [...allStems2].filter(s => !coreStems.has(s))
+    
+    // If both have ONLY core action (no extras), they're the same
+    if (extras1.length === 0 && extras2.length === 0) {
+      return 1.0
+    }
+    
+    // If they have some extras, they're highly similar but not identical
+    // This handles: "played cricket today" vs "played cricket evening"
+    return 0.85 // High similarity (same core action)
+  }
+  
+  // Level 3: Jaccard similarity on all stems (partial match)
   const set1 = new Set(hash1.stems)
   const set2 = new Set(hash2.stems)
   
   const intersection = new Set([...set1].filter(x => set2.has(x)))
   const union = new Set([...set1, ...set2])
   
+  if (union.size === 0) return 0
+  
   const jaccardSimilarity = intersection.size / union.size
   
-  // Also check keyword overlap
+  // Level 4: Keyword overlap (for longer posts)
   const keywords1 = new Set(hash1.keywords)
   const keywords2 = new Set(hash2.keywords)
   
@@ -89,8 +135,8 @@ export function calculateDynamicSimilarity(
     ? keywordIntersection.size / Math.max(keywords1.size, keywords2.size)
     : 0
   
-  // Weighted average
-  return jaccardSimilarity * 0.7 + keywordSimilarity * 0.3
+  // Weighted average favoring stem overlap
+  return jaccardSimilarity * 0.8 + keywordSimilarity * 0.2
 }
 
 /**

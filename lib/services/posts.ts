@@ -316,20 +316,27 @@ export async function findSimilarPostsGlobal(params: {
   }
 
   // Use dynamic NLP for similarity matching
+  // Threshold 0.75: Catches core action matches (0.85) but not weak partials
   const similarPosts = findSimilarDynamic(
     content,
     allPosts.map(p => ({ id: p.id, content: p.content })),
-    0.6
+    0.75 // Raised from 0.6 for tighter matching
   ).map(result => {
     const original = allPosts.find(p => p.id === result.id)!
     return {
       ...original,
       similarity_score: result.similarity,
-      match_type: result.similarity >= 0.9 ? 'exact' as const :
-                  result.similarity >= 0.75 ? 'high' as const :
+      match_type: result.similarity >= 0.95 ? 'exact' as const :
+                  result.similarity >= 0.85 ? 'core_action' as const :
                   'similar' as const,
     }
   }).slice(0, limit)
+
+  console.log(`🔍 Found ${similarPosts.length} similar posts (threshold: 0.75)`)
+  if (similarPosts.length > 0) {
+    console.log(`   Core actions: ${similarPosts.filter(p => p.match_type === 'core_action').length}`)
+    console.log(`   Exact: ${similarPosts.filter(p => p.match_type === 'exact').length}`)
+  }
 
   return similarPosts
 }
@@ -437,7 +444,7 @@ export async function findSimilarPosts(params: {
       similarPosts = findSimilarDynamic(
         content,
         allPosts.map(p => ({ id: p.id, content: p.content })),
-        0.6
+        0.75 // Raised for tighter matching
       ).map(result => {
         const original = allPosts.find(p => p.id === result.id)!
         return {
@@ -454,7 +461,7 @@ export async function findSimilarPosts(params: {
     similarPosts = findSimilarDynamic(
       content,
       allPosts.map(p => ({ id: p.id, content: p.content })),
-      0.6
+      0.75 // Raised for tighter matching
     ).map(result => {
       const original = allPosts.find(p => p.id === result.id)!
       return {
