@@ -208,9 +208,10 @@ export async function GET(request: NextRequest) {
     const limitParam = searchParams.get('limit') || '25'
     const offsetParam = searchParams.get('offset') || '0'
     
-    // If requesting specific post by ID, fetch that
+    // If requesting specific post by ID, fetch that with LIVE score calculation
     if (postId) {
       const { createClient } = await import('@/lib/supabase/server')
+      const { calculateUniquenessScore } = await import('@/lib/services/posts')
       const supabase = createClient()
       
       const { data: post, error } = await supabase
@@ -226,8 +227,33 @@ export async function GET(request: NextRequest) {
         )
       }
       
-      console.log(`✅ Fetched post ${postId}: ${post.uniqueness_score}% unique, ${post.match_count} matches`)
+      // IMPORTANT: Recalculate LIVE scores (same as feed does)
+      // Count current matches in last 24 hours
+      const { count, error: countError } = await supabase
+        .from('posts')
+        .select('id', { count: 'exact', head: true })
+        .eq('content_hash', post.content_hash)
+        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
       
+      if (!countError && count) {
+        // Recalculate with live data
+        const actualMatches = count - 1 // Exclude self
+        const freshScore = calculateUniquenessScore(actualMatches)
+        
+        console.log(`✅ Fetched post ${postId} with LIVE scores: ${freshScore}% unique (was ${post.uniqueness_score}%), ${actualMatches} matches (was ${post.match_count})`)
+        
+        // Return with fresh scores
+        return NextResponse.json({ 
+          post: {
+            ...post,
+            uniqueness_score: freshScore,
+            match_count: actualMatches
+          }
+        }, { status: 200 })
+      }
+      
+      // Fallback to stored scores if count fails
+      console.log(`⚠️ Using stored scores for post ${postId}: ${post.uniqueness_score}% unique, ${post.match_count} matches`)
       return NextResponse.json({ post }, { status: 200 })
     }
     
