@@ -41,7 +41,7 @@ export function useCreatePost() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const createPost = async (data: CreatePostData): Promise<CreatePostResult | null> => {
+  const createPost = async (data: CreatePostData): Promise<CreatePostResult> => {
     setLoading(true)
     setError(null)
 
@@ -56,15 +56,27 @@ export function useCreatePost() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to create post')
+        const errorMessage = errorData.error || errorData.reason || 'Failed to create post'
+        
+        // Set error state for hook consumers
+        setError(errorMessage)
+        
+        // Also throw so caller can catch immediately
+        throw new Error(errorMessage)
       }
 
       const result = await response.json()
+      
+      // Clear any previous errors on success
+      setError(null)
+      
       return result
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred'
       setError(errorMessage)
-      return null
+      
+      // Re-throw so caller can handle immediately
+      throw err
     } finally {
       setLoading(false)
     }

@@ -51,6 +51,7 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({
   const [scope, setScope] = useState<'city' | 'state' | 'country' | 'world'>('world')
   const [content, setContent] = useState('')
   const [lastSubmitTime, setLastSubmitTime] = useState(0)
+  const [cooldownRemaining, setCooldownRemaining] = useState(0)
   
   // Notify parent when scope changes
   const handleScopeChange = (newScope: 'city' | 'state' | 'country' | 'world') => {
@@ -100,17 +101,37 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({
     }
   ]
 
+  // Cooldown timer effect
+  React.useEffect(() => {
+    if (lastSubmitTime === 0) return
+    
+    const minDelay = 2000 // 2 seconds
+    const updateCooldown = () => {
+      const now = Date.now()
+      const elapsed = now - lastSubmitTime
+      const remaining = Math.max(0, minDelay - elapsed)
+      
+      setCooldownRemaining(Math.ceil(remaining / 1000))
+      
+      if (remaining > 0) {
+        requestAnimationFrame(updateCooldown)
+      }
+    }
+    
+    updateCooldown()
+  }, [lastSubmitTime])
+
   const handleSubmit = async () => {
     if (!content.trim()) return
     
-    // Client-side throttling: minimum 3 seconds between submissions
+    // Client-side throttling: minimum 2 seconds between submissions
     const now = Date.now()
     const timeSinceLastSubmit = now - lastSubmitTime
-    const minDelay = 3000 // 3 seconds
+    const minDelay = 2000 // 2 seconds
     
     if (timeSinceLastSubmit < minDelay) {
-      const remainingSeconds = Math.ceil((minDelay - timeSinceLastSubmit) / 1000)
-      alert(`Please wait ${remainingSeconds} more second${remainingSeconds > 1 ? 's' : ''} before submitting again.`)
+      // Don't use alert() - visual feedback via button disabled state
+      console.log('⏱️ Submission throttled - too fast')
       return
     }
     
@@ -236,7 +257,7 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({
         {/* Submit Button - Mobile Touch Optimized */}
         <Button
           onClick={handleSubmit}
-          disabled={!content.trim() || isLoading}
+          disabled={!content.trim() || isLoading || cooldownRemaining > 0}
           variant="primary"
           className="w-full py-4 sm:py-3 text-base sm:text-sm font-medium min-h-[50px]"
         >
@@ -244,6 +265,13 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({
             <div className="flex items-center justify-center">
               <div className="animate-spin rounded-full h-5 w-5 sm:h-4 sm:w-4 border-b-2 border-white mr-2"></div>
               Analyzing...
+            </div>
+          ) : cooldownRemaining > 0 ? (
+            <div className="flex items-center justify-center">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Wait {cooldownRemaining}s
             </div>
           ) : (
             'Discover'

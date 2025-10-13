@@ -105,6 +105,7 @@ export default function Home() {
 
     try {
       // Create the post via API with location data
+      // This will throw an error if validation/moderation fails
       const result = await createPost({
         content: data.content,
         inputType: data.inputType,
@@ -115,29 +116,25 @@ export default function Home() {
         locationCountry: userLocation?.country,
       })
 
-      if (result) {
-        // Store result in sessionStorage to pass to response page
-        sessionStorage.setItem('postResult', JSON.stringify(result))
+      // Success! Store result and navigate
+      sessionStorage.setItem('postResult', JSON.stringify(result))
 
-        // Navigate to appropriate response page
-        const isUnique = result.uniquenessScore >= 70
-        const params = new URLSearchParams({
-          postId: result.post.id,
-          content: data.content,
-          type: data.inputType,
-          scope: data.scope,
-        })
+      // Navigate to appropriate response page
+      const isUnique = result.uniquenessScore >= 70
+      const params = new URLSearchParams({
+        postId: result.post.id,
+        content: data.content,
+        type: data.inputType,
+        scope: data.scope,
+      })
 
-        if (isUnique) {
-          router.push(`/response?${params.toString()}`)
-        } else {
-          router.push(`/response/commonality?${params.toString()}`)
-        }
-      } else if (error) {
-        // Show moderation or other errors
-        setModerationError(error)
+      if (isUnique) {
+        router.push(`/response?${params.toString()}`)
+      } else {
+        router.push(`/response/commonality?${params.toString()}`)
       }
     } catch (err) {
+      // Error caught - display immediately
       console.error('Error submitting post:', err)
       const errorMsg = err instanceof Error ? err.message : 'Failed to submit post. Please try again.'
       setModerationError(errorMsg)
