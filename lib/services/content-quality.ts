@@ -99,12 +99,21 @@ export function validateAction(content: string): {
   // Abstract states are internal: "felt", "thought", "believed"
   const abstractVerbs = doc.match('(be|am|is|are|was|were|have|has|had|seem|seemed|feel|felt|think|thought|believe|believed|know|knew|can|could|should|would|will|shall|may|might|must)').found
   
+  // Check if ONLY abstract/be verbs exist (no concrete actions)
+  const onlyAbstractVerbs = abstractVerbs && verbWords.every((v: string) => 
+    ['be', 'am', 'is', 'are', 'was', 'were', 'have', 'has', 'had', 'seem', 'seemed', 'feel', 'felt', 'think', 'thought', 'believe', 'believed', 'know', 'knew', 'can', 'could', 'should', 'would', 'will', 'shall', 'may', 'might', 'must'].includes(v.toLowerCase())
+  )
+  
   if (verbs.length > 0 && !abstractVerbs) {
     actionScore += 20
     console.log('✅ Concrete action verb (+20)')
+  } else if (onlyAbstractVerbs) {
+    actionScore -= 40
+    reasons.push('This is a description, not an action. Use action verbs (like "played", "cooked", "walked")')
+    console.log('❌ Only abstract/be verbs - description not action (-40)')
   } else if (abstractVerbs) {
     reasons.push('Use concrete action verbs (like "played", "cooked", "walked")')
-    console.log('❌ Abstract/auxiliary verbs only (-0)')
+    console.log('❌ Abstract/auxiliary verbs present (-0)')
   }
   
   // Layer 4: Action Structure (10 points)
@@ -180,7 +189,21 @@ export function validateAction(content: string): {
     console.log('❌ Command/advice format (-50)')
   }
   
-  // Layer 7: Quote/Philosophical Detection
+  // Layer 7: Description Detection
+  // "chubby cheeks", "eyes are blue" = descriptions, not actions
+  const adjectives = doc.adjectives().out('array')
+  const hasMultipleAdjectives = adjectives.length >= 2
+  const isDescriptionPattern = (hasMultipleAdjectives || doc.match('#Adjective #Noun').found) && 
+                                onlyAbstractVerbs &&
+                                !hasPastTense
+  
+  if (isDescriptionPattern) {
+    actionScore -= 50
+    reasons.push('This is a physical description, not an action you did')
+    console.log('❌ Description pattern detected (-50)')
+  }
+  
+  // Layer 8: Quote/Philosophical Detection
   // Long sentences with "but", "and", semicolons = likely philosophical
   const isLongPhilosophical = content.length > 60 && 
                               (lowerContent.includes(' but ') || lowerContent.includes(' and ')) &&
