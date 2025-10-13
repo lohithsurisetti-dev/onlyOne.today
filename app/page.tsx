@@ -173,20 +173,37 @@ export default function Home() {
             While the world follows the trend, you did something no one else did.
           </p>
           
-          {/* Live Post Counter - Exciting Badge */}
+          {/* Live Post Counter - Mobile: Below subtitle, Desktop: Top right */}
           {stats && (
-            <div className="absolute top-4 right-4 sm:top-20 sm:right-6">
-              <div className="relative group">
-                {/* Pulsing Glow Effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full opacity-50 blur-xl animate-pulse"></div>
-                
-                {/* Counter Badge */}
-                <div className="relative flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-full bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-2 border-purple-400/50 backdrop-blur-sm shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all hover:scale-105">
-                  <span className="text-lg sm:text-2xl font-bold text-white leading-none">{stats.today.totalPosts}</span>
-                  <span className="text-[10px] sm:text-xs text-purple-200/80 font-medium whitespace-nowrap">posts today</span>
+            <>
+              {/* Mobile: Centered below subtitle */}
+              <div className="sm:hidden mt-4 flex justify-center">
+                <div className="relative">
+                  {/* Pulsing Glow Effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full opacity-50 blur-xl animate-pulse"></div>
+                  
+                  {/* Counter Badge */}
+                  <div className="relative flex items-center gap-1.5 px-3 py-2 rounded-full bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-2 border-purple-400/50 backdrop-blur-sm shadow-lg shadow-purple-500/30">
+                    <span className="text-lg font-bold text-white leading-none">{stats.today.totalPosts}</span>
+                    <span className="text-[10px] text-purple-200/80 font-medium whitespace-nowrap">posts today</span>
+                  </div>
                 </div>
               </div>
-            </div>
+              
+              {/* Desktop: Absolute top right */}
+              <div className="hidden sm:block absolute top-20 right-6">
+                <div className="relative group">
+                  {/* Pulsing Glow Effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full opacity-50 blur-xl animate-pulse"></div>
+                  
+                  {/* Counter Badge */}
+                  <div className="relative flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-2 border-purple-400/50 backdrop-blur-sm shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all hover:scale-105">
+                    <span className="text-2xl font-bold text-white leading-none">{stats.today.totalPosts}</span>
+                    <span className="text-xs text-purple-200/80 font-medium whitespace-nowrap">posts today</span>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </header>
 
