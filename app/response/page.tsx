@@ -32,7 +32,6 @@ function ResponseContent() {
   
   // Auto-detect view type from uniqueness score (fallback if no view param)
   const [shareType, setShareType] = useState<'uniqueness' | 'commonality'>('uniqueness')
-  const [initialLoadDone, setInitialLoadDone] = useState(false)
   
   // Manual refresh function - wrapped in useCallback to avoid dependency issues
   const refreshLiveData = useCallback(async () => {
@@ -90,7 +89,7 @@ function ResponseContent() {
     setIsClient(true)
   }, [])
   
-  // Load post result from sessionStorage
+  // Load post result from sessionStorage (NO auto-refresh to avoid loops)
   useEffect(() => {
     const storedResult = sessionStorage.getItem('postResult')
     if (storedResult) {
@@ -106,18 +105,8 @@ function ResponseContent() {
         // Fallback: auto-detect from score
         setShareType(result.uniquenessScore >= 70 ? 'uniqueness' : 'commonality')
       }
-      
-      setInitialLoadDone(true)
     }
   }, [viewParam])
-  
-  // Auto-fetch live data after initial load
-  useEffect(() => {
-    if (initialLoadDone && postResult?.post?.id) {
-      console.log('🚀 Triggering auto-refresh of live data...')
-      refreshLiveData()
-    }
-  }, [initialLoadDone, postResult?.post?.id, refreshLiveData])
   
   // Detect vibe
   useEffect(() => {
@@ -236,15 +225,15 @@ function ResponseContent() {
     <div className="min-h-screen bg-gradient-to-br from-space-dark via-space-darker to-space-darkest relative overflow-hidden">
       <StarsBackground />
       
-      {/* Floating Refresh Button */}
+      {/* Floating Refresh Button - Click to update scores */}
       <button
         onClick={refreshLiveData}
         disabled={fetchingLive}
-        className="fixed top-6 right-6 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 transition-all hover:scale-110 disabled:opacity-50"
-        title="Refresh live scores"
+        className="fixed top-6 right-6 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 transition-all hover:scale-110 disabled:opacity-50 group"
+        title="Click to refresh with live scores"
       >
         <svg 
-          className={`w-5 h-5 text-white ${fetchingLive ? 'animate-spin' : ''}`} 
+          className={`w-5 h-5 text-white ${fetchingLive ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-300'}`} 
           fill="none" 
           stroke="currentColor" 
           viewBox="0 0 24 24"
