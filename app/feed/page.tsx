@@ -6,6 +6,7 @@ import StarsBackground from '@/components/StarsBackground'
 import ShareModal from '@/components/ShareModal'
 import GlobalPulse from '@/components/GlobalPulse'
 import FilterSheet from '@/components/FilterSheet'
+import TimezoneLeaderboard from '@/components/TimezoneLeaderboard'
 import { useRecentPosts } from '@/lib/hooks/usePosts'
 import { usePlatformStats } from '@/lib/hooks/useStats'
 import { getShareMessage } from '@/lib/services/witty-messages'
@@ -351,7 +352,8 @@ PostCard.displayName = 'PostCard'
 
 export default function FeedPage() {
   const router = useRouter()
-  const { stats } = usePlatformStats() // Fetch live stats
+  const [selectedTimezone, setSelectedTimezone] = useState<string | undefined>(undefined)
+  const { stats, userTimezone } = usePlatformStats(selectedTimezone) // Fetch live stats with timezone
   const [filter, setFilter] = useState<'all' | 'unique' | 'common' | 'trending'>('all')
   const [scopeFilter, setScopeFilter] = useState<'all' | 'city' | 'state' | 'country' | 'world'>('world')
   const [reactionFilter, setReactionFilter] = useState<'all' | 'funny' | 'creative' | 'must_try'>('all')
@@ -367,8 +369,20 @@ export default function FeedPage() {
   const [trendingRefreshKey, setTrendingRefreshKey] = useState(0)
   const [trendingRetryAttempt, setTrendingRetryAttempt] = useState(0)
   const [filterSheetOpen, setFilterSheetOpen] = useState(false)
+  const [showTimezoneSelector, setShowTimezoneSelector] = useState(false)
   
   const postsPerPage = 24
+  
+  // Popular timezones for quick switching
+  const popularTimezones = [
+    { name: 'auto', label: 'My Time', emoji: '📍' },
+    { name: 'America/New_York', label: 'NYC', emoji: '🗽' },
+    { name: 'America/Los_Angeles', label: 'LA', emoji: '🌴' },
+    { name: 'Europe/London', label: 'London', emoji: '🇬🇧' },
+    { name: 'Asia/Tokyo', label: 'Tokyo', emoji: '🇯🇵' },
+    { name: 'Asia/Dubai', label: 'Dubai', emoji: '🇦🇪' },
+    { name: 'Australia/Sydney', label: 'Sydney', emoji: '🇦🇺' },
+  ]
   
   // Persist filter state across page refreshes
   useEffect(() => {
@@ -1227,8 +1241,9 @@ export default function FeedPage() {
             
             {/* Global Pulse Sidebar (Desktop Only) */}
             <aside className="hidden lg:block">
-              <div className="sticky top-24">
+              <div className="sticky top-24 space-y-4">
                 <GlobalPulse posts={allPosts} currentFilter={filter} />
+                <TimezoneLeaderboard />
               </div>
             </aside>
           </div>
@@ -1270,12 +1285,13 @@ export default function FeedPage() {
           <h2 className="text-xl font-bold text-white">Filters</h2>
           
           {/* Clear All Button */}
-          {(filter !== 'all' || scopeFilter !== 'world' || reactionFilter !== 'all') && (
+          {(filter !== 'all' || scopeFilter !== 'world' || reactionFilter !== 'all' || selectedTimezone) && (
             <button
               onClick={() => {
                 setFilter('all')
                 setScopeFilter('world')
                 setReactionFilter('all')
+                setSelectedTimezone(undefined)
                 setFilterSheetOpen(false)
               }}
               className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white text-xs font-medium transition-all border border-white/10"
@@ -1283,6 +1299,38 @@ export default function FeedPage() {
               Clear All
             </button>
           )}
+        </div>
+        
+        {/* Timezone Selector */}
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-white/60 mb-3">View Posts From</h3>
+          <div className="grid grid-cols-2 gap-2">
+            {popularTimezones.map((tz) => (
+              <button
+                key={tz.name}
+                onClick={() => {
+                  setSelectedTimezone(tz.name === 'auto' ? undefined : tz.name)
+                  setFilterSheetOpen(false)
+                }}
+                className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                  (tz.name === 'auto' && !selectedTimezone) || selectedTimezone === tz.name
+                    ? 'bg-gradient-to-r from-cyan-500/30 to-blue-500/30 text-white border-2 border-cyan-400/50'
+                    : 'bg-white/5 text-white/70 border-2 border-white/10 hover:bg-white/10'
+                }`}
+              >
+                <span className="text-base">{tz.emoji}</span>
+                <span>{tz.label}</span>
+                {((tz.name === 'auto' && !selectedTimezone) || selectedTimezone === tz.name) && (
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-white/40 text-center">
+            {selectedTimezone ? `Showing posts from ${popularTimezones.find(t => t.name === selectedTimezone)?.label}'s today` : `Showing posts from your timezone (${userTimezone})`}
+          </p>
         </div>
         
         {/* Type Filters */}

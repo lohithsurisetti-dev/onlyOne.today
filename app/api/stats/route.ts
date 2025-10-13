@@ -4,17 +4,44 @@ import { getModerationStats } from '@/lib/services/moderation-hybrid'
 
 /**
  * GET /api/stats - Get public platform statistics
+ * Supports timezone-aware queries via ?timezone=America/New_York
  */
 export async function GET(request: NextRequest) {
   try {
     const supabase = createClient()
     
-    // Get total posts today
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const todayISO = today.toISOString()
+    // Get timezone from query params (defaults to UTC)
+    const searchParams = request.nextUrl.searchParams
+    const userTimezone = searchParams.get('timezone') || 'UTC'
+    const timezoneOffset = searchParams.get('offset') // Offset in minutes
     
-    console.log('📊 Fetching stats for today:', todayISO)
+    // Calculate "today" in user's timezone
+    let todayISO: string
+    
+    if (timezoneOffset) {
+      // Use offset if provided (more reliable than timezone name)
+      const offsetMinutes = parseInt(timezoneOffset)
+      const now = new Date()
+      
+      // Get midnight in user's timezone
+      const userNow = new Date(now.getTime() - (offsetMinutes * 60 * 1000))
+      const userToday = new Date(Date.UTC(
+        userNow.getUTCFullYear(),
+        userNow.getUTCMonth(), 
+        userNow.getUTCDate(),
+        0, 0, 0, 0
+      ))
+      
+      // Add offset back to get UTC time of user's midnight
+      todayISO = new Date(userToday.getTime() + (offsetMinutes * 60 * 1000)).toISOString()
+    } else {
+      // Fallback to UTC
+      const now = new Date()
+      const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0))
+      todayISO = today.toISOString()
+    }
+    
+    console.log(`📊 Fetching stats for today (${userTimezone}, offset: ${timezoneOffset}min):`, todayISO)
     
     const { count: totalPostsToday, error: todayError } = await supabase
       .from('posts')
