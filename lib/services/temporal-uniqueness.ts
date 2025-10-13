@@ -72,6 +72,10 @@ export async function calculateTemporalUniqueness(
     return query
   }
   
+  // Add small delay to ensure post is committed to database
+  // Without this, temporal calculation might run before post is visible
+  await new Promise(resolve => setTimeout(resolve, 500))
+  
   // Fetch posts for each time window (with scope filtering)
   const [todayResult, weekResult, monthResult, allTimeResult] = await Promise.all([
     // Today
@@ -106,27 +110,46 @@ export async function calculateTemporalUniqueness(
     ),
   ])
   
+  console.log(`📊 Temporal query results:`, {
+    today: todayResult.data?.length || 0,
+    week: weekResult.data?.length || 0,
+    month: monthResult.data?.length || 0,
+    allTime: allTimeResult.data?.length || 0,
+    errors: {
+      today: todayResult.error,
+      week: weekResult.error,
+      month: monthResult.error,
+      allTime: allTimeResult.error
+    }
+  })
+  
   // Calculate uniqueness for each period
-  const calculateForPeriod = (posts: any[] | null) => {
+  const calculateForPeriod = (posts: any[] | null, periodName: string) => {
     if (!posts || posts.length === 0) {
+      console.log(`📊 ${periodName}: No posts found → 100% unique (default)`)
       return { uniqueness: 100, matchCount: 0, totalPosts: 0 }
     }
     
-    // Count matching posts (exclude self by subtracting 1)
-    const matchCount = posts.filter(p => p.content_hash === contentHash).length - 1
+    // Count matching posts in this period
+    // Note: This includes the current post itself, so subtract 1 to get "others"
+    const matchingPosts = posts.filter(p => p.content_hash === contentHash)
+    const totalMatches = matchingPosts.length
+    const matchCount = Math.max(0, totalMatches - 1) // Others (excluding self)
     const totalPosts = posts.length
     
     // Use same formula as main uniqueness calculation: 100 - (matches * 10)
     // This ensures consistency with the main score
     const uniqueness = Math.max(0, 100 - (matchCount * 10))
     
+    console.log(`📊 ${periodName}: ${totalMatches} total matches (${matchCount} others) out of ${totalPosts} total posts → ${uniqueness}% unique`)
+    
     return { uniqueness: Math.round(uniqueness), matchCount, totalPosts }
   }
   
-  const today = calculateForPeriod(todayResult.data)
-  const thisWeek = calculateForPeriod(weekResult.data)
-  const thisMonth = calculateForPeriod(monthResult.data)
-  const allTime = calculateForPeriod(allTimeResult.data)
+  const today = calculateForPeriod(todayResult.data, 'Today')
+  const thisWeek = calculateForPeriod(weekResult.data, 'This Week')
+  const thisMonth = calculateForPeriod(monthResult.data, 'This Month')
+  const allTime = calculateForPeriod(allTimeResult.data, 'All Time')
   
   // Determine trend (compare recent vs historical activity)
   let trend: 'rising' | 'falling' | 'stable' = 'stable'

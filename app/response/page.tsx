@@ -337,15 +337,22 @@ function ResponseContent() {
                   </div>
                   
                   <div className="grid grid-cols-2 gap-2.5 mb-3">
-                    {formatTemporalStats(temporal).map((stat: { label: string; icon: string; uniqueness: number }, idx: number) => (
-                      <div key={idx} className="bg-white/5 rounded-lg p-2.5 border border-white/10">
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                          {getTemporalIconSVG(stat.icon)}
-                          <span className="text-xs font-medium text-white/60">{stat.label}</span>
+                    {formatTemporalStats(temporal).map((stat: { label: string; icon: string; uniqueness: number }, idx: number) => {
+                      // Show uniqueness% or commonality% based on current view
+                      const displayValue = shareType === 'uniqueness' 
+                        ? stat.uniqueness 
+                        : 100 - stat.uniqueness // Swap to commonality%
+                      
+                      return (
+                        <div key={idx} className="bg-white/5 rounded-lg p-2.5 border border-white/10">
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            {getTemporalIconSVG(stat.icon)}
+                            <span className="text-xs font-medium text-white/60">{stat.label}</span>
+                          </div>
+                          <div className="text-xl font-bold text-white">{displayValue}%</div>
                         </div>
-                        <div className="text-xl font-bold text-white">{stat.uniqueness}%</div>
-                  </div>
-                ))}
+                      )
+                    })}
               </div>
               
                   {temporal.insight && (
