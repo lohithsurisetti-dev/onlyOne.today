@@ -27,76 +27,9 @@ function ResponseContent() {
   const [rank, setRank] = useState<string>('')
   const [vibeCelebration, setVibeCelebration] = useState<string>('')
   const [isClient, setIsClient] = useState(false)
-  const [fetchingLive, setFetchingLive] = useState(false)
-  const [refreshKey, setRefreshKey] = useState(0)
-  const [hasAutoRefreshed, setHasAutoRefreshed] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(false)
   
   // Auto-detect view type from uniqueness score (fallback if no view param)
   const [shareType, setShareType] = useState<'uniqueness' | 'commonality'>('uniqueness')
-  
-  // Manual refresh function with animation
-  const refreshLiveData = useCallback(async () => {
-    if (!postResult?.post?.id) {
-      console.log('⚠️ No post ID available for refresh')
-      return
-    }
-    
-    setFetchingLive(true)
-    setIsAnimating(true)
-    
-    try {
-      console.log(`🔄 Fetching live data for post ${postResult.post.id}...`)
-      const response = await fetch(`/api/posts?id=${postResult.post.id}`, {
-        cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache' }
-      })
-      
-      console.log(`📡 Response status: ${response.status}`)
-      
-      if (response.ok) {
-        const data = await response.json()
-        console.log(`📦 Response data:`, data)
-        
-        if (data.post) {
-          const oldScore = postResult.uniquenessScore
-          const newScore = data.post.uniqueness_score
-          
-          console.log(`✅ Live scores: ${newScore}% unique, ${data.post.match_count} matches`)
-          console.log(`   Old: ${oldScore}% → New: ${newScore}%`)
-          
-          // Animate score change if different
-          if (oldScore !== newScore) {
-            // Brief delay to show animation start
-            await new Promise(resolve => setTimeout(resolve, 300))
-          }
-          
-          setPostResult(prev => prev ? {
-            ...prev,
-            uniquenessScore: data.post.uniqueness_score,
-            matchCount: data.post.match_count,
-            post: {
-              ...prev.post,
-              uniqueness_score: data.post.uniqueness_score,
-              match_count: data.post.match_count
-            }
-          } : prev)
-          
-          // Trigger temporal refresh too
-          setRefreshKey(prev => prev + 1)
-        } else {
-          console.error('❌ No post data in response')
-        }
-      } else {
-        console.error('❌ Fetch failed:', response.status, response.statusText)
-      }
-    } catch (error) {
-      console.error('❌ Refresh error:', error)
-    } finally {
-      setFetchingLive(false)
-      setTimeout(() => setIsAnimating(false), 1000) // Keep animation for 1s
-    }
-  }, [postResult])
   
   // Set client-side flag to prevent hydration errors
   useEffect(() => {
@@ -121,21 +54,6 @@ function ResponseContent() {
       }
     }
   }, [viewParam])
-  
-  // ONE-TIME auto-refresh on mount (with 1 second delay for dramatic effect)
-  useEffect(() => {
-    if (postResult?.post?.id && !hasAutoRefreshed) {
-      setHasAutoRefreshed(true) // Prevent infinite loops!
-      
-      // Delay 1 second for dramatic effect
-      const timer = setTimeout(() => {
-        console.log('🎬 Starting auto-refresh animation...')
-        refreshLiveData()
-      }, 1000)
-      
-      return () => clearTimeout(timer)
-    }
-  }, [postResult?.post?.id, hasAutoRefreshed, refreshLiveData])
   
   // Detect vibe
   useEffect(() => {
@@ -169,7 +87,7 @@ function ResponseContent() {
       }
     }
     loadTemporal()
-  }, [postResult, content, refreshKey])
+  }, [postResult, content])
   
   // Generate witty messages on client only (to avoid hydration errors)
   useEffect(() => {
@@ -254,23 +172,6 @@ function ResponseContent() {
     <div className="min-h-screen bg-gradient-to-br from-space-dark via-space-darker to-space-darkest relative overflow-hidden">
       <StarsBackground />
       
-      {/* Floating Refresh Button - Click to update scores */}
-      <button
-        onClick={refreshLiveData}
-        disabled={fetchingLive}
-        className="fixed top-6 right-6 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 transition-all hover:scale-110 disabled:opacity-50 group"
-        title="Click to refresh with live scores"
-      >
-        <svg 
-          className={`w-5 h-5 text-white ${fetchingLive ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-300'}`} 
-          fill="none" 
-          stroke="currentColor" 
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
-      </button>
-      
       <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-8">
         {/* Main Container - Centered Single Card */}
         <div className="max-w-2xl w-full">
@@ -304,11 +205,9 @@ function ResponseContent() {
                 {/* Circular Progress - Compact */}
                 <div className="flex justify-center mb-4">
                   <div className="relative w-44 h-44">
-                    {/* Reduced glow ring - intensifies during update */}
-                    <div className={`absolute inset-0 rounded-full blur-xl transition-all duration-500 ${
+                    {/* Reduced glow ring */}
+                    <div className={`absolute inset-0 rounded-full blur-xl opacity-40 ${
                       shareType === 'uniqueness' ? 'bg-purple-500/30' : 'bg-blue-500/30'
-                    } ${
-                      isAnimating ? 'opacity-80 scale-110 animate-pulse' : 'opacity-40'
                     }`} />
                     
                     <svg className="w-full h-full transform -rotate-90 relative">
@@ -332,8 +231,7 @@ function ResponseContent() {
                         strokeDashoffset={`${2 * Math.PI * 78 * (1 - (shareType === 'uniqueness' ? uniquenessScore : commonalityScore) / 100)}`}
                         strokeLinecap="round"
                         style={{ 
-                          transition: 'stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s ease',
-                          filter: isAnimating ? 'drop-shadow(0 0 20px currentColor)' : 'none'
+                          transition: 'stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s ease'
                         }}
                       />
                       <defs>
@@ -352,30 +250,17 @@ function ResponseContent() {
                     
                     {/* Center content */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <div className="text-xs font-semibold text-white/60 uppercase tracking-widest mb-1 flex items-center justify-center gap-2">
-                        {fetchingLive ? (
-                          <>
-                            <svg className="w-3 h-3 animate-spin text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            <span className="text-purple-300 animate-pulse">Updating...</span>
-                          </>
-                        ) : (
-                          <span>{shareType === 'uniqueness' ? 'Unique' : 'Common'}</span>
-                        )}
+                      <div className="text-xs font-semibold text-white/60 uppercase tracking-widest mb-1">
+                        {shareType === 'uniqueness' ? 'Unique' : 'Common'}
                       </div>
                       <div className={`text-4xl font-black mb-1 transition-all duration-1000 ${
-                        isAnimating ? 'scale-125 blur-sm' : 'scale-100 blur-0'
-                      } ${
                         shareType === 'uniqueness' 
                           ? 'bg-gradient-to-br from-purple-300 via-pink-300 to-purple-400 bg-clip-text text-transparent' 
                           : 'bg-gradient-to-br from-blue-300 via-cyan-300 to-blue-400 bg-clip-text text-transparent'
                       }`}>
                         {shareType === 'uniqueness' ? uniquenessScore : commonalityScore}%
                       </div>
-                      <div className={`px-3 py-1 bg-white/10 rounded-full backdrop-blur-sm transition-all duration-500 ${
-                        isAnimating ? 'scale-110 bg-white/20' : 'scale-100'
-                      }`}>
+                      <div className="px-3 py-1 bg-white/10 rounded-full backdrop-blur-sm transition-all duration-500">
                         <span className="text-xs font-medium text-white/80">
                           {shareType === 'uniqueness' ? `${matchCount + 1} did this` : `${matchCount} others`}
                         </span>

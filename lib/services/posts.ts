@@ -244,6 +244,28 @@ export async function createPost(data: {
     }
   }
 
+  // IMPORTANT: Recalculate LIVE score right after insertion
+  // Between finding similar posts and now, more posts might have been created
+  // This ensures we return the most up-to-date score to the user
+  const { count: finalCount, error: recountError } = await supabase
+    .from('posts')
+    .select('id', { count: 'exact', head: true })
+    .eq('content_hash', contentHash)
+    .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+  
+  let finalMatchCount = matchCount
+  let finalUniquenessScore = uniquenessScore
+  
+  if (!recountError && finalCount) {
+    // Recalculate with actual current matches
+    finalMatchCount = finalCount - 1 // Exclude self
+    finalUniquenessScore = calculateUniquenessScore(finalMatchCount)
+    
+    if (finalMatchCount !== matchCount) {
+      console.log(`📊 Score updated after insertion: ${matchCount} → ${finalMatchCount} matches, ${uniquenessScore}% → ${finalUniquenessScore}%`)
+    }
+  }
+
   // Create post matches (if any similar posts found)
   if (similarPosts.length > 0 && post) {
     const matches = similarPosts.map(sp => ({
@@ -272,8 +294,8 @@ export async function createPost(data: {
   return {
     post,
     similarPosts,
-    matchCount,
-    uniquenessScore,
+    matchCount: finalMatchCount,    // Return LIVE count, not initial
+    uniquenessScore: finalUniquenessScore, // Return LIVE score, not initial
   }
 }
 
