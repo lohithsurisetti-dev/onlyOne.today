@@ -1,7 +1,7 @@
 'use client'
 
+import React, { Suspense, useState, useEffect, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Suspense, useState, useEffect } from 'react'
 import StarsBackground from '@/components/StarsBackground'
 import Button from '@/components/ui/Button'
 import ShareModal from '@/components/ShareModal'
@@ -32,56 +32,68 @@ function ResponseContent() {
   
   // Auto-detect view type from uniqueness score (fallback if no view param)
   const [shareType, setShareType] = useState<'uniqueness' | 'commonality'>('uniqueness')
+  const [initialLoadDone, setInitialLoadDone] = useState(false)
   
-  // Manual refresh function
-  const refreshLiveData = async () => {
-    if (postResult?.post?.id) {
-      setFetchingLive(true)
-      try {
-        console.log(`🔄 Manual refresh for post ${postResult.post.id}...`)
-        const response = await fetch(`/api/posts?id=${postResult.post.id}`, {
-          cache: 'no-store'
-        })
-        
-        if (response.ok) {
-          const data = await response.json()
-          if (data.post) {
-            console.log(`✅ Refreshed: ${data.post.uniqueness_score}% unique, ${data.post.match_count} matches`)
-            
-            setPostResult(prev => prev ? {
-              ...prev,
-              uniquenessScore: data.post.uniqueness_score,
-              matchCount: data.post.match_count,
-              post: {
-                ...prev.post,
-                uniqueness_score: data.post.uniqueness_score,
-                match_count: data.post.match_count
-              }
-            } : prev)
-            
-            // Trigger temporal refresh too
-            setRefreshKey(prev => prev + 1)
-          }
-        }
-      } catch (error) {
-        console.error('Refresh failed:', error)
-      } finally {
-        setFetchingLive(false)
-      }
+  // Manual refresh function - wrapped in useCallback to avoid dependency issues
+  const refreshLiveData = useCallback(async () => {
+    if (!postResult?.post?.id) {
+      console.log('⚠️ No post ID available for refresh')
+      return
     }
-  }
+    
+    setFetchingLive(true)
+    try {
+      console.log(`🔄 Fetching live data for post ${postResult.post.id}...`)
+      const response = await fetch(`/api/posts?id=${postResult.post.id}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      })
+      
+      console.log(`📡 Response status: ${response.status}`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log(`📦 Response data:`, data)
+        
+        if (data.post) {
+          console.log(`✅ Live scores: ${data.post.uniqueness_score}% unique, ${data.post.match_count} matches`)
+          console.log(`   Old: ${postResult.uniquenessScore}% → New: ${data.post.uniqueness_score}%`)
+          
+          setPostResult(prev => prev ? {
+            ...prev,
+            uniquenessScore: data.post.uniqueness_score,
+            matchCount: data.post.match_count,
+            post: {
+              ...prev.post,
+              uniqueness_score: data.post.uniqueness_score,
+              match_count: data.post.match_count
+            }
+          } : prev)
+          
+          // Trigger temporal refresh too
+          setRefreshKey(prev => prev + 1)
+        } else {
+          console.error('❌ No post data in response')
+        }
+      } else {
+        console.error('❌ Fetch failed:', response.status, response.statusText)
+      }
+    } catch (error) {
+      console.error('❌ Refresh error:', error)
+    } finally {
+      setFetchingLive(false)
+    }
+  }, [postResult])
   
   // Set client-side flag to prevent hydration errors
   useEffect(() => {
     setIsClient(true)
   }, [])
   
-  // Load post result from sessionStorage AND auto-fetch live data
+  // Load post result from sessionStorage
   useEffect(() => {
-    const fetchData = async () => {
-      const storedResult = sessionStorage.getItem('postResult')
-      if (!storedResult) return
-      
+    const storedResult = sessionStorage.getItem('postResult')
+    if (storedResult) {
       const result = JSON.parse(storedResult)
       setPostResult(result)
       
@@ -95,44 +107,17 @@ function ResponseContent() {
         setShareType(result.uniquenessScore >= 70 ? 'uniqueness' : 'commonality')
       }
       
-      // IMPORTANT: Fetch LIVE data from database immediately
-      if (result.post?.id) {
-        setFetchingLive(true)
-        try {
-          console.log(`🔄 Auto-fetching live data for post ${result.post.id}...`)
-          const response = await fetch(`/api/posts?id=${result.post.id}`, {
-            cache: 'no-store'
-          })
-          
-          if (response.ok) {
-            const data = await response.json()
-            if (data.post) {
-              console.log(`✅ Live data: ${data.post.uniqueness_score}% unique, ${data.post.match_count} matches`)
-              console.log(`   Was: ${result.uniquenessScore}% → Now: ${data.post.uniqueness_score}%`)
-              
-              // Update with LIVE scores
-              setPostResult({
-                ...result,
-                uniquenessScore: data.post.uniqueness_score,
-                matchCount: data.post.match_count,
-                post: {
-                  ...result.post,
-                  uniqueness_score: data.post.uniqueness_score,
-                  match_count: data.post.match_count
-                }
-              })
-            }
-          }
-        } catch (error) {
-          console.error('Auto-fetch failed:', error)
-        } finally {
-          setFetchingLive(false)
-        }
-      }
+      setInitialLoadDone(true)
     }
-    
-    fetchData()
-  }, [viewParam, refreshKey])
+  }, [viewParam])
+  
+  // Auto-fetch live data after initial load
+  useEffect(() => {
+    if (initialLoadDone && postResult?.post?.id) {
+      console.log('🚀 Triggering auto-refresh of live data...')
+      refreshLiveData()
+    }
+  }, [initialLoadDone, postResult?.post?.id, refreshLiveData])
   
   // Detect vibe
   useEffect(() => {
