@@ -1,14 +1,14 @@
 /**
  * Content Quality Analysis - Detect spam, gibberish, and low-quality posts
- * 100% dynamic - no static spam lists!
+ * 100% dynamic using compromise.js grammar analysis + minimal heuristics
  */
 
-import natural from 'natural'
+import nlp from 'compromise'
 import { generateDynamicHash } from './nlp-dynamic'
 
 /**
- * Check if content is semantically coherent (makes sense)
- * Returns quality score 0-100
+ * Check if content is semantically coherent using compromise.js
+ * 100% dynamic - learns from grammar, not word lists!
  */
 export function checkSemanticCoherence(content: string): {
   score: number
@@ -16,6 +16,9 @@ export function checkSemanticCoherence(content: string): {
   reason?: string
 } {
   const tokens = content.toLowerCase().split(/\s+/).filter(t => t.length > 0)
+  
+  // Parse content with compromise.js
+  const doc = nlp(content)
   
   // 1. Check minimum meaningful length
   if (content.trim().length < 5) {
@@ -26,10 +29,24 @@ export function checkSemanticCoherence(content: string): {
     }
   }
   
-  // 2. ENHANCED: Check for gibberish per word (only for longer words)
+  // 2. DYNAMIC: Use compromise.js for semantic validation
+  // Extract verbs and nouns
+  const verbs = doc.verbs().out('array')
+  const nouns = doc.nouns().out('array')
+  
+  // Get adjectives and other parts
+  const adjectives = doc.adjectives().out('array')
+  
+  // Total meaningful components recognized by compromise
+  const recognizedComponents = verbs.length + nouns.length + adjectives.length
+  
+  // For quality scoring: having verbs + nouns is better
+  const hasGoodStructure = verbs.length > 0 && nouns.length > 0
+  
+  // 3. Check for gibberish using vowel/consonant ratio (only for longer words)
   let gibberishWords = 0
   for (const word of tokens) {
-    if (word.length < 5) continue // Skip short words (< 5 chars, was 3)
+    if (word.length < 5) continue // Skip short words
     
     const wordVowels = (word.match(/[aeiou]/gi) || []).length
     const wordConsonants = (word.match(/[bcdfghjklmnpqrstvwxyz]/gi) || []).length
@@ -57,7 +74,7 @@ export function checkSemanticCoherence(content: string): {
     }
   }
   
-  // 3. Check for repeated characters/patterns
+  // 4. Check for repeated characters/patterns
   const repeatedPattern = /(.)\1{4,}/.test(content) // 5+ repeated chars
   if (repeatedPattern) {
     return {
@@ -67,47 +84,7 @@ export function checkSemanticCoherence(content: string): {
     }
   }
   
-  // 4. Verify semantic content using POS tagging (dynamic analysis)
-  const hash = generateDynamicHash(content)
-  const meaningfulWords = hash.stems.length
-  
-  if (meaningfulWords === 0) {
-    return {
-      score: 0,
-      isCoherent: false,
-      reason: 'No meaningful words detected (all filtered by grammar check)'
-    }
-  }
-  
-  // Single word posts are suspicious unless they're common activities
-  if (meaningfulWords === 1 && tokens.length === 1) {
-    // Check if it's a single gibberish word
-    const singleWord = tokens[0]
-    if (singleWord.length > 8 || /[^a-z]/.test(singleWord)) {
-      return {
-        score: 30,
-        isCoherent: false,
-        reason: 'Single word appears invalid'
-      }
-    }
-    // Single valid word is marginal quality
-    return {
-      score: 60,
-      isCoherent: true,
-      reason: 'Single word post (low quality but allowed)'
-    }
-  }
-  
-  // Require at least 2 meaningful words for good quality
-  if (meaningfulWords < 2 && tokens.length > 1) {
-    return {
-      score: 45,
-      isCoherent: false,
-      reason: 'Insufficient meaningful content (filler words only)'
-    }
-  }
-  
-  // 6. Check word diversity (avoid "test test test")
+  // 5. Check word diversity (avoid "test test test")
   const uniqueWords = new Set(tokens.map(t => t.toLowerCase()))
   const diversityRatio = uniqueWords.size / tokens.length
   
@@ -119,7 +96,7 @@ export function checkSemanticCoherence(content: string): {
     }
   }
   
-  // 7. Check if words look like random characters (keyboard mashing)
+  // 6. Check if words look like random characters (keyboard mashing)
   const keyboardPatterns = [
     /asdf/i, /qwerty/i, /zxcv/i, /hjkl/i, /yuiop/i, 
     /^[bcdfghjklmnpqrstvwxyz]{5,}$/i  // 5+ consecutive consonants
@@ -137,7 +114,7 @@ export function checkSemanticCoherence(content: string): {
     }
   }
   
-  // 8. Final gibberish check - if we have gibberish from earlier, strengthen it
+  // 7. Final gibberish check - if we have gibberish from earlier, strengthen it
   if (gibberishWords > 0 && tokens.length <= 2) {
     // Single or two-word posts with ANY gibberish = reject
     return {
@@ -147,11 +124,18 @@ export function checkSemanticCoherence(content: string): {
     }
   }
   
-  // 9. All checks passed - calculate final quality score
+  // 8. Calculate final quality score
   let qualityScore = 100
   
-  // Penalize if very short meaningful content
-  if (meaningfulWords < 2) {
+  // Bonus for having both verbs and nouns (complete thought)
+  if (hasGoodStructure) {
+    qualityScore += 10
+  }
+  
+  // Penalize if no recognized components
+  if (recognizedComponents === 0) {
+    qualityScore = 0
+  } else if (recognizedComponents < 2) {
     qualityScore -= 20
   }
   
@@ -160,14 +144,19 @@ export function checkSemanticCoherence(content: string): {
     qualityScore -= 10
   }
   
+  // Penalize if gibberish detected
+  if (gibberishWords > 0) {
+    qualityScore -= (gibberishWords * 15)
+  }
+  
   return {
-    score: Math.max(50, qualityScore),
-    isCoherent: qualityScore >= 65 // Slightly relaxed threshold
+    score: Math.max(50, Math.min(110, qualityScore)),
+    isCoherent: qualityScore >= 60 && recognizedComponents > 0
   }
 }
 
 /**
- * Detect spam patterns dynamically
+ * Detect spam patterns dynamically using sequence detection
  */
 export function detectSpamPatterns(content: string): {
   isSpam: boolean
@@ -177,10 +166,20 @@ export function detectSpamPatterns(content: string): {
   const detectedPatterns: string[] = []
   let spamScore = 0
   
-  // Pattern 1: Sequential numbers/letters
-  if (/\b(one two|alpha beta|test \d+|post \d+)\b/i.test(content)) {
+  // Pattern 1: Sequential number words (one, two, three pattern)
+  const numberSequences = [
+    ['one', 'two'], ['two', 'three'], ['three', 'four'],
+    ['alpha', 'beta'], ['beta', 'gamma'], ['gamma', 'delta']
+  ]
+  
+  const lowerContent = content.toLowerCase()
+  const hasSequence = numberSequences.some(seq => 
+    lowerContent.includes(seq[0]) && lowerContent.includes(seq[1])
+  )
+  
+  if (hasSequence) {
     detectedPatterns.push('sequential_identifiers')
-    spamScore += 40
+    spamScore += 50
   }
   
   // Pattern 2: URL-like patterns (even without protocol)
