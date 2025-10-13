@@ -165,13 +165,34 @@ export default function Home() {
         </div>
 
         {/* Header */}
-        <header className="text-center pt-12 pb-6 sm:pb-8 px-4">
+        <header className="text-center pt-12 pb-6 sm:pb-8 px-4 relative">
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-3">
             OnlyOne.today
           </h1>
           <p className="text-white/70 text-base sm:text-lg md:text-xl max-w-2xl mx-auto">
             While the world follows the trend, you did something no one else did.
           </p>
+          
+          {/* Live Post Counter - Exciting Badge */}
+          {stats && (
+            <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+              <div className="relative group">
+                {/* Pulsing Glow Effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full opacity-50 blur-xl animate-pulse"></div>
+                
+                {/* Counter Badge */}
+                <div className="relative flex items-center gap-2 px-4 py-2.5 sm:px-5 sm:py-3 rounded-full bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-2 border-purple-400/50 backdrop-blur-sm shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all hover:scale-105">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-purple-300 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                  <div className="flex flex-col items-start">
+                    <span className="text-2xl sm:text-3xl font-bold text-white leading-none">{stats.today.totalPosts}</span>
+                    <span className="text-[10px] sm:text-xs text-purple-200/80 font-medium uppercase tracking-wider">Today</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </header>
 
         {/* Main Content */}
