@@ -119,20 +119,17 @@ export default function Home() {
       // Success! Store result and navigate
       sessionStorage.setItem('postResult', JSON.stringify(result))
 
-      // Navigate to appropriate response page
+      // Navigate to unified response page
       const isUnique = result.uniquenessScore >= 70
       const params = new URLSearchParams({
         postId: result.post.id,
         content: data.content,
         type: data.inputType,
         scope: data.scope,
+        view: isUnique ? 'unique' : 'common', // Let response page know which view to show
       })
 
-      if (isUnique) {
-        router.push(`/response?${params.toString()}`)
-      } else {
-        router.push(`/response/commonality?${params.toString()}`)
-      }
+      router.push(`/response?${params.toString()}`)
     } catch (err) {
       // Error caught - display immediately
       console.error('Error submitting post:', err)

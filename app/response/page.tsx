@@ -17,9 +17,9 @@ function ResponseContent() {
   const inputType = searchParams.get('type') || 'action'
   const scope = searchParams.get('scope') || 'world'
   const postId = searchParams.get('postId')
+  const viewParam = searchParams.get('view') // 'unique' or 'common'
   const [showShareModal, setShowShareModal] = useState(false)
   const [postResult, setPostResult] = useState<CreatePostResult | null>(null)
-  const [shareType, setShareType] = useState<'uniqueness' | 'commonality'>('uniqueness')
   const [vibe, setVibe] = useState<string>('')
   const [temporal, setTemporal] = useState<TemporalUniqueness | null>(null)
   const [loadingTemporal, setLoadingTemporal] = useState(false)
@@ -27,6 +27,9 @@ function ResponseContent() {
   const [rank, setRank] = useState<string>('')
   const [vibeCelebration, setVibeCelebration] = useState<string>('')
   const [isClient, setIsClient] = useState(false)
+  
+  // Auto-detect view type from uniqueness score (fallback if no view param)
+  const [shareType, setShareType] = useState<'uniqueness' | 'commonality'>('uniqueness')
   
   // Set client-side flag to prevent hydration errors
   useEffect(() => {
@@ -37,9 +40,20 @@ function ResponseContent() {
   useEffect(() => {
     const storedResult = sessionStorage.getItem('postResult')
     if (storedResult) {
-      setPostResult(JSON.parse(storedResult))
+      const result = JSON.parse(storedResult)
+      setPostResult(result)
+      
+      // Auto-set shareType based on view param or uniqueness score
+      if (viewParam === 'common') {
+        setShareType('commonality')
+      } else if (viewParam === 'unique') {
+        setShareType('uniqueness')
+      } else {
+        // Fallback: auto-detect from score
+        setShareType(result.uniquenessScore >= 70 ? 'uniqueness' : 'commonality')
+      }
     }
-  }, [])
+  }, [viewParam])
   
   // Detect vibe
   useEffect(() => {
@@ -139,6 +153,16 @@ function ResponseContent() {
   const commonalityScore = 100 - uniquenessScore
   
   const isUnique = uniquenessScore >= 70
+  
+  // Auto-set initial view to the dominant score
+  // If user navigated from submit, respect their view param
+  // Otherwise default to showing the more impressive metric
+  useEffect(() => {
+    if (postResult && !viewParam) {
+      // No explicit view param - show dominant score
+      setShareType(isUnique ? 'uniqueness' : 'commonality')
+    }
+  }, [postResult, viewParam, isUnique])
   
   const handleShare = () => {
     setShowShareModal(true)
