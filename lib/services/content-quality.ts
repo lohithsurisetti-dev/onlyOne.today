@@ -31,7 +31,21 @@ export function validateAction(content: string): {
   // Layer 1: Verb Tense Analysis (40 points)
   // Real actions use past tense or present continuous (-ing)
   const verbs = doc.verbs()
-  const hasPastTense = verbs.toPastTense().out('array').length > 0
+  const verbWords = verbs.out('array')
+  
+  // Check for past tense using multiple methods
+  const hasPastTenseNLP = verbs.toPastTense().out('array').length > 0
+  
+  // Manual past tense detection (common -ed endings and irregular verbs)
+  const hasEdEnding = verbWords.some((v: string) => v.toLowerCase().match(/\w+ed$/))
+  
+  // Also check the raw content for -ed endings (in case compromise normalizes verbs)
+  const hasEdInContent = lowerContent.match(/\b\w+(ed|ked|ted|ied|ned|ded)\b/) !== null
+  
+  const irregularPastVerbs = ['went', 'ate', 'drank', 'ran', 'saw', 'made', 'did', 'had', 'got', 'took', 'gave', 'bought', 'thought', 'brought', 'caught', 'taught', 'fought', 'sought', 'wore', 'drove', 'rode', 'wrote', 'spoke', 'broke', 'woke', 'chose', 'froze', 'stole', 'awoke', 'swam', 'began', 'sang', 'rang', 'drank', 'sank', 'sprang', 'drew', 'grew', 'knew', 'threw', 'flew', 'blew', 'baked', 'cooked', 'walked', 'talked', 'played', 'watched', 'called', 'worked', 'helped', 'cleaned', 'studied', 'tried', 'looked', 'used', 'loved', 'liked', 'needed', 'wanted', 'moved', 'lived', 'seemed', 'turned', 'started', 'ended', 'opened', 'closed']
+  const hasIrregularPast = verbWords.some((v: string) => irregularPastVerbs.includes(v.toLowerCase()))
+  
+  const hasPastTense = hasPastTenseNLP || hasEdEnding || hasEdInContent || hasIrregularPast
   const hasGerund = lowerContent.match(/\b\w+ing\b/) !== null && verbs.length > 0
   const hasPresentContinuous = lowerContent.match(/\b(am|is|are|was|were)\s+\w+ing\b/) !== null
   
@@ -49,18 +63,22 @@ export function validateAction(content: string): {
   const hasFirstPerson = pronouns.some((p: string) => ['i', 'me', 'my', 'mine', 'myself'].includes(p))
   
   // Check if there's NO subject (implied first person)
-  // "played cricket" = implied "I played cricket"
-  const sentences = doc.sentences().out('array')
-  const firstSentence = sentences[0] || content
-  const firstDoc = nlp(firstSentence)
-  const hasExplicitSubject = firstDoc.match('#Pronoun').found || 
-                             firstDoc.match('#Noun #Verb').found ||
-                             firstDoc.match('#ProperNoun').found
+  // "played cricket" = implied "I played cricket"  
+  // "baked banana bread" = implied "I baked banana bread"
+  
+  // Simple heuristic: if sentence starts with a past tense verb, it's implied first-person
+  const startsWithVerb = lowerContent.match(/^(played|went|did|made|got|took|saw|had|ate|drank|ran|walked|talked|watched|called|worked|helped|cleaned|studied|tried|looked|used|loved|liked|needed|wanted|moved|lived|turned|started|ended|opened|closed|baked|cooked|swam|drove|rode|wrote|spoke|broke|woke|chose|froze|stole)\b/) !== null
+  
+  // Also check for other explicit third-person subjects
+  const hasThirdPersonSubject = lowerContent.match(/^(he|she|they|it|everyone|someone|people|friends|family)\s/) !== null
+  const hasProperNounStart = lowerContent.match(/^[A-Z][a-z]+\s/) !== null && !hasFirstPerson
+  
+  const hasExplicitSubject = hasThirdPersonSubject || (hasProperNounStart && !startsWithVerb)
   
   if (hasFirstPerson) {
     actionScore += 30
     console.log('✅ First-person explicit (+30)')
-  } else if (!hasExplicitSubject && verbs.length > 0) {
+  } else if (startsWithVerb || (!hasExplicitSubject && verbs.length > 0 && hasPastTense)) {
     actionScore += 30
     console.log('✅ First-person implied (+30)')
   } else {
@@ -102,41 +120,54 @@ export function validateAction(content: string): {
   
   // Layer 5: Generic Statement Detection (-50 points)
   // Reject universal truths, advice, quotes, philosophy
-  const genericWords = ['people', 'everyone', 'someone', 'friends', 'family', 'life', 'love', 'world', 'always', 'never', 'forever', 'everything', 'nothing', 'all', 'every']
+  const genericWords = ['people', 'everyone', 'someone', 'friends', 'family', 'life', 'love', 'world', 'always', 'never', 'forever', 'everything', 'nothing', 'all', 'every', 'girlfriends', 'boyfriends']
   const hasGenericWords = genericWords.some(word => lowerContent.includes(word))
   
-  // Check for universal/timeless structure
-  const isUniversalTruth = doc.match('#Noun (be|is|are|was|were) #Adjective').found ||
-                          doc.match('#Noun (be|is|are|was|were) #Noun').found ||
-                          doc.match('(can|should|must|will|shall) #Verb').found
+  // Check for universal/timeless structure (use both NLP and regex)
+  const isUniversalTruthNLP = doc.match('#Noun (be|is|are|was|were) #Adjective').found ||
+                               doc.match('#Noun (be|is|are|was|were) #Noun').found ||
+                               doc.match('(can|should|must|will|shall) #Verb').found
   
-  if (hasGenericWords && isUniversalTruth) {
-    actionScore -= 50
+  const isUniversalTruthRegex = /\b(is|are|was|were|be)\s+(a|an|the)?\s*\w+\b/.test(lowerContent) ||
+                                 /\b(can|should|must|will|shall|may|might)\s+\w+/.test(lowerContent) ||
+                                 /\b(always|never|forever|everyone|everything|all)\b/.test(lowerContent)
+  
+  const isUniversalTruth = isUniversalTruthNLP || isUniversalTruthRegex
+  
+  // Strong penalty for generic statements
+  if (hasGenericWords && isUniversalTruth && !hasPastTense) {
+    actionScore -= 60
     reasons.push('This sounds like a general statement or quote, not a personal action you did')
-    console.log('❌ Generic statement detected (-50)')
+    console.log('❌ Generic statement detected (-60)')
   } else if (hasGenericWords) {
-    actionScore -= 10
-    console.log('⚠️ Generic words present (-10)')
+    actionScore -= 15
+    console.log('⚠️ Generic words present (-15)')
   }
   
   // Layer 6: Question/Command Detection
   if (lowerContent.endsWith('?')) {
-    actionScore -= 30
+    actionScore -= 40
     reasons.push('Questions are not actions - describe what you actually did')
-    console.log('❌ Question format (-30)')
+    console.log('❌ Question format (-40)')
   }
   
-  // Check for imperative (commands): "remember to", "don't forget"
-  const isCommand = doc.sentences().some((s: any) => {
-    const sent = s.text().toLowerCase()
-    return sent.startsWith("don't") || sent.startsWith("do ") || 
-           sent.includes("remember to") || sent.includes("try to")
-  })
+  // Check for imperative (commands): "remember to", "don't forget", etc.
+  const commandPatterns = [
+    /^(don't|do|please|try to|remember to|make sure|be sure to)/i,
+    /(should|must|need to|have to|got to|gotta)\s/i,
+  ]
+  const isCommand = commandPatterns.some(pattern => pattern.test(content)) ||
+                   doc.sentences().some((s: any) => {
+                     const sent = s.text().toLowerCase()
+                     return sent.startsWith("don't") || sent.startsWith("do ") || 
+                            sent.includes("remember to") || sent.includes("try to") ||
+                            sent.includes("make sure") || sent.includes("be sure")
+                   })
   
   if (isCommand) {
-    actionScore -= 30
+    actionScore -= 50
     reasons.push('This sounds like advice or a command, not what you did')
-    console.log('❌ Command/advice format (-30)')
+    console.log('❌ Command/advice format (-50)')
   }
   
   // Layer 7: Quote/Philosophical Detection
