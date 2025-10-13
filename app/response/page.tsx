@@ -27,6 +27,7 @@ function ResponseContent() {
   const [rank, setRank] = useState<string>('')
   const [vibeCelebration, setVibeCelebration] = useState<string>('')
   const [isClient, setIsClient] = useState(false)
+  const [fetchingLive, setFetchingLive] = useState(false)
   
   // Auto-detect view type from uniqueness score (fallback if no view param)
   const [shareType, setShareType] = useState<'uniqueness' | 'commonality'>('uniqueness')
@@ -38,54 +39,66 @@ function ResponseContent() {
   
   // Load post result from sessionStorage AND fetch live data
   useEffect(() => {
-    const storedResult = sessionStorage.getItem('postResult')
-    if (storedResult) {
-      const result = JSON.parse(storedResult)
-      setPostResult(result)
-      
-      // Auto-set shareType based on view param or uniqueness score
-      if (viewParam === 'common') {
-        setShareType('commonality')
-      } else if (viewParam === 'unique') {
-        setShareType('uniqueness')
-      } else {
-        // Fallback: auto-detect from score
-        setShareType(result.uniquenessScore >= 70 ? 'uniqueness' : 'commonality')
-      }
-      
-      // IMPORTANT: Fetch LIVE data from database to get updated score
-      // The sessionStorage data is from initial post time and becomes stale
-      // If others posted the same thing, the score changes!
-      if (result.post?.id) {
-        fetchLivePostData(result.post.id)
-      }
-    }
-  }, [viewParam])
-  
-  // Fetch live post data to get updated uniqueness score
-  const fetchLivePostData = async (postId: string) => {
-    try {
-      console.log(`🔄 Fetching live data for post ${postId}...`)
-      const response = await fetch(`/api/posts?id=${postId}`)
-      
-      if (response.ok) {
-        const data = await response.json()
-        if (data.post) {
-          console.log(`✅ Live data fetched: ${data.post.uniqueness_score}% unique, ${data.post.match_count} matches`)
-          
-          // Update postResult with LIVE scores
-          setPostResult(prev => prev ? {
-            ...prev,
-            uniquenessScore: data.post.uniqueness_score,
-            matchCount: data.post.match_count
-          } : prev)
+    const fetchData = async () => {
+      const storedResult = sessionStorage.getItem('postResult')
+      if (storedResult) {
+        const result = JSON.parse(storedResult)
+        setPostResult(result)
+        
+        // Auto-set shareType based on view param or uniqueness score
+        if (viewParam === 'common') {
+          setShareType('commonality')
+        } else if (viewParam === 'unique') {
+          setShareType('uniqueness')
+        } else {
+          // Fallback: auto-detect from score
+          setShareType(result.uniquenessScore >= 70 ? 'uniqueness' : 'commonality')
+        }
+        
+        // IMPORTANT: Fetch LIVE data from database to get updated score
+        // The sessionStorage data is from initial post time and becomes stale
+        // If others posted the same thing, the score changes!
+        if (result.post?.id) {
+          setFetchingLive(true)
+          try {
+            console.log(`🔄 Fetching live data for post ${result.post.id}...`)
+            const response = await fetch(`/api/posts?id=${result.post.id}`, {
+              cache: 'no-store' // Always get fresh data
+            })
+            
+            if (response.ok) {
+              const data = await response.json()
+              if (data.post) {
+                console.log(`✅ Live data fetched: ${data.post.uniqueness_score}% unique, ${data.post.match_count} matches`)
+                console.log(`   Was: ${result.uniquenessScore}% → Now: ${data.post.uniqueness_score}%`)
+                
+                // Update postResult with LIVE scores
+                setPostResult({
+                  ...result,
+                  uniquenessScore: data.post.uniqueness_score,
+                  matchCount: data.post.match_count,
+                  post: {
+                    ...result.post,
+                    uniqueness_score: data.post.uniqueness_score,
+                    match_count: data.post.match_count
+                  }
+                })
+              }
+            } else {
+              console.error('Failed to fetch live data:', response.status, response.statusText)
+            }
+          } catch (error) {
+            console.error('Failed to fetch live post data:', error)
+            // Continue with sessionStorage data if fetch fails
+          } finally {
+            setFetchingLive(false)
+          }
         }
       }
-    } catch (error) {
-      console.error('Failed to fetch live post data:', error)
-      // Continue with sessionStorage data if fetch fails
     }
-  }
+    
+    fetchData()
+  }, [viewParam])
   
   // Detect vibe
   useEffect(() => {
@@ -282,8 +295,13 @@ function ResponseContent() {
                     
                     {/* Center content */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <div className="text-xs font-semibold text-white/60 uppercase tracking-widest mb-1">
-                        {shareType === 'uniqueness' ? 'Unique' : 'Common'}
+                      <div className="text-xs font-semibold text-white/60 uppercase tracking-widest mb-1 flex items-center justify-center gap-2">
+                        <span>{shareType === 'uniqueness' ? 'Unique' : 'Common'}</span>
+                        {fetchingLive && (
+                          <svg className="w-3 h-3 animate-spin text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                        )}
                       </div>
                       <div className={`text-4xl font-black mb-1 transition-all ${
                         shareType === 'uniqueness' 
