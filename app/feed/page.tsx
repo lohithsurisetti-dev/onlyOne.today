@@ -1276,14 +1276,14 @@ export default function FeedPage() {
                             </svg>
                             <span>Top Trending</span>
                           </div>
-                          <div className="space-y-2">
+                          <div className="space-y-2.5">
                             {currentPosts.slice(0, 5).map((post, index) => (
                               <div key={post.id} className="flex items-start gap-2 text-xs">
                                 <span className="text-orange-400 font-bold shrink-0 mt-0.5">#{index + 1}</span>
                                 <div className="flex-1 min-w-0">
-                                  <div className="text-white/80 truncate font-medium">{post.content}</div>
+                                  <div className="text-white/80 line-clamp-2 font-medium leading-tight">{post.content}</div>
                                   {post.source && (
-                                    <div className="text-white/40 text-[10px] mt-0.5 capitalize">{post.source.replace('-', ' ')}</div>
+                                    <div className="text-white/40 text-[10px] mt-1 capitalize">{post.source.replace('-', ' ')}</div>
                                   )}
                                 </div>
                               </div>
