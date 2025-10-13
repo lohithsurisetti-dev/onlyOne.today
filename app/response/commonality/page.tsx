@@ -171,16 +171,16 @@ function CommonalityResponseContent() {
                 </div>
               )}
               
-              {/* Action Buttons - Larger */}
+              {/* Action Buttons - Mobile Touch Optimized */}
               <div className="grid grid-cols-2 gap-2.5">
                 <Button
                   variant="primary"
                   size="lg"
-                  className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 py-2.5 text-sm hover:shadow-lg hover:shadow-blue-500/50 transition-all"
+                  className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 py-3.5 md:py-2.5 text-base md:text-sm hover:shadow-lg hover:shadow-blue-500/50 transition-all min-h-[50px]"
                   onClick={() => setShowShareModal(true)}
                 >
                   <div className="flex items-center justify-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                     </svg>
                     <span>Share</span>
@@ -189,10 +189,10 @@ function CommonalityResponseContent() {
                 
                 <button
                   onClick={() => router.push('/feed')}
-                  className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-all"
+                  className="w-full py-3.5 md:py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-base md:text-sm font-medium transition-all min-h-[50px]"
                 >
                   <div className="flex items-center justify-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                     </svg>
                     <span>Feed</span>
