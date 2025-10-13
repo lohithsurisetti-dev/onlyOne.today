@@ -120,7 +120,7 @@ export function validateAction(content: string): {
   
   // Layer 5: Generic Statement Detection (-50 points)
   // Reject universal truths, advice, quotes, philosophy
-  const genericWords = ['people', 'everyone', 'someone', 'friends', 'family', 'life', 'love', 'world', 'always', 'never', 'forever', 'everything', 'nothing', 'all', 'every', 'girlfriends', 'boyfriends']
+  const genericWords = ['people', 'everyone', 'someone', 'friends', 'friendship', 'family', 'life', 'love', 'world', 'always', 'never', 'forever', 'everything', 'nothing', 'all', 'every', 'girlfriends', 'boyfriends', 'relationship', 'relationships']
   const hasGenericWords = genericWords.some(word => lowerContent.includes(word))
   
   // Check for universal/timeless structure (use both NLP and regex)
@@ -130,12 +130,22 @@ export function validateAction(content: string): {
   
   const isUniversalTruthRegex = /\b(is|are|was|were|be)\s+(a|an|the)?\s*\w+\b/.test(lowerContent) ||
                                  /\b(can|should|must|will|shall|may|might)\s+\w+/.test(lowerContent) ||
-                                 /\b(always|never|forever|everyone|everything|all)\b/.test(lowerContent)
+                                 /\b(always|never|forever|everyone|everything|all)\b/.test(lowerContent) ||
+                                 /\b(for life|forever|eternal|timeless)\b/.test(lowerContent)
   
   const isUniversalTruth = isUniversalTruthNLP || isUniversalTruthRegex
   
+  // Detect philosophical "X but Y" patterns
+  const isPhilosophicalPattern = lowerContent.includes(' but ') && 
+                                  hasGenericWords && 
+                                  lowerContent.split(' ').length > 8 // Long statements
+  
   // Strong penalty for generic statements
-  if (hasGenericWords && isUniversalTruth && !hasPastTense) {
+  if (isPhilosophicalPattern) {
+    actionScore -= 70
+    reasons.push('This sounds like a philosophical quote or life advice, not an action you did')
+    console.log('❌ Philosophical pattern detected (-70)')
+  } else if (hasGenericWords && isUniversalTruth) {
     actionScore -= 60
     reasons.push('This sounds like a general statement or quote, not a personal action you did')
     console.log('❌ Generic statement detected (-60)')
