@@ -112,8 +112,8 @@ export async function POST(request: NextRequest) {
     // 7. Sanitize content (remove any HTML, extra whitespace, etc.)
     const sanitizedContent = sanitizeInput(sanitizeContent(content))
 
-    // 8. Check content quality (semantic coherence, spam patterns)
-    const qualityCheck = validateContentQuality(sanitizedContent)
+    // 8. Check content quality (semantic coherence, spam patterns, action validation)
+    const qualityCheck = validateContentQuality(sanitizedContent, inputType as 'action' | 'day')
     if (!qualityCheck.allowed) {
       console.log(`🚫 Low quality content rejected from IP ${ip}: ${qualityCheck.reason}`)
       console.log(`   Quality score: ${qualityCheck.score}/100`)
@@ -121,10 +121,12 @@ export async function POST(request: NextRequest) {
       
       return NextResponse.json(
         { 
-          error: 'Content does not meet quality standards',
+          error: qualityCheck.reason || 'Content does not meet quality standards',
           reason: qualityCheck.reason,
           qualityScore: qualityCheck.score,
-          suggestion: 'Please post meaningful activities or experiences'
+          suggestion: inputType === 'action' 
+            ? 'Please describe a specific action you did today (e.g., "played cricket", "cooked dinner", "went for a walk")'
+            : 'Please share meaningful activities or experiences from your day'
         },
         { status: 400 }
       )
