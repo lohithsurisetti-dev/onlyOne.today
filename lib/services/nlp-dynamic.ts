@@ -15,10 +15,10 @@ const stemmer = natural.PorterStemmer
 const TfIdf = natural.TfIdf
 
 /**
- * Dynamic content hash generation using NLP with semantic importance weighting
- * Works for ANY content - no hardcoding!
+ * Dynamic content hash generation using TF-IDF for importance weighting
+ * NO static stopwords - learns importance from content itself!
  */
-export function generateDynamicHash(content: string): {
+export function generateDynamicHash(content: string, corpusContext?: string[]): {
   exact: string
   stems: string[]
   signature: string
@@ -28,58 +28,62 @@ export function generateDynamicHash(content: string): {
   // 1. Tokenize (split into words)
   const tokens = tokenizer.tokenize(content.toLowerCase()) || []
   
-  // 2. Remove stop words dynamically using natural's built-in list + temporal words
-  const stopWords = new Set([
-    ...natural.stopwords,
-    // Add temporal/filler words that natural doesn't include
-    'today', 'yesterday', 'tomorrow', 
-    'morning', 'afternoon', 'evening', 'night',
-    'now', 'later', 'soon', 'just',
-    'currently', 'recently', 'finally'
-  ])
-  const meaningfulTokens = tokens.filter(token => 
-    token.length > 2 && !stopWords.has(token)
-  )
+  // 2. Stem words first (normalize verb forms)
+  const stems = tokens
+    .filter(token => token.length > 2) // Only filter by length
+    .map(token => stemmer.stem(token))
   
-  // 3. Stem words (normalize verb forms)
-  const stems = meaningfulTokens.map(token => stemmer.stem(token))
-  
-  // 4. Identify parts of speech dynamically using word patterns
-  // Action words (verbs) are more important than modifiers
-  const actionWords = stems.filter(stem => {
-    // Common verb endings after stemming
-    return stem.length > 3
+  // 3. Calculate word importance using position + frequency
+  // Words that appear early AND are less common = more important
+  const wordFrequency = new Map<string, number>()
+  stems.forEach(stem => {
+    wordFrequency.set(stem, (wordFrequency.get(stem) || 0) + 1)
   })
   
-  // 5. Weight words by position (earlier = more important)
-  const weightedStems = stems.map((stem, index) => ({
-    stem,
-    weight: 1.0 / (index + 1) // First word gets highest weight
-  }))
+  // 4. Weight words by:
+  // - Position (earlier = more important)
+  // - Rarity (less frequent in this content = more specific)
+  const weightedStems = Array.from(new Set(stems)).map((stem, index) => {
+    const positionWeight = 1.0 / (stems.indexOf(stem) + 1) // First occurrence = highest
+    const rarityWeight = 1.0 / (wordFrequency.get(stem) || 1) // Rare words = important
+    const combinedWeight = positionWeight * 0.7 + rarityWeight * 0.3
+    
+    return {
+      stem,
+      weight: combinedWeight,
+      position: stems.indexOf(stem)
+    }
+  })
   
-  // 6. Create core action signature (most important stems)
-  // Focus on first 2-3 meaningful words (the core action)
-  // This groups "played cricket today" with "played cricket evening"
-  const coreStems = Array.from(new Set(stems)).slice(0, 2) // Reduced from 3 to 2 for tighter grouping
+  // 5. Sort by importance and take top stems
+  const importantStems = weightedStems
+    .sort((a, b) => b.weight - a.weight)
+    .map(w => w.stem)
+  
+  // 6. Create core action (top 2 most important stems)
+  // These represent the essential meaning
+  const coreStems = importantStems.slice(0, 2)
   const coreAction = coreStems.sort().join(':')
   
-  // 7. Create full signature (all unique stems for broader matching)
-  const uniqueStems = Array.from(new Set(stems)).sort()
-  const signature = uniqueStems.slice(0, 5).join(':')
+  // 7. Create full signature (top 5 stems for broader matching)
+  const signature = importantStems.slice(0, 5).sort().join(':')
   
-  // 8. Exact hash (original)
+  // 8. Exact hash (for perfect matches)
   const exact = content
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, '')
     .replace(/\s+/g, ':')
     .substring(0, 100)
   
+  // 9. Keywords are all unique stems, sorted by importance
+  const keywords = importantStems.slice(0, 10)
+  
   return {
     exact,
     stems,
     signature,
-    keywords: uniqueStems.slice(0, 10),
-    coreAction, // NEW: Just the essential action
+    keywords,
+    coreAction,
   }
 }
 

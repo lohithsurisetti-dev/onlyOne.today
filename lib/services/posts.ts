@@ -16,8 +16,9 @@ const USE_ADVANCED_NLP = process.env.USE_ADVANCED_NLP !== 'false'
  */
 export function generateContentHash(content: string): string {
   const hash = generateDynamicHash(content)
-  // Use signature (sorted stems) for consistent matching
-  return hash.signature
+  // Use coreAction (top 2 most important stems) for matching
+  // This groups temporal variations: "played cricket today" = "played cricket evening"
+  return hash.coreAction || hash.signature
 }
 
 /**
