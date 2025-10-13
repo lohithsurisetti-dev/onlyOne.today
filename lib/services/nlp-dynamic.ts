@@ -48,12 +48,10 @@ export function generateDynamicHash(content: string, corpusContext?: string[]): 
   const taggedWords = posTagger.tag(tokens).taggedWords
   
   // 3. Extract only semantically important words (Nouns & Verbs)
-  // Temporal nouns that should be filtered (often misclassified as NN by POS tagger)
-  const temporalNouns = new Set([
-    'today', 'yesterday', 'tomorrow',
-    'morning', 'afternoon', 'evening', 'night',
-    'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
-    'now', 'later', 'soon'
+  // Ultra-minimal temporal filter - ONLY standalone time references
+  // "today" alone = filter, but "today's meeting" = keep
+  const standaloneTemporalWords = new Set([
+    'today', 'yesterday', 'tomorrow', 'now', 'later', 'soon'
   ])
   
   const importantWords = taggedWords
@@ -61,8 +59,9 @@ export function generateDynamicHash(content: string, corpusContext?: string[]): 
       const tag = tw.tag
       const word = tw.token.toLowerCase()
       
-      // Filter out temporal nouns (even if tagged as NN)
-      if (temporalNouns.has(word)) {
+      // Only filter standalone temporal words (not time-of-day or days-of-week)
+      // This allows: "morning coffee", "monday meeting", "evening run"
+      if (standaloneTemporalWords.has(word)) {
         return false
       }
       

@@ -26,10 +26,10 @@ export function checkSemanticCoherence(content: string): {
     }
   }
   
-  // 2. ENHANCED: Check for gibberish per word
+  // 2. ENHANCED: Check for gibberish per word (only for longer words)
   let gibberishWords = 0
   for (const word of tokens) {
-    if (word.length < 3) continue // Skip very short words
+    if (word.length < 5) continue // Skip short words (< 5 chars, was 3)
     
     const wordVowels = (word.match(/[aeiou]/gi) || []).length
     const wordConsonants = (word.match(/[bcdfghjklmnpqrstvwxyz]/gi) || []).length
@@ -39,16 +39,17 @@ export function checkSemanticCoherence(content: string): {
       const wordVowelRatio = wordVowels / wordTotal
       
       // English words typically have 35-45% vowels
-      // Flag if outside 20-65% range
-      if (wordVowelRatio < 0.20 || wordVowelRatio > 0.65) {
+      // For longer words (5+), flag if outside 15-70% range
+      if (wordVowelRatio < 0.15 || wordVowelRatio > 0.70) {
         gibberishWords++
       }
     }
   }
   
-  // If more than 50% of words look like gibberish, reject
-  const gibberishRatio = tokens.length > 0 ? gibberishWords / tokens.length : 0
-  if (gibberishRatio > 0.5) {
+  // If more than 50% of LONGER words look like gibberish, reject
+  const longerWords = tokens.filter(t => t.length >= 5).length
+  const gibberishRatio = longerWords > 0 ? gibberishWords / longerWords : 0
+  if (gibberishRatio > 0.5 && longerWords > 0) {
     return {
       score: 25,
       isCoherent: false,
@@ -66,25 +67,7 @@ export function checkSemanticCoherence(content: string): {
     }
   }
   
-  // 4. Check for test/spam patterns
-  const spamWords = ['activity', 'test', 'post', 'one', 'two', 'three', 'four', 'five', 'alpha', 'beta', 'gamma', 'delta']
-  const numberWords = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten']
-  
-  // Check for "activity one", "test alpha", "post beta" patterns
-  const lowerContent = content.toLowerCase()
-  const hasTestPattern = spamWords.some(word => lowerContent.includes(word))
-  const hasNumber = numberWords.some(num => lowerContent.includes(num))
-  const hasGreekLetter = ['alpha', 'beta', 'gamma', 'delta'].some(letter => lowerContent.includes(letter))
-  
-  if ((hasTestPattern && hasNumber) || (hasTestPattern && hasGreekLetter)) {
-    return {
-      score: 30,
-      isCoherent: false,
-      reason: 'Appears to be test/spam content (contains test words + identifiers)'
-    }
-  }
-  
-  // 5. Verify it has meaningful words using POS tagging
+  // 4. Verify semantic content using POS tagging (dynamic analysis)
   const hash = generateDynamicHash(content)
   const meaningfulWords = hash.stems.length
   
