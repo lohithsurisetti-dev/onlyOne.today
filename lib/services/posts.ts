@@ -90,27 +90,41 @@ export async function createPost(data: {
 
     await supabase.from('post_matches').insert(matches)
     
-    // IMPORTANT: Update uniqueness scores for all matching posts
-    // When a new similar post is created, old similar posts become less unique
-    console.log(`🔄 Updating ${similarPosts.length} similar posts' uniqueness scores...`)
+    // IMPORTANT: Update uniqueness scores for matching posts
+    // HIERARCHY RULE: Only update posts at SAME or HIGHER level (never lower/more specific)
+    // Example: World post can update world posts, but NOT city posts
+    const scopeHierarchy = { city: 0, state: 1, country: 2, world: 3 }
+    const newPostScopeLevel = scopeHierarchy[data.scope]
     
-    const adminClient = createAdminClient()
+    const postsToUpdate = similarPosts.filter(sp => {
+      const similarPostScopeLevel = scopeHierarchy[sp.scope as keyof typeof scopeHierarchy]
+      // Only update if similar post is at same or higher (more general) level
+      return similarPostScopeLevel >= newPostScopeLevel
+    })
     
-    for (const similarPost of similarPosts) {
-      // New match count = old count + 1 (because this new post matches)
-      const newMatchCount = (similarPost.match_count || 0) + 1
-      const newUniquenessScore = calculateUniquenessScore(newMatchCount)
+    if (postsToUpdate.length > 0) {
+      console.log(`🔄 Updating ${postsToUpdate.length}/${similarPosts.length} posts (respecting hierarchy)...`)
       
-      await adminClient
-        .from('posts')
-        .update({
-          match_count: newMatchCount,
-          uniqueness_score: newUniquenessScore,
-        })
-        .eq('id', similarPost.id)
+      const adminClient = createAdminClient()
+      
+      for (const similarPost of postsToUpdate) {
+        // New match count = old count + 1 (because this new post matches)
+        const newMatchCount = (similarPost.match_count || 0) + 1
+        const newUniquenessScore = calculateUniquenessScore(newMatchCount)
+        
+        await adminClient
+          .from('posts')
+          .update({
+            match_count: newMatchCount,
+            uniqueness_score: newUniquenessScore,
+          })
+          .eq('id', similarPost.id)
+      }
+      
+      console.log(`✅ Updated ${postsToUpdate.length} posts (${similarPosts.length - postsToUpdate.length} protected by hierarchy)`)
+    } else {
+      console.log(`🛡️ All ${similarPosts.length} similar posts protected by hierarchy (lower scope)`)
     }
-    
-    console.log(`✅ Updated ${similarPosts.length} posts with new uniqueness scores`)
   }
 
   return {
@@ -140,7 +154,7 @@ export async function findSimilarPosts(params: {
   // Get all recent posts from database based on scope (OPTIMIZED)
   let query = supabase
     .from('posts')
-    .select('id, content, content_hash, uniqueness_score, match_count')
+    .select('id, content, content_hash, uniqueness_score, match_count, scope') // Include scope for hierarchy checks
     .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
     .limit(limit) // Reduced from limit*2 for speed
 
