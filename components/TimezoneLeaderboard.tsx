@@ -17,35 +17,73 @@ interface TimezoneData {
   totalGlobal: number
 }
 
-export default function TimezoneLeaderboard() {
+interface RankingData {
+  cities: {
+    top: Array<{ city: string; count: number; rank: number }>
+    userRank: { city: string; count: number; rank: number } | null
+    total: number
+  }
+  countries: {
+    top: Array<{ country: string; count: number; rank: number }>
+    userRank: { country: string; count: number; rank: number } | null
+    total: number
+  }
+  totalPosts: number
+}
+
+interface Props {
+  userLocation?: { city?: string; state?: string; country?: string } | null
+}
+
+export default function TimezoneLeaderboard({ userLocation }: Props) {
   const [data, setData] = useState<TimezoneData | null>(null)
+  const [rankings, setRankings] = useState<RankingData | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const fetchTimezoneStats = async () => {
+    const fetchStats = async () => {
       try {
-        const response = await fetch('/api/stats/timezones', {
+        // Fetch timezone stats
+        const tzResponse = await fetch('/api/stats/timezones', {
           cache: 'no-store'
         })
         
-        if (response.ok) {
-          const stats = await response.json()
-          setData(stats)
+        if (tzResponse.ok) {
+          const tzStats = await tzResponse.json()
+          setData(tzStats)
+        }
+        
+        // Fetch rankings with user location
+        const offset = new Date().getTimezoneOffset()
+        const params = new URLSearchParams({
+          offset: offset.toString(),
+          ...(userLocation?.city && { userCity: userLocation.city }),
+          ...(userLocation?.state && { userState: userLocation.state }),
+          ...(userLocation?.country && { userCountry: userLocation.country }),
+        })
+        
+        const rankResponse = await fetch(`/api/stats/rankings?${params}`, {
+          cache: 'no-store'
+        })
+        
+        if (rankResponse.ok) {
+          const rankStats = await rankResponse.json()
+          setRankings(rankStats)
         }
       } catch (error) {
-        console.error('Failed to fetch timezone stats:', error)
+        console.error('Failed to fetch stats:', error)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchTimezoneStats()
+    fetchStats()
     
     // Refresh every 60 seconds
-    const interval = setInterval(fetchTimezoneStats, 60000)
+    const interval = setInterval(fetchStats, 60000)
     
     return () => clearInterval(interval)
-  }, [])
+  }, [userLocation])
 
   if (loading) {
     return (
@@ -123,6 +161,106 @@ export default function TimezoneLeaderboard() {
           </div>
         ))}
       </div>
+
+      {/* City Rankings */}
+      {rankings && rankings.cities.top.length > 0 && (
+        <div className="mt-6 pt-4 border-t border-white/10">
+          <h4 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+            <span>🏙️</span>
+            <span>Top Cities Today</span>
+          </h4>
+          <div className="space-y-2">
+            {rankings.cities.top.map((city, index) => {
+              const isUserCity = city.city === (userLocation?.city ? `${userLocation.city}, ${userLocation.state || userLocation.country}` : null)
+              const rankIcon = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${city.rank}`
+              
+              return (
+                <div
+                  key={city.city}
+                  className={`flex items-center justify-between p-2 rounded-lg transition-colors ${
+                    isUserCity 
+                      ? 'bg-purple-500/20 border border-purple-400/40' 
+                      : 'bg-white/5 border border-white/5'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 flex-1">
+                    <span className="text-base font-bold w-6">{rankIcon}</span>
+                    <span className={`text-sm font-medium ${isUserCity ? 'text-purple-200' : 'text-white/80'}`}>
+                      {city.city}
+                    </span>
+                    {isUserCity && (
+                      <span className="text-xs text-purple-300 font-medium">← You</span>
+                    )}
+                  </div>
+                  <span className={`text-sm font-bold ${
+                    index === 0 ? 'text-yellow-300' :
+                    index === 1 ? 'text-gray-300' :
+                    index === 2 ? 'text-orange-300' :
+                    'text-white/70'
+                  }`}>
+                    {city.count}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+          {rankings.cities.total > 3 && (
+            <p className="text-xs text-white/40 mt-2 text-center">
+              {rankings.cities.total} cities active today
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Country Rankings */}
+      {rankings && rankings.countries.top.length > 0 && (
+        <div className="mt-6 pt-4 border-t border-white/10">
+          <h4 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+            <span>🌍</span>
+            <span>Top Countries Today</span>
+          </h4>
+          <div className="space-y-2">
+            {rankings.countries.top.map((country, index) => {
+              const isUserCountry = country.country === userLocation?.country
+              const rankIcon = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${country.rank}`
+              
+              return (
+                <div
+                  key={country.country}
+                  className={`flex items-center justify-between p-2 rounded-lg transition-colors ${
+                    isUserCountry 
+                      ? 'bg-purple-500/20 border border-purple-400/40' 
+                      : 'bg-white/5 border border-white/5'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 flex-1">
+                    <span className="text-base font-bold w-6">{rankIcon}</span>
+                    <span className={`text-sm font-medium ${isUserCountry ? 'text-purple-200' : 'text-white/80'}`}>
+                      {country.country}
+                    </span>
+                    {isUserCountry && (
+                      <span className="text-xs text-purple-300 font-medium">← You</span>
+                    )}
+                  </div>
+                  <span className={`text-sm font-bold ${
+                    index === 0 ? 'text-yellow-300' :
+                    index === 1 ? 'text-gray-300' :
+                    index === 2 ? 'text-orange-300' :
+                    'text-white/70'
+                  }`}>
+                    {country.count}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+          {rankings.countries.total > 3 && (
+            <p className="text-xs text-white/40 mt-2 text-center">
+              {rankings.countries.total} countries active today
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Live Indicator */}
       <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-center gap-2 text-xs text-white/40">

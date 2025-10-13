@@ -7,6 +7,7 @@ import ShareModal from '@/components/ShareModal'
 import GlobalPulse from '@/components/GlobalPulse'
 import FilterSheet from '@/components/FilterSheet'
 import TimezoneLeaderboard from '@/components/TimezoneLeaderboard'
+import TimezonePills from '@/components/TimezonePills'
 import { useRecentPosts } from '@/lib/hooks/usePosts'
 import { usePlatformStats } from '@/lib/hooks/useStats'
 import { getShareMessage } from '@/lib/services/witty-messages'
@@ -1125,6 +1126,15 @@ export default function FeedPage() {
           </div>
         </header>
         
+        {/* Timezone Pills - Horizontal Scrolling (Mobile/Tablet) */}
+        <div className="lg:hidden">
+          <TimezonePills 
+            selectedTimezone={selectedTimezone} 
+            onTimezoneSelect={setSelectedTimezone}
+            userTimezone={userTimezone}
+          />
+        </div>
+        
         {/* Feed Grid */}
         <main className="max-w-7xl mx-auto px-4 py-8">
           {/* Global Pulse Sidebar */}
@@ -1243,7 +1253,7 @@ export default function FeedPage() {
             <aside className="hidden lg:block">
               <div className="sticky top-24 space-y-4">
                 <GlobalPulse posts={allPosts} currentFilter={filter} />
-                <TimezoneLeaderboard />
+                <TimezoneLeaderboard userLocation={userLocation} />
               </div>
             </aside>
           </div>
@@ -1299,38 +1309,6 @@ export default function FeedPage() {
               Clear All
             </button>
           )}
-        </div>
-        
-        {/* Timezone Selector */}
-        <div className="mb-6">
-          <h3 className="text-sm font-medium text-white/60 mb-3">View Posts From</h3>
-          <div className="grid grid-cols-2 gap-2">
-            {popularTimezones.map((tz) => (
-              <button
-                key={tz.name}
-                onClick={() => {
-                  setSelectedTimezone(tz.name === 'auto' ? undefined : tz.name)
-                  setFilterSheetOpen(false)
-                }}
-                className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                  (tz.name === 'auto' && !selectedTimezone) || selectedTimezone === tz.name
-                    ? 'bg-gradient-to-r from-cyan-500/30 to-blue-500/30 text-white border-2 border-cyan-400/50'
-                    : 'bg-white/5 text-white/70 border-2 border-white/10 hover:bg-white/10'
-                }`}
-              >
-                <span className="text-base">{tz.emoji}</span>
-                <span>{tz.label}</span>
-                {((tz.name === 'auto' && !selectedTimezone) || selectedTimezone === tz.name) && (
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </button>
-            ))}
-          </div>
-          <p className="mt-2 text-xs text-white/40 text-center">
-            {selectedTimezone ? `Showing posts from ${popularTimezones.find(t => t.name === selectedTimezone)?.label}'s today` : `Showing posts from your timezone (${userTimezone})`}
-          </p>
         </div>
         
         {/* Type Filters */}
