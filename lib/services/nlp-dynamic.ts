@@ -28,8 +28,15 @@ export function generateDynamicHash(content: string): {
   // 1. Tokenize (split into words)
   const tokens = tokenizer.tokenize(content.toLowerCase()) || []
   
-  // 2. Remove stop words dynamically using natural's built-in list
-  const stopWords = new Set(natural.stopwords)
+  // 2. Remove stop words dynamically using natural's built-in list + temporal words
+  const stopWords = new Set([
+    ...natural.stopwords,
+    // Add temporal/filler words that natural doesn't include
+    'today', 'yesterday', 'tomorrow', 
+    'morning', 'afternoon', 'evening', 'night',
+    'now', 'later', 'soon', 'just',
+    'currently', 'recently', 'finally'
+  ])
   const meaningfulTokens = tokens.filter(token => 
     token.length > 2 && !stopWords.has(token)
   )
