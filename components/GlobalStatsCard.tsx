@@ -193,101 +193,171 @@ export default function GlobalStatsCard({ posts, currentFilter, userLocation }: 
             <p className="text-xs">Rankings will appear as users post from different locations</p>
           </div>
         ) : (
-          <div className="-mx-2">
-            <table className="w-full text-[11px] table-fixed">
-              <thead>
-                <tr className="border-b border-white/10">
-                  <th className="text-center py-2 px-1 text-[9px] font-semibold text-white/40 uppercase w-[12%]">#</th>
-                  <th className="text-center py-2 px-1 text-[9px] font-semibold text-white/40 uppercase w-[22%]">Flag</th>
-                  <th className="text-center py-2 px-1 text-[9px] font-semibold text-white/40 uppercase w-[22%]">City</th>
-                  <th className="text-center py-2 px-1 text-[9px] font-semibold text-white/40 uppercase w-[22%]">State</th>
-                  <th className="text-right py-2 px-1 text-[9px] font-semibold text-white/40 uppercase w-[22%]">Count</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Array.from({ length: 5 }).map((_, index) => {
-                  const countryItem = rankings.countries.top[index]
-                  const cityItem = rankings.cities.top[index]
-                  const stateItem = rankings.states.top[index]
-                  
-                  const isUserCountry = countryItem?.country === userLocation?.country
-                  const isUserCity = cityItem?.city.startsWith(userLocation?.city || '__none__')
-                  const isUserState = stateItem?.state === userLocation?.state
-                  const isUserRow = isUserCountry || isUserCity || isUserState
-                  
-                  return (
-                    <tr 
-                      key={index}
-                      className={`border-b border-white/5 transition-colors ${
-                        isUserRow ? 'bg-purple-500/15 border-purple-400/20' : 'hover:bg-white/5'
-                      }`}
-                    >
-                      {/* Rank */}
-                      <td className="py-2.5 px-1 text-center">
-                        <span className={`text-xs font-bold ${getRankColor(index + 1, isUserRow)}`}>
-                          {getRankDisplay(index + 1)}
-                        </span>
-                      </td>
-                      
-                      {/* Country Flag */}
-                      <td className="py-2.5 px-1 text-center">
-                        {countryItem ? (
-                          <div className="flex items-center justify-center gap-0.5">
-                            <span className="text-lg leading-none">{getCountryFlag(countryItem.country)}</span>
-                            {isUserCountry && <span className="text-purple-400 text-xs">•</span>}
-                          </div>
-                        ) : (
-                          <span className="text-white/15">—</span>
-                        )}
-                      </td>
-                      
-                      {/* City - Scrollable */}
-                      <td className="py-2.5 px-1">
-                        {cityItem ? (
-                          <div className="overflow-x-auto hide-scrollbar">
-                            <div className="flex items-center justify-center gap-0.5 whitespace-nowrap">
-                              <span className={`text-[10px] ${isUserCity ? 'text-purple-200 font-bold' : 'text-white/80'}`}>
-                                {cityItem.city.split(',')[0]}
-                              </span>
-                              {isUserCity && <span className="text-purple-400 text-xs">•</span>}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="text-center">
-                            <span className="text-white/15">—</span>
-                          </div>
-                        )}
-                      </td>
-                      
-                      {/* State */}
-                      <td className="py-2.5 px-1 text-center">
-                        {stateItem ? (
-                          <div className="flex items-center justify-center gap-0.5">
-                            <span className={`font-mono text-[10px] ${isUserState ? 'text-purple-200 font-bold' : 'text-white/70'}`}>
-                              {getStateAbbr(stateItem.state)}
-                            </span>
-                            {isUserState && <span className="text-purple-400 text-xs">•</span>}
-                          </div>
-                        ) : (
-                          <span className="text-white/15">—</span>
-                        )}
-                      </td>
-                      
-                      {/* Posts Count */}
-                      <td className="py-2.5 px-1 text-right">
-                        {countryItem ? (
-                          <span className={`font-bold text-xs ${getRankColor(countryItem.rank, isUserCountry)}`}>
-                            {countryItem.count}
+          <div className="space-y-4">
+            {/* Countries Leaderboard */}
+            {rankings.countries.top.length > 0 && (
+              <div className="bg-white/5 rounded-lg p-3 border border-white/5">
+                <h4 className="text-[10px] font-bold text-white/60 uppercase mb-2 flex items-center gap-1.5">
+                  <span>🌍</span>
+                  <span>Top Countries</span>
+                </h4>
+                <div className="space-y-1.5">
+                  {rankings.countries.top.slice(0, 3).map((item, index) => {
+                    const isUser = item.country === userLocation?.country
+                    return (
+                      <div
+                        key={item.country}
+                        className={`flex items-center justify-between px-2 py-1.5 rounded text-[11px] transition-colors ${
+                          isUser ? 'bg-purple-500/20 border border-purple-400/30' : 'bg-white/5'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className={`text-xs font-bold shrink-0 ${getRankColor(item.rank, isUser)}`}>
+                            {getRankDisplay(item.rank)}
                           </span>
-                        ) : (
-                          <span className="text-white/15">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                          <span className="text-base shrink-0">{getCountryFlag(item.country)}</span>
+                          <span className={`truncate ${isUser ? 'text-purple-200 font-semibold' : 'text-white/80'}`}>
+                            {item.country}
+                          </span>
+                        </div>
+                        <span className={`font-bold ml-2 ${getRankColor(item.rank, isUser)}`}>
+                          {item.count}
+                        </span>
+                      </div>
+                    )
+                  })}
+                  {/* User's rank if not in top 3 */}
+                  {rankings.countries.userRank && rankings.countries.userRank.rank > 3 && (
+                    <>
+                      <div className="border-t border-purple-400/20 my-1"></div>
+                      <div className="flex items-center justify-between px-2 py-1.5 rounded text-[11px] bg-purple-500/20 border border-purple-400/30">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className="text-xs font-bold text-purple-300 shrink-0">
+                            {getRankDisplay(rankings.countries.userRank.rank)}
+                          </span>
+                          <span className="text-base shrink-0">{getCountryFlag(rankings.countries.userRank.country)}</span>
+                          <span className="truncate text-purple-200 font-semibold">
+                            {rankings.countries.userRank.country}
+                          </span>
+                        </div>
+                        <span className="font-bold text-purple-300 ml-2">
+                          {rankings.countries.userRank.count}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Cities Leaderboard */}
+            {rankings.cities.top.length > 0 && (
+              <div className="bg-white/5 rounded-lg p-3 border border-white/5">
+                <h4 className="text-[10px] font-bold text-white/60 uppercase mb-2 flex items-center gap-1.5">
+                  <span>🏙️</span>
+                  <span>Top Cities</span>
+                </h4>
+                <div className="space-y-1.5">
+                  {rankings.cities.top.slice(0, 3).map((item, index) => {
+                    const isUser = item.city.startsWith(userLocation?.city || '__none__')
+                    const cityName = item.city.split(',')[0]
+                    return (
+                      <div
+                        key={item.city}
+                        className={`flex items-center justify-between px-2 py-1.5 rounded text-[11px] transition-colors ${
+                          isUser ? 'bg-purple-500/20 border border-purple-400/30' : 'bg-white/5'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className={`text-xs font-bold shrink-0 ${getRankColor(item.rank, isUser)}`}>
+                            {getRankDisplay(item.rank)}
+                          </span>
+                          <span className={`truncate ${isUser ? 'text-purple-200 font-semibold' : 'text-white/80'}`}>
+                            {cityName}
+                          </span>
+                        </div>
+                        <span className={`font-bold ml-2 ${getRankColor(item.rank, isUser)}`}>
+                          {item.count}
+                        </span>
+                      </div>
+                    )
+                  })}
+                  {/* User's rank if not in top 3 */}
+                  {rankings.cities.userRank && rankings.cities.userRank.rank > 3 && (
+                    <>
+                      <div className="border-t border-purple-400/20 my-1"></div>
+                      <div className="flex items-center justify-between px-2 py-1.5 rounded text-[11px] bg-purple-500/20 border border-purple-400/30">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className="text-xs font-bold text-purple-300 shrink-0">
+                            {getRankDisplay(rankings.cities.userRank.rank)}
+                          </span>
+                          <span className="truncate text-purple-200 font-semibold">
+                            {rankings.cities.userRank.city.split(',')[0]}
+                          </span>
+                        </div>
+                        <span className="font-bold text-purple-300 ml-2">
+                          {rankings.cities.userRank.count}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* States Leaderboard */}
+            {rankings.states.top.length > 0 && (
+              <div className="bg-white/5 rounded-lg p-3 border border-white/5">
+                <h4 className="text-[10px] font-bold text-white/60 uppercase mb-2 flex items-center gap-1.5">
+                  <span>🗺️</span>
+                  <span>Top States</span>
+                </h4>
+                <div className="space-y-1.5">
+                  {rankings.states.top.slice(0, 3).map((item, index) => {
+                    const isUser = item.state === userLocation?.state
+                    return (
+                      <div
+                        key={item.state}
+                        className={`flex items-center justify-between px-2 py-1.5 rounded text-[11px] transition-colors ${
+                          isUser ? 'bg-purple-500/20 border border-purple-400/30' : 'bg-white/5'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className={`text-xs font-bold shrink-0 ${getRankColor(item.rank, isUser)}`}>
+                            {getRankDisplay(item.rank)}
+                          </span>
+                          <span className={`font-mono ${isUser ? 'text-purple-200 font-semibold' : 'text-white/80'}`}>
+                            {getStateAbbr(item.state)}
+                          </span>
+                        </div>
+                        <span className={`font-bold ml-2 ${getRankColor(item.rank, isUser)}`}>
+                          {item.count}
+                        </span>
+                      </div>
+                    )
+                  })}
+                  {/* User's rank if not in top 3 */}
+                  {rankings.states.userRank && rankings.states.userRank.rank > 3 && (
+                    <>
+                      <div className="border-t border-purple-400/20 my-1"></div>
+                      <div className="flex items-center justify-between px-2 py-1.5 rounded text-[11px] bg-purple-500/20 border border-purple-400/30">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className="text-xs font-bold text-purple-300 shrink-0">
+                            {getRankDisplay(rankings.states.userRank.rank)}
+                          </span>
+                          <span className="font-mono text-purple-200 font-semibold">
+                            {getStateAbbr(rankings.states.userRank.state)}
+                          </span>
+                        </div>
+                        <span className="font-bold text-purple-300 ml-2">
+                          {rankings.states.userRank.count}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -23,13 +23,159 @@ export function generateContentHash(content: string): string {
 /**
  * Calculate uniqueness score based on match count
  * Formula: 100 - (match_count * 10), minimum 0
+ * 
+ * Examples:
+ * - 0 matches = 100% (completely unique!)
+ * - 1 match = 90% (very rare)
+ * - 2 matches = 80% (rare)
+ * - 5 matches = 50% (uncommon)
+ * - 10+ matches = 0% (very common)
  */
 export function calculateUniquenessScore(matchCount: number): number {
   return Math.max(0, 100 - (matchCount * 10))
 }
 
 /**
- * Create a new post and find similar posts
+ * Get counts for all location levels efficiently
+ */
+export async function getLocationCounts(
+  contentHash: string,
+  location: {
+    city?: string
+    state?: string
+    country?: string
+  }
+): Promise<{
+  world_count: number
+  city_count: number
+  state_count: number
+  country_count: number
+}> {
+  const supabase = createClient()
+  
+  const { data, error } = await supabase
+    .rpc('get_location_counts', {
+      p_content_hash: contentHash,
+      p_city: location.city || '',
+      p_state: location.state || '',
+      p_country: location.country || ''
+    })
+    .single()
+  
+  if (error || !data) {
+    return {
+      world_count: 0,
+      city_count: 0,
+      state_count: 0,
+      country_count: 0
+    }
+  }
+  
+  // Type assertion for RPC result
+  const result = data as { world_count?: number; city_count?: number; state_count?: number; country_count?: number }
+  
+  return {
+    world_count: result.world_count || 0,
+    city_count: result.city_count || 0,
+    state_count: result.state_count || 0,
+    country_count: result.country_count || 0
+  }
+}
+
+/**
+ * Calculate hierarchical scores for display
+ * Returns the best achievement + secondary context
+ */
+export interface HierarchicalScore {
+  primary: {
+    level: 'city' | 'state' | 'country' | 'world'
+    score: number
+    count: number
+    label: string
+    icon: string
+  }
+  secondary: {
+    level: 'city' | 'state' | 'country' | 'world'
+    score: number
+    count: number
+    label: string
+    icon: string
+  }
+}
+
+export async function getHierarchicalScores(
+  post: {
+    content_hash: string
+    location_city?: string | null
+    location_state?: string | null
+    location_country?: string | null
+  }
+): Promise<HierarchicalScore> {
+  // Get counts for all levels
+  const counts = await getLocationCounts(post.content_hash, {
+    city: post.location_city || undefined,
+    state: post.location_state || undefined,
+    country: post.location_country || undefined
+  })
+  
+  // Calculate scores for each level
+  const levels = [
+    {
+      level: 'city' as const,
+      score: calculateUniquenessScore(counts.city_count),
+      count: counts.city_count,
+      label: post.location_city || 'City',
+      icon: '🏙️'
+    },
+    {
+      level: 'state' as const,
+      score: calculateUniquenessScore(counts.state_count),
+      count: counts.state_count,
+      label: post.location_state || 'State',
+      icon: '🗺️'
+    },
+    {
+      level: 'country' as const,
+      score: calculateUniquenessScore(counts.country_count),
+      count: counts.country_count,
+      label: post.location_country || 'Country',
+      icon: '🌍'
+    },
+    {
+      level: 'world' as const,
+      score: calculateUniquenessScore(counts.world_count),
+      count: counts.world_count,
+      label: 'World',
+      icon: '🌐'
+    }
+  ]
+  
+  // Find best unique score (70%+)
+  const uniqueScores = levels
+    .filter(l => l.score >= 70)
+    .sort((a, b) => b.score - a.score)
+  
+  if (uniqueScores.length > 0) {
+    // Show best unique achievement + next level for context
+    const primaryIndex = levels.indexOf(uniqueScores[0])
+    const secondary = levels[Math.min(primaryIndex + 1, levels.length - 1)]
+    
+    return {
+      primary: uniqueScores[0],
+      secondary
+    }
+  } else {
+    // Nothing unique, show most specific (city) + global context
+    return {
+      primary: levels[0],
+      secondary: levels[3]
+    }
+  }
+}
+
+/**
+ * Create a new post with efficient global scoring
+ * Uses aggregate table for O(1) lookups
  */
 export async function createPost(data: {
   content: string
@@ -40,22 +186,21 @@ export async function createPost(data: {
   locationCountry?: string
 }) {
   const supabase = createClient()
+  const adminClient = createAdminClient()
 
   // Generate content hash
   const contentHash = generateContentHash(data.content)
 
-  // Find similar posts before inserting
-  const similarPosts = await findSimilarPosts({
+  // Find similar posts GLOBALLY (simplified - no scope filtering)
+  const similarPosts = await findSimilarPostsGlobal({
     contentHash,
     content: data.content,
-    scope: data.scope,
-    locationCity: data.locationCity,
-    locationState: data.locationState,
-    locationCountry: data.locationCountry,
   })
   
   const matchCount = similarPosts.length
   const uniquenessScore = calculateUniquenessScore(matchCount)
+
+  console.log(`📊 Creating post: "${data.content.substring(0, 30)}..." - ${matchCount} matches found, ${uniquenessScore}% unique`)
 
   // Insert the new post
   const { data: post, error } = await supabase
@@ -80,6 +225,24 @@ export async function createPost(data: {
     throw new Error('Failed to create post')
   }
 
+  // Update aggregate counts table (FAST - single query)
+  if (data.locationCity && data.locationState && data.locationCountry) {
+    const { error: countError } = await adminClient
+      .rpc('increment_content_counts', {
+        p_content_hash: contentHash,
+        p_city: data.locationCity,
+        p_state: data.locationState,
+        p_country: data.locationCountry
+      })
+    
+    if (countError) {
+      console.error('❌ Failed to update aggregate counts:', countError)
+      // Non-critical error, continue
+    } else {
+      console.log(`✅ Updated aggregate counts for all location levels`)
+    }
+  }
+
   // Create post matches (if any similar posts found)
   if (similarPosts.length > 0 && post) {
     const matches = similarPosts.map(sp => ({
@@ -90,55 +253,18 @@ export async function createPost(data: {
 
     await supabase.from('post_matches').insert(matches)
     
-    // IMPORTANT: Update uniqueness scores for matching posts
-    // HIERARCHY RULE: Only update posts at SAME or HIGHER level (never lower/more specific)
-    // Example: World post can update world posts, but NOT city posts
-    const scopeHierarchy = { city: 0, state: 1, country: 2, world: 3 }
-    const newPostScopeLevel = scopeHierarchy[data.scope]
+    // Update match counts for ALL similar posts (no hierarchy protection)
+    const postIds = similarPosts.map(sp => sp.id)
     
-    const postsToUpdate = similarPosts.filter(sp => {
-      const similarPostScopeLevel = scopeHierarchy[sp.scope as keyof typeof scopeHierarchy]
-      // Only update if similar post is at same or higher (more general) level
-      return similarPostScopeLevel >= newPostScopeLevel
-    })
+    const { error: updateError } = await adminClient
+      .rpc('increment_match_counts', {
+        post_ids: postIds
+      })
     
-    if (postsToUpdate.length > 0) {
-      console.log(`🔄 Updating ${postsToUpdate.length}/${similarPosts.length} posts (respecting hierarchy)...`)
-      
-      const adminClient = createAdminClient()
-      
-      // OPTIMIZATION: Batch update instead of sequential updates (10x faster!)
-      // Use Postgres to increment match_count and recalculate uniqueness in a single query
-      const postIds = postsToUpdate.map(sp => sp.id)
-      
-      // Use RPC for atomic batch update with calculation
-      // Formula: uniqueness_score = GREATEST(0, 100 - ((match_count + 1) * 10))
-      const { error: updateError } = await adminClient
-        .rpc('increment_match_counts', {
-          post_ids: postIds
-        })
-      
-      if (updateError) {
-        console.error('❌ Batch update failed, falling back to individual updates:', updateError)
-        
-        // Fallback to sequential updates if RPC fails
-        for (const similarPost of postsToUpdate) {
-          const newMatchCount = (similarPost.match_count || 0) + 1
-          const newUniquenessScore = calculateUniquenessScore(newMatchCount)
-          
-          await adminClient
-            .from('posts')
-            .update({
-              match_count: newMatchCount,
-              uniqueness_score: newUniquenessScore,
-            })
-            .eq('id', similarPost.id)
-        }
-      }
-      
-      console.log(`✅ Updated ${postsToUpdate.length} posts (${similarPosts.length - postsToUpdate.length} protected by hierarchy)`)
+    if (updateError) {
+      console.error('❌ Batch update failed:', updateError)
     } else {
-      console.log(`🛡️ All ${similarPosts.length} similar posts protected by hierarchy (lower scope)`)
+      console.log(`✅ Updated ${postIds.length} matching posts`)
     }
   }
 
@@ -151,7 +277,65 @@ export async function createPost(data: {
 }
 
 /**
- * Find similar posts based on content hash and scope
+ * Find similar posts GLOBALLY (simplified, no scope filtering)
+ * This is used for creating posts and calculating global uniqueness
+ */
+export async function findSimilarPostsGlobal(params: {
+  contentHash: string
+  content: string
+  limit?: number
+}) {
+  const supabase = createClient()
+  const { contentHash, content, limit = 20 } = params
+
+  // Get all recent posts from database (NO scope filtering)
+  const { data: allPosts, error } = await supabase
+    .from('posts')
+    .select('id, content, content_hash, uniqueness_score, match_count, scope')
+    .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+    .limit(limit)
+
+  if (error) {
+    console.error('Error finding similar posts:', error)
+    return []
+  }
+
+  if (!allPosts || allPosts.length === 0) {
+    return []
+  }
+  
+  // OPTIMIZATION: Quick check for exact hash matches first
+  const exactMatches = allPosts.filter(p => p.content_hash === contentHash)
+  if (exactMatches.length > 0) {
+    console.log(`⚡ Found ${exactMatches.length} exact matches (fast path)`)
+    return exactMatches.map(p => ({
+      ...p,
+      similarity_score: 1.0,
+      match_type: 'exact' as const,
+    })).slice(0, limit)
+  }
+
+  // Use dynamic NLP for similarity matching
+  const similarPosts = findSimilarDynamic(
+    content,
+    allPosts.map(p => ({ id: p.id, content: p.content })),
+    0.6
+  ).map(result => {
+    const original = allPosts.find(p => p.id === result.id)!
+    return {
+      ...original,
+      similarity_score: result.similarity,
+      match_type: result.similarity >= 0.9 ? 'exact' as const :
+                  result.similarity >= 0.75 ? 'high' as const :
+                  'similar' as const,
+    }
+  }).slice(0, limit)
+
+  return similarPosts
+}
+
+/**
+ * Find similar posts based on content hash and scope (LEGACY - for compatibility)
  * Now uses fuzzy matching for better results
  */
 export async function findSimilarPosts(params: {
