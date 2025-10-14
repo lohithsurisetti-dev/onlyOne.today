@@ -52,7 +52,7 @@ export default function MyPostsPage() {
       
       <div className="relative z-10 min-h-screen flex flex-col">
         {/* Header */}
-        <header className="border-b border-white/10 bg-space-dark/80 backdrop-blur-sm">
+        <header className="sticky top-0 z-40 border-b border-white/10 bg-space-dark/90 backdrop-blur-md">
           <div className="max-w-6xl mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -114,7 +114,7 @@ export default function MyPostsPage() {
         )}
 
         {/* Tabs */}
-        <div className="max-w-6xl mx-auto px-4 pb-4 w-full">
+        <div className="sticky top-[73px] z-30 bg-space-dark/90 backdrop-blur-md max-w-6xl mx-auto px-4 py-4 w-full">
           <div className="flex gap-2 bg-white/5 rounded-xl p-1 border border-white/10 inline-flex">
             <button
               onClick={() => setTab('today')}
