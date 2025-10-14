@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import StarsBackground from '@/components/StarsBackground'
 import ShareModal from '@/components/ShareModal'
-import GlobalStatsCard from '@/components/GlobalStatsCard'
+import TopPerformersCard from '@/components/TopPerformersCard'
+import GlobalPulseCard from '@/components/GlobalPulseCard'
 import MyPostsCard from '@/components/MyPostsCard'
 import Footer from '@/components/Footer'
 import FilterSheet from '@/components/FilterSheet'
@@ -780,19 +781,6 @@ export default function FeedPage() {
                   </span>
                 )}
                 
-                {/* Live Post Counter - Exciting */}
-                {stats && (
-                  <div className="relative shrink-0">
-                    {/* Subtle Glow */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full opacity-30 blur-md animate-pulse"></div>
-                    
-                    {/* Badge */}
-                    <div className="relative flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/40 shadow-md shadow-purple-500/20">
-                      <span className="text-xs font-bold text-white">{stats.today.totalPosts}</span>
-                      <span className="text-[10px] text-purple-200/70 font-medium whitespace-nowrap">posts today</span>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
             
@@ -1207,12 +1195,9 @@ export default function FeedPage() {
                 </button>
                 
                 {mobileStatsExpanded && (
-                  <div className="border-t border-white/10">
-                    <GlobalStatsCard 
-                      posts={allPosts} 
-                      currentFilter={filter}
-                      userLocation={userLocation}
-                    />
+                  <div className="border-t border-white/10 space-y-4 p-4">
+                    <TopPerformersCard userLocation={userLocation} />
+                    <GlobalPulseCard posts={allPosts} />
                 </div>
                 )}
               </div>
@@ -1409,12 +1394,11 @@ export default function FeedPage() {
                   </div>
                   )
                 ) : (
-                  /* Regular Stats Card */
-                  <GlobalStatsCard 
-                    posts={allPosts} 
-                    currentFilter={filter}
-                    userLocation={userLocation}
-                  />
+                  /* Regular Stats Cards */
+                  <div className="space-y-4">
+                    <TopPerformersCard userLocation={userLocation} />
+                    <GlobalPulseCard posts={allPosts} />
+                  </div>
                 )}
               </div>
             </aside>
