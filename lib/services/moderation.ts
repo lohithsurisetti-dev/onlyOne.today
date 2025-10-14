@@ -259,27 +259,27 @@ export function getModerationMessage(result: ModerationResult): string {
   
   const messages: Record<string, string> = {
     'Phone numbers are not allowed for your safety': 
-      '📵 Nice try, but we\'re not a dating app. No phone numbers please!',
+      '📵 Oops! Phone numbers aren\'t allowed here. Let\'s keep it mysterious! ✨',
     'Email addresses are not allowed for your safety': 
-      '📧 Is this LinkedIn? Keep your email to yourself, friend.',
+      '📧 Hey there! Email addresses aren\'t allowed. Stay anonymous and have fun!',
     'URLs and links are not allowed': 
-      '🔗 We\'re allergic to links. Just tell us what you did!',
+      '🔗 Links aren\'t welcome here! Just share your awesome action instead!',
     'Social media handles and usernames are not allowed': 
-      '📱 This isn\'t a shoutout platform. Leave your @ at the door!',
+      '📱 Social handles stay secret here! Let your action do the talking! 🎭',
     'Content contains inappropriate material': 
-      '🚫 Whoa there, cowboy! Keep it PG-13. Your grandma might be using this app.',
+      '🌟 Let\'s keep things fun and friendly for everyone! Try something more wholesome?',
     'Content contains concerning language. Please seek help if needed.': 
       '💜 We noticed some heavy stuff. If you need support, please reach out to a crisis helpline. You matter!',
     'Content appears to be spam': 
-      '⛔ Are you a bot? This smells like spam. Tell us what you *actually* did!',
+      '🎪 This looks a bit spammy! Share a real action - we\'d love to hear what you did!',
     'Content contains hate speech or offensive language': 
-      '🛑 Nope. We don\'t do hate speech here. Try being nice for a change!',
+      '🌈 Kindness is our vibe here! How about sharing something positive instead?',
     'Content is too long. Please keep it brief.': 
-      '📏 TL;DR! We\'re not reading your novel. Keep it under 500 characters.',
+      '📖 Story time is great, but let\'s keep it snappy! Under 500 characters please!',
     'Content is too short. Please be more descriptive.': 
-      '📝 That\'s it? Come on, give us the juicy details! What did you actually do?',
+      '✍️ We\'re curious! Tell us more - what did you do? Paint us a picture!',
     'Content cannot be empty': 
-      '🤔 Umm... you forgot to write something. Telepathy isn\'t enabled yet!',
+      '🎬 Action! We need something here. What awesome thing did you do today?',
   }
   
   return messages[result.reason || ''] || result.reason || 'Content not allowed'

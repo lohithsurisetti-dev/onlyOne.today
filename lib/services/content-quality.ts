@@ -263,7 +263,7 @@ export function checkSemanticCoherence(content: string, doc?: any): {
     return {
       score: 0,
       isCoherent: false,
-      reason: 'That\'s... not much to go on. Mind giving us a few more words?'
+      reason: '✨ We need a bit more! What awesome thing did you do? Tell us more!'
     }
   }
   
@@ -308,7 +308,7 @@ export function checkSemanticCoherence(content: string, doc?: any): {
     return {
       score: 25,
       isCoherent: false,
-      reason: 'Did your cat walk on your keyboard? Those words look... creative.'
+      reason: '🐱 Hmm, those words look a bit jumbled! Try using recognizable words!'
     }
   }
   
@@ -318,7 +318,7 @@ export function checkSemanticCoherence(content: string, doc?: any): {
     return {
       score: 20,
       isCoherent: false,
-      reason: 'Okaaaaaay, we get it. But maybe use fewer repeated letters?'
+      reason: '😄 We loooove enthusiasm! But maybe use fewer repeated letters?'
     }
   }
   
@@ -330,7 +330,7 @@ export function checkSemanticCoherence(content: string, doc?: any): {
     return {
       score: 35,
       isCoherent: false,
-      reason: 'Are you stuck on repeat? Try using different words!'
+      reason: '🎵 Mix it up a bit! Try using some different words!'
     }
   }
   
@@ -348,7 +348,7 @@ export function checkSemanticCoherence(content: string, doc?: any): {
     return {
       score: 20,
       isCoherent: false,
-      reason: 'Did you fall asleep on your keyboard? That looks... random.'
+      reason: '⌨️ Oops! Looks like random characters. Try typing what you actually did!'
     }
   }
   
@@ -358,7 +358,7 @@ export function checkSemanticCoherence(content: string, doc?: any): {
     return {
       score: 20,
       isCoherent: false,
-      reason: 'That\'s not a language we recognize. Try using actual words!'
+      reason: '🌍 We love all languages, but those don\'t look like words we know! Try again!'
     }
   }
   
@@ -482,7 +482,7 @@ export function validateContentQuality(content: string, inputType: 'action' | 'd
       return {
         allowed: false,
         score: actionCheck.confidence,
-        reason: actionCheck.reason || 'Umm... what did you actually DO? Give us an action! (e.g., "played cricket", "cooked dinner", "went for a walk")',
+        reason: actionCheck.reason || '🎬 Tell us what you DID! Try an action like "played cricket", "cooked dinner", or "went for a walk"!',
         issues
       }
     }

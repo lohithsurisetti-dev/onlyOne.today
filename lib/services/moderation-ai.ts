@@ -169,23 +169,23 @@ export function getAIModerationMessage(result: AIModerationResult): string {
   
   const messages: Record<string, string> = {
     'Content contains toxic language': 
-      '☢️ Yikes! Our AI detected some toxic vibes. Maybe dial it back a bit?',
+      '🌻 Our AI noticed some not-so-friendly vibes. Let\'s try something more positive!',
     'Content contains severely toxic language': 
-      '🛑 Whoa, that\'s REALLY toxic. We\'re gonna need you to calm down there, chief.',
+      '🌈 Whoa! Let\'s bring down the intensity and share something uplifting instead!',
     'Content contains obscene language': 
-      '😳 Our AI\'s ears are burning! Keep it family-friendly, would ya?',
+      '✨ Our AI suggests keeping it family-friendly! Everyone\'s welcome here!',
     'Content contains threatening language': 
-      '⚠️ Easy there, tough guy. Threats aren\'t cool. How about something positive instead?',
+      '☮️ Hey, let\'s keep it peaceful! Share something fun you did instead!',
     'Content contains insulting language': 
-      '🙄 C\'mon, we\'re all friends here. Save the insults for your group chat.',
+      '🤝 We\'re all friends here! How about sharing a positive action instead?',
     'Content contains hate speech': 
-      '🛑 Big nope. Hate speech is a one-way ticket to the exit. Try kindness instead!',
+      '💫 Kindness makes the world better! Try sharing something nice you did!',
     'Content contains explicit sexual content': 
-      '😳 That\'s... very explicit. This isn\'t that kind of app. Keep it PG, please!',
+      '🎨 Let\'s keep things creative but appropriate! What wholesome action did you do?',
     'Content contains excessive profanity': 
-      '🤬 Potty mouth alert! We get it, you know words. But maybe use fewer of *those* words?',
+      '🌟 Let\'s clean up that language! Share your action in a fun, friendly way!',
     'Content violates community guidelines': 
-      '⚖️ Our AI thinks this breaks the rules. Read the room and try again!',
+      '📜 Hmm, our AI thinks this needs a rethink. Try a different action!',
   }
   
   return messages[result.reason || ''] || result.reason || 'Content not allowed'
