@@ -370,7 +370,7 @@ export async function createPost(data: {
     .from('posts')
     .select('id', { count: 'exact', head: true })
     .eq('content_hash', contentHash)
-    .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+    .gte('created_at', getTodayStart())
   
   let finalMatchCount = matchCount
   let finalUniquenessScore = uniquenessScore
@@ -644,6 +644,7 @@ export async function getRecentPosts(params: {
   let query = supabase
     .from('posts')
     .select('id, content, input_type, scope, location_city, location_state, location_country, uniqueness_score, match_count, funny_count, creative_count, must_try_count, total_reactions, created_at, content_hash')
+    .gte('created_at', getTodayStart()) // TODAY ONLY (calendar day)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)
     .limit(limit) // Explicit limit for speed
