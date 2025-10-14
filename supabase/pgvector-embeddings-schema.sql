@@ -36,6 +36,10 @@ CREATE INDEX IF NOT EXISTS posts_embedding_hnsw_idx
 -- =====================================================
 -- Finds posts similar to query embedding
 -- Returns posts with similarity score
+
+-- Drop existing function if it exists (to allow parameter rename)
+DROP FUNCTION IF EXISTS match_posts_by_embedding(vector,double precision,integer,text,text,text,text,boolean);
+
 CREATE OR REPLACE FUNCTION match_posts_by_embedding(
   query_embedding vector(384),
   match_threshold float DEFAULT 0.90,

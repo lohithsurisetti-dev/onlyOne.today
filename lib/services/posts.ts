@@ -370,28 +370,34 @@ export async function createPost(data: {
   }
 
   // Insert the new post with embedding
+  const insertData = {
+    content: data.content,
+    input_type: data.inputType,
+    scope: data.scope,
+    location_city: data.locationCity,
+    location_state: data.locationState,
+    location_country: data.locationCountry,
+    content_hash: contentHash,
+    uniqueness_score: uniquenessScore,
+    match_count: matchCount,
+    is_anonymous: true,
+    embedding: embedding ? JSON.stringify(embedding) : null, // Vector as JSON string
+  }
+  
+  console.log(`🔍 Inserting post with embedding: ${embedding ? 'YES' : 'NO'}`)
+  
   const { data: post, error } = await supabase
     .from('posts')
-    .insert({
-      content: data.content,
-      input_type: data.inputType,
-      scope: data.scope,
-      location_city: data.locationCity,
-      location_state: data.locationState,
-      location_country: data.locationCountry,
-      content_hash: contentHash,
-      uniqueness_score: uniquenessScore,
-      match_count: matchCount,
-      is_anonymous: true,
-      embedding: embedding as any, // Vector column
-    } as any) // Use 'as any' because embedding not in type
+    .insert(insertData as any)
     .select()
     .single()
 
   if (error) {
-    console.error('Error creating post:', error)
+    console.error('❌ Error creating post:', error)
     throw new Error('Failed to create post')
   }
+  
+  console.log(`✅ Post inserted with ID: ${post?.id}, embedding saved: ${post?.embedding ? 'YES' : 'NO'}`)
 
   // Update aggregate counts table (FAST - single query)
   if (data.locationCity && data.locationState && data.locationCountry) {
