@@ -126,21 +126,34 @@ export default function ShareModal({
     return 'https://onlyone.today'
   }
   
-  const getShareText = () => {
+  const getShareUrl = () => {
     const homepageUrl = getHomepageUrl()
-    return `${message}\n\n${content}\n\n🎯 What did YOU do today? Discover if you're unique or part of the crowd at ${homepageUrl}`
+    // Create shareable URL with OG image
+    const params = new URLSearchParams({
+      content,
+      score: score.toString(),
+      type,
+      scope,
+    })
+    return `${homepageUrl}/share/post?${params.toString()}`
+  }
+  
+  const getShareText = () => {
+    const shareUrl = getShareUrl()
+    return `${message}\n\n"${content}"\n\n🎯 Check it out: ${shareUrl}`
   }
   
   const handleCopyLink = () => {
-    const shareText = getShareText()
-    navigator.clipboard.writeText(shareText)
+    const shareUrl = getShareUrl()
+    navigator.clipboard.writeText(shareUrl)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
   
   const handleShareWhatsApp = () => {
-    const shareText = getShareText()
-    const url = `https://wa.me/?text=${encodeURIComponent(shareText)}`
+    const shareUrl = getShareUrl()
+    // Share URL (WhatsApp will fetch OG image)
+    const url = `https://wa.me/?text=${encodeURIComponent(`${message}\n\n"${content}"\n\n${shareUrl}`)}`
     window.open(url, '_blank')
   }
   
