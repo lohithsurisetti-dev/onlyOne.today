@@ -350,24 +350,17 @@ export async function createPost(data: {
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   let embedding: number[] | null = null
   
-  // OPTIMIZATION: Lazy embedding generation
-  // Only generate if initial search found potential matches
-  // This saves ~70% of storage (most posts are unique!)
-  const shouldGenerateEmbedding = matchCount > 0 || data.content.length > 20
-  
-  if (shouldGenerateEmbedding) {
-    try {
-      console.log('🔮 Generating embedding vector...')
-      const start = Date.now()
-      embedding = await generateEmbedding(data.content)
-      const duration = Date.now() - start
-      console.log(`✅ Embedding generated in ${duration}ms (384 dimensions)`)
-    } catch (error) {
-      console.error('⚠️ Embedding generation failed (will use NLP fallback):', error)
-      // Continue without embedding - NLP fallback will work
-    }
-  } else {
-    console.log('ℹ️ Skipping embedding (no initial matches - truly unique!)')
+  // ALWAYS generate embeddings for accurate vector search
+  // (Can re-enable lazy generation later after optimizing hybrid filter)
+  try {
+    console.log('🔮 Generating embedding vector...')
+    const start = Date.now()
+    embedding = await generateEmbedding(data.content)
+    const duration = Date.now() - start
+    console.log(`✅ Embedding generated in ${duration}ms (384 dimensions)`)
+  } catch (error) {
+    console.error('⚠️ Embedding generation failed (will use NLP fallback):', error)
+    // Continue without embedding - NLP fallback will work
   }
 
   // Insert the new post with embedding
