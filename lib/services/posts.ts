@@ -418,35 +418,10 @@ export async function createPost(data: {
     }
   }
 
-  // IMPORTANT: Recalculate LIVE score right after insertion (scope-aware)
-  // Between finding similar posts and now, more posts might have been created
-  let countQuery = supabase
-    .from('posts')
-    .select('id', { count: 'exact', head: true })
-    .eq('content_hash', contentHash)
-    .gte('created_at', getTodayStart())
-  
-  // Apply same scope filter as initial search
-  countQuery = applyScopeFilter(countQuery, data.scope, {
-    city: data.locationCity,
-    state: data.locationState,
-    country: data.locationCountry
-  })
-  
-  const { count: finalCount, error: recountError } = await countQuery
-  
-  let finalMatchCount = matchCount
-  let finalUniquenessScore = uniquenessScore
-  
-  if (!recountError && finalCount) {
-    // Recalculate with actual current matches in scope
-    finalMatchCount = finalCount - 1 // Exclude self (this is "others" in scope)
-    finalUniquenessScore = calculateUniquenessScore(finalMatchCount)
-    
-    if (finalMatchCount !== matchCount) {
-      console.log(`📊 Score updated after insertion: ${matchCount} → ${finalMatchCount} others in ${data.scope}, ${uniquenessScore}% → ${finalUniquenessScore}%`)
-    }
-  }
+  // Use vector-based match count (already calculated via semantic similarity)
+  // No need to recount by content_hash since that breaks vector matching!
+  const finalMatchCount = matchCount  // This is from vector/hybrid matching
+  const finalUniquenessScore = uniquenessScore
 
   // Create post matches (if any similar posts found)
   if (similarPosts.length > 0 && post) {
