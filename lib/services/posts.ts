@@ -513,7 +513,7 @@ export async function findSimilarPostsGlobal(params: {
         {
           query_embedding: queryEmbedding as any,
           match_threshold: 0.90, // 90% similarity = same action
-          match_count: limit,
+          match_limit: limit,
           scope_filter: scope,
           filter_city: location?.city || null,
           filter_state: location?.state || null,
@@ -521,6 +521,13 @@ export async function findSimilarPostsGlobal(params: {
           today_only: true
         }
       )
+      
+      // Log RPC response for debugging
+      if (rpcError) {
+        console.error('⚠️ Vector search RPC error:', rpcError)
+      } else {
+        console.log(`📊 Vector search returned ${vectorMatches?.length || 0} results`)
+      }
       
       if (!rpcError && vectorMatches && vectorMatches.length > 0) {
         console.log(`✨ Vector search found ${vectorMatches.length} semantic matches (avg similarity: ${(vectorMatches.reduce((acc: number, p: any) => acc + p.similarity, 0) / vectorMatches.length).toFixed(2)})`)

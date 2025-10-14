@@ -39,7 +39,7 @@ CREATE INDEX IF NOT EXISTS posts_embedding_hnsw_idx
 CREATE OR REPLACE FUNCTION match_posts_by_embedding(
   query_embedding vector(384),
   match_threshold float DEFAULT 0.90,
-  match_count int DEFAULT 20,
+  match_limit int DEFAULT 20,
   scope_filter text DEFAULT 'world',
   filter_city text DEFAULT NULL,
   filter_state text DEFAULT NULL,
@@ -99,7 +99,7 @@ BEGIN
       (scope_filter = 'city' AND posts.location_city = filter_city AND posts.scope = 'city')
     )
   ORDER BY posts.embedding <=> query_embedding
-  LIMIT match_count;
+  LIMIT match_limit;
 END;
 $$;
 
