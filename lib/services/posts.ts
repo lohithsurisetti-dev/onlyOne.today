@@ -355,6 +355,7 @@ export async function createPost(data: {
   
   let finalMatchCount = matchCount
   let finalUniquenessScore = uniquenessScore
+  let finalTotalPosts = totalPostsToday
   
   if (!recountError && finalCount) {
     // Recalculate with actual current matches
@@ -363,6 +364,7 @@ export async function createPost(data: {
     // Get updated total posts (including this new post)
     const updatedTotalPostsToday = await getTotalPostsCount('today')
     finalUniquenessScore = calculateUniquenessScore(finalMatchCount, updatedTotalPostsToday)
+    finalTotalPosts = updatedTotalPostsToday
     
     if (finalMatchCount !== matchCount) {
       console.log(`📊 Score updated after insertion: ${matchCount} → ${finalMatchCount} matches out of ${updatedTotalPostsToday} total, ${uniquenessScore}% → ${finalUniquenessScore}%`)
@@ -395,10 +397,14 @@ export async function createPost(data: {
   }
 
   return {
-    post,
+    post: {
+      ...post,
+      total_posts_today: finalTotalPosts // Add total for context
+    },
     similarPosts,
     matchCount: finalMatchCount,    // Return LIVE count, not initial
     uniquenessScore: finalUniquenessScore, // Return LIVE score, not initial
+    totalPostsToday: finalTotalPosts, // For display
   }
 }
 
