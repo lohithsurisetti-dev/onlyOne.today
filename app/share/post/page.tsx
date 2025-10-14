@@ -16,17 +16,15 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const title = `${content} - ${score}% ${type}`
   const description = `I ${content} today and it was ${score}% ${type === 'uniqueness' ? 'unique' : 'common'} in ${scope}! Discover your uniqueness on OnlyOne.Today`
   
-  // Generate share preview image with all parameters
+  // Generate share image using ImageResponse API
   const imageParams = new URLSearchParams({
     content,
     score,
     type,
     scope,
-    vibe,
-    message,
-    inputType: 'action',
+    vibe: vibe || '✨ Free Spirit',
   })
-  const imageUrl = `/api/share-preview?${imageParams.toString()}`
+  const imageUrl = `/api/share-image?${imageParams.toString()}`
   
   return {
     title,
