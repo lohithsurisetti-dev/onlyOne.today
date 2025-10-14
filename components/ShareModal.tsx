@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { X, Download, Share2, Twitter, Facebook, Link as LinkIcon, Check } from 'lucide-react'
-import { toPng } from 'html-to-image'
+import { toJpeg } from 'html-to-image'
 import Button from './ui/Button'
 
 interface ShareModalProps {
@@ -80,16 +80,17 @@ export default function ShareModal({
           
           if (cardElement) {
             try {
-              const dataUrl = await toPng(cardElement, {
+              const dataUrl = await toJpeg(cardElement, {
                 width: 1200,
                 height: 630,
                 pixelRatio: 2,
+                quality: 0.95,
                 backgroundColor: '#0a0a1a'
               })
               
               // Create download link
               const link = document.createElement('a')
-              link.download = `onlyone-${Date.now()}.png`
+              link.download = `onlyone-${Date.now()}.jpg`
               link.href = dataUrl
               link.click()
             } catch (err) {
@@ -117,21 +118,36 @@ export default function ShareModal({
     setDownloading(false)
   }
   
+  const getHomepageUrl = () => {
+    // Use the actual deployed domain
+    if (typeof window !== 'undefined') {
+      return window.location.origin
+    }
+    return 'https://onlyone.today'
+  }
+  
+  const getShareText = () => {
+    const homepageUrl = getHomepageUrl()
+    return `${message}\n\n${content}\n\n🎯 What did YOU do today? Discover if you're unique or part of the crowd at ${homepageUrl}`
+  }
+  
   const handleCopyLink = () => {
-    const shareUrl = `${window.location.origin}${imageUrl}`
-    navigator.clipboard.writeText(shareUrl)
+    const shareText = getShareText()
+    navigator.clipboard.writeText(shareText)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
   
   const handleShareTwitter = () => {
-    const text = `I'm ${rank} most unique today! ${content} #OnlyOneToday`
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`
+    const homepageUrl = getHomepageUrl()
+    const text = `${message} ${content}\n\n🎯 What did YOU do today? Find out if you're unique at ${homepageUrl}`
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`
     window.open(url, '_blank')
   }
   
   const handleShareFacebook = () => {
-    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`
+    const homepageUrl = getHomepageUrl()
+    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(homepageUrl)}&quote=${encodeURIComponent(getShareText())}`
     window.open(url, '_blank')
   }
   
@@ -159,7 +175,7 @@ export default function ShareModal({
               Share Your Moment
             </h2>
             <p className="text-sm text-white/60">
-              Download or share your unique card
+              Download as JPG or share with your friends
             </p>
           </div>
           
@@ -216,14 +232,28 @@ export default function ShareModal({
               onClick={handleDownload}
               disabled={downloading}
               className={`py-3 rounded-xl font-semibold text-sm transition-all shadow-lg hover:scale-105 ${
+                downloading ? 'opacity-50 cursor-not-allowed' : ''
+              } ${
                 type === 'uniqueness'
                   ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:shadow-purple-500/50'
                   : 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:shadow-blue-500/50'
               } disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100`}
             >
               <div className="flex items-center justify-center gap-2">
-                <Download size={18} />
-                {downloading ? 'Downloading...' : 'Download'}
+                {downloading ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Download size={18} />
+                    Download JPG
+                  </>
+                )}
               </div>
             </button>
             
