@@ -518,8 +518,23 @@ export async function findSimilarPostsGlobal(params: {
             const maxLength = Math.max(contentLower.length, matchContentLower.length)
             const levenshteinSimilarity = 1 - (levenshteinDist / maxLength)
             
-            // Hybrid score: 70% vector + 30% Levenshtein
-            const hybridScore = (p.similarity * 0.7) + (levenshteinSimilarity * 0.3)
+            // Verb mismatch penalty: Check for conflicting action verbs
+            let verbPenalty = 0
+            const conflictingPairs = [
+              ['watch', 'play'], ['watching', 'playing'], ['watched', 'played'],
+              ['watch', 'do'], ['watching', 'doing'], ['watched', 'did'],
+              ['see', 'do'], ['seeing', 'doing'], ['saw', 'did'],
+            ]
+            for (const [verb1, verb2] of conflictingPairs) {
+              if ((contentLower.includes(verb1) && matchContentLower.includes(verb2)) ||
+                  (contentLower.includes(verb2) && matchContentLower.includes(verb1))) {
+                verbPenalty = 0.20 // 20% penalty for conflicting verbs
+                break
+              }
+            }
+            
+            // Hybrid score: 70% vector + 30% Levenshtein - verb penalty
+            const hybridScore = Math.max(0, (p.similarity * 0.7) + (levenshteinSimilarity * 0.3) - verbPenalty)
             
             return {
               id: p.id,
@@ -533,6 +548,7 @@ export async function findSimilarPostsGlobal(params: {
               vector_similarity: p.similarity,
               levenshtein_similarity: levenshteinSimilarity,
               levenshtein_distance: levenshteinDist,
+              verb_penalty: verbPenalty,
               match_type: hybridScore >= 0.95 ? 'exact' as const :
                           hybridScore >= 0.75 ? 'core_action' as const :
                           'similar' as const,
