@@ -718,12 +718,21 @@ export default function FeedPage() {
       {/* Floating Plus Button */}
       <button
         onClick={() => router.push('/')}
-        className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg shadow-purple-500/50 hover:shadow-xl hover:shadow-purple-500/60 hover:scale-110 transition-all duration-300 flex items-center justify-center group"
+        className="fixed bottom-6 right-6 z-50 group"
         title="Post something new"
       >
-        <svg className="w-6 h-6 text-white group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-        </svg>
+        {/* Outer glow ring */}
+        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 opacity-40 blur-xl group-hover:opacity-60 transition-all duration-300 animate-pulse"></div>
+        
+        {/* Button */}
+        <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 via-purple-600 to-pink-600 shadow-2xl hover:shadow-purple-500/60 flex items-center justify-center transition-all duration-300 group-hover:scale-110 border-2 border-white/20">
+          {/* Inner highlight */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/20 to-transparent"></div>
+          
+          <svg className="w-7 h-7 text-white relative z-10 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+        </div>
       </button>
       
       <div className="relative z-10 min-h-screen flex flex-col">
