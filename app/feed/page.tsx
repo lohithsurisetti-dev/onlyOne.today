@@ -362,6 +362,7 @@ export default function FeedPage() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [userReactions, setUserReactions] = useState<Set<string>>(new Set())
   const [reactionCooldowns, setReactionCooldowns] = useState<Map<string, number>>(new Map())
+  const [mobileStatsExpanded, setMobileStatsExpanded] = useState(false)
   const [shareModalOpen, setShareModalOpen] = useState(false)
   const [selectedPost, setSelectedPost] = useState<DisplayPost | null>(null)
   const [showLegend, setShowLegend] = useState(false)
@@ -1106,7 +1107,7 @@ export default function FeedPage() {
                   </svg>
                 )}
               </button>
-            </div>
+              </div>
             </div>
             
               {/* Live Post Counter - Exciting Design */}
@@ -1119,7 +1120,7 @@ export default function FeedPage() {
                   <div className="relative flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-2 border-purple-400/50 backdrop-blur-sm shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all hover:scale-105">
                     <span className="text-base font-bold text-white">{stats.today.totalPosts}</span>
                     <span className="text-xs text-purple-200/80 font-medium whitespace-nowrap">posts today</span>
-                </div>
+              </div>
               </div>
             )}
             </div>
@@ -1129,61 +1130,105 @@ export default function FeedPage() {
         
         {/* Feed Grid */}
         <main className="max-w-7xl mx-auto px-4 py-8">
-          {/* Mobile Stats Section - Shows on mobile only */}
-          <div className="lg:hidden mb-6">
+          {/* Mobile Stats Section - Collapsible */}
+          <div className="lg:hidden mb-4">
             {filter === 'trending' ? (
               trendingLoading ? (
                 <TrendingInfoSkeleton />
               ) : (
-                /* Trending Info Card - Mobile */
-                <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 backdrop-blur-sm rounded-2xl border border-orange-400/20 shadow-xl p-4 mb-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="p-2 bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-lg">
-                      <svg className="w-5 h-5 text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-base font-bold text-white">Trending Globally</h3>
-                      <p className="text-[10px] text-orange-200/60">What the world is talking about</p>
-                    </div>
-                  </div>
-                  
-                  {currentPosts.length > 0 && (
-                    <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                      <div className="text-[10px] font-semibold text-orange-300 uppercase mb-2 flex items-center gap-1.5">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
-                        </svg>
-                        <span>Top Trending</span>
+                /* Trending Info - Collapsible Mobile */
+                <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 backdrop-blur-sm rounded-2xl border border-orange-400/20 shadow-lg overflow-hidden">
+              <button
+                    onClick={() => setMobileStatsExpanded(!mobileStatsExpanded)}
+                    className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-lg">
+                        <svg className="w-4 h-4 text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+            </div>
+                      <div className="text-left">
+                        <h3 className="text-sm font-bold text-white">Trending Globally</h3>
+                        <p className="text-[10px] text-orange-200/60">Tap to {mobileStatsExpanded ? 'hide' : 'view'}</p>
                       </div>
-                      <div className="space-y-2">
-                        {currentPosts.slice(0, 5).map((post, index) => (
-                          <div key={post.id} className="flex items-start gap-2 text-xs">
-                            <span className="text-orange-400 font-bold shrink-0 mt-0.5">#{index + 1}</span>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-white/80 line-clamp-2 font-medium leading-tight">{post.content}</div>
-                              {post.source && (
-                                <div className="text-white/40 text-[10px] mt-0.5 capitalize">{post.source.replace('-', ' ')}</div>
-                              )}
+                    </div>
+                    <svg 
+                      className={`w-5 h-5 text-white/60 transition-transform ${mobileStatsExpanded ? 'rotate-180' : ''}`}
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  
+                  {mobileStatsExpanded && currentPosts.length > 0 && (
+                    <div className="px-4 pb-4 border-t border-white/10">
+                      <div className="bg-white/5 rounded-lg p-3 border border-white/10 mt-3">
+                        <div className="text-[10px] font-semibold text-orange-300 uppercase mb-2 flex items-center gap-1.5">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                          </svg>
+                          <span>Top Trending</span>
+                  </div>
+                        <div className="space-y-2">
+                          {currentPosts.slice(0, 5).map((post, index) => (
+                            <div key={post.id} className="flex items-start gap-2 text-xs">
+                              <span className="text-orange-400 font-bold shrink-0 mt-0.5">#{index + 1}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-white/80 line-clamp-2 font-medium leading-tight">{post.content}</div>
+                                {post.source && (
+                                  <div className="text-white/40 text-[10px] mt-0.5 capitalize">{post.source.replace('-', ' ')}</div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
                 </div>
               )
             ) : (
-              /* Stats Card - Mobile */
-              <GlobalStatsCard 
-                posts={allPosts} 
-                currentFilter={filter}
-                userLocation={userLocation}
-              />
+              /* Stats Card - Collapsible Mobile */
+              <div className="bg-gradient-to-br from-space-mid/50 to-space-dark/50 backdrop-blur-sm rounded-2xl border border-white/10 shadow-lg overflow-hidden">
+                <button 
+                  onClick={() => setMobileStatsExpanded(!mobileStatsExpanded)}
+                  className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    <div className="text-left">
+                      <h3 className="text-sm font-bold text-white">Top Performers</h3>
+                      <p className="text-[10px] text-white/40">Tap to {mobileStatsExpanded ? 'hide' : 'view'}</p>
+                  </div>
+                  </div>
+                  <svg 
+                    className={`w-5 h-5 text-white/60 transition-transform ${mobileStatsExpanded ? 'rotate-180' : ''}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                
+                {mobileStatsExpanded && (
+                  <div className="border-t border-white/10">
+                    <GlobalStatsCard 
+                      posts={allPosts} 
+                      currentFilter={filter}
+                      userLocation={userLocation}
+                    />
+                </div>
+                )}
+              </div>
             )}
           </div>
-
+        
           {/* Global Pulse Sidebar */}
           <div className="grid lg:grid-cols-[1fr,300px] gap-6">
             <div>
