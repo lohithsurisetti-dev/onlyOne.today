@@ -453,21 +453,29 @@ export async function createPost(data: {
     await supabase.from('post_matches').insert(matches)
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // SCOPE ISOLATION: Only update posts in the EXACT SAME scope
+    // HIERARCHY PROTECTION: Only update posts in the SAME scope
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // Each scope is independent!
-    // - City posts only count City posts in same city
-    // - State posts only count State posts in same state
-    // - Country posts only count Country posts in same country
-    // - World posts count all World posts
+    // Two-way logic:
     //
-    // This prevents:
-    // ❌ State post updating City post's count
-    // ❌ Country post updating City/State post's count
-    // ✅ Each scope maintains its own accurate count
+    // FINDING MATCHES (Hierarchical):
+    // - State post SEES City posts (City ⊂ State) ✅
+    // - Country post SEES City + State posts ✅
+    // - World post SEES all posts ✅
+    //
+    // UPDATING COUNTS (Isolated):
+    // - State post does NOT update City post's count ❌
+    // - Country post does NOT update City/State counts ❌
+    // - Only posts in SAME scope update each other ✅
+    //
+    // Example:
+    // 1. City: "went swimming" → 100% (0 others in city)
+    // 2. State: "went swimming" → 90% (1 other: the city post)
+    //    BUT City stays 100% (not updated by state)
+    // 3. Country: "went swimming" → 80% (2 others: city + state)
+    //    BUT City stays 100%, State stays 90%
     
     const postsToUpdate = similarPosts.filter((sp: any) => {
-      // Only update if EXACT same scope
+      // Only update if EXACT same scope (prevents upper scopes from updating lower ones)
       return sp.scope === data.scope
     })
     
@@ -664,11 +672,6 @@ export async function findSimilarPostsGlobal(params: {
           .filter((m: any) => m !== null)
           // Filter: Keep only if should_match is true (scope-aware decision!)
           .filter((m: any) => m.should_match)
-          // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-          // SCOPE ISOLATION: Only keep posts from the EXACT same scope!
-          // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-          // This prevents City posts from being counted with State posts
-          .filter((m: any) => m.scope === scope)
           // Sort by composite score
           .sort((a: any, b: any) => b.similarity_score - a.similarity_score)
           // Limit results
@@ -700,7 +703,7 @@ export async function findSimilarPostsGlobal(params: {
     .gte('created_at', getTodayStart()) // Today only
     .limit(limit)
   
-  // Apply scope filter
+  // Apply scope filter (hierarchical - broader scopes see narrower ones)
   query = applyScopeFilter(query, scope, location)
   
   const { data: allPosts, error } = await query
@@ -714,18 +717,8 @@ export async function findSimilarPostsGlobal(params: {
     return []
   }
   
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // SCOPE ISOLATION: Only keep posts from the EXACT same scope!
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // applyScopeFilter returns hierarchical results, but we want exact scope only
-  const scopeFilteredPosts = allPosts.filter(p => p.scope === scope)
-  
-  if (scopeFilteredPosts.length === 0) {
-    return []
-  }
-  
   // OPTIMIZATION: Quick check for exact hash matches first
-  const exactMatches = scopeFilteredPosts.filter(p => p.content_hash === contentHash)
+  const exactMatches = allPosts.filter(p => p.content_hash === contentHash)
   if (exactMatches.length > 0) {
     console.log(`⚡ Found ${exactMatches.length} exact matches (fast path)`)
     return exactMatches.map(p => ({
@@ -739,10 +732,10 @@ export async function findSimilarPostsGlobal(params: {
   // Threshold 0.75: Catches core action matches (0.85) but not weak partials
   const similarPosts = findSimilarDynamic(
     content,
-    scopeFilteredPosts.map(p => ({ id: p.id, content: p.content })),
+    allPosts.map(p => ({ id: p.id, content: p.content })),
     0.75 // Raised from 0.6 for tighter matching
   ).map(result => {
-    const original = scopeFilteredPosts.find(p => p.id === result.id)!
+    const original = allPosts.find(p => p.id === result.id)!
     return {
       ...original,
       similarity_score: result.similarity,
