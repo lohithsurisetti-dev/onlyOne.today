@@ -519,6 +519,11 @@ export async function findSimilarPostsGlobal(params: {
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
             const verbCheck = isSameActionPost(content, p.content)
             
+            // Debug: Log verb check results
+            if (vectorMatches.length <= 3) {
+              console.log(`   🔍 Verb check: "${p.content.substring(0, 30)}" → ${verbCheck.reason}`)
+            }
+            
             // If verbs are different → Automatic reject (even if high similarity)
             if (!verbCheck.isSame) {
               return null // Will be filtered out

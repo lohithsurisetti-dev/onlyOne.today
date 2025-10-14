@@ -21,6 +21,7 @@ import { distance } from 'fastest-levenshtein'
  */
 export function extractActionVerb(text: string): string | null {
   const doc = nlp(text)
+  const textLower = text.toLowerCase().trim()
   
   // Special pattern: "went/did [verb/gerund]" → Extract the main action
   const wentPattern = text.match(/\b(went|did|got)\s+(\w+ing|\w+)\b/i)
@@ -29,7 +30,29 @@ export function extractActionVerb(text: string): string | null {
     return wentPattern[2].toLowerCase()
   }
   
-  // Get all verbs
+  // Regex fallback: Look for common action verbs anywhere in text
+  // This handles cases where compromise.js fails
+  const commonActionVerbs = [
+    'played', 'play', 'playing',
+    'cooked', 'cook', 'cooking',
+    'baked', 'bake', 'baking',
+    'made', 'make', 'making',
+    'ate', 'eat', 'eating',
+    'had', 'have', 'having',
+    'watched', 'watch', 'watching',
+    'walked', 'walk', 'walking',
+    'ran', 'run', 'running',
+    'swam', 'swim', 'swimming',
+    'jogged', 'jog', 'jogging',
+  ]
+  
+  for (const actionVerb of commonActionVerbs) {
+    if (textLower.includes(actionVerb)) {
+      return actionVerb
+    }
+  }
+  
+  // Get all verbs from compromise
   const verbs = doc.verbs()
   if (!verbs.found) {
     return null
