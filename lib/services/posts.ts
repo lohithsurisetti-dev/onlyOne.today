@@ -381,7 +381,7 @@ export async function createPost(data: {
     uniqueness_score: uniquenessScore,
     match_count: matchCount,
     is_anonymous: true,
-    embedding: embedding ? JSON.stringify(embedding) : null, // Vector as JSON string
+    embedding: embedding, // Pass array directly, Supabase will handle vector type
   }
   
   console.log(`🔍 Inserting post with embedding: ${embedding ? 'YES' : 'NO'}`)
