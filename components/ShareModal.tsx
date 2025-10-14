@@ -140,34 +140,48 @@ export default function ShareModal({
   
   const handleShareWhatsApp = async () => {
     try {
-      // Generate and download the image first
-      const shareCardRef = document.getElementById('share-card-preview')
-      if (!shareCardRef) return
-      
-      // Convert to blob
-      const blob = await toJpeg(shareCardRef, {
-        quality: 0.95,
-        pixelRatio: 2,
-      }).then(dataUrl => fetch(dataUrl)).then(res => res.blob())
-      
-      const file = new File([blob], 'onlyone-share.jpg', { type: 'image/jpeg' })
       const shareText = getShareText()
       
-      // Try native share API (works on mobile!)
-      if (navigator.share && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          text: shareText,
-          files: [file],
+      // Check if native share API is available (mobile)
+      if (navigator.share) {
+        // Generate image blob
+        const shareCardRef = document.getElementById('share-card-preview')
+        if (!shareCardRef) {
+          console.error('Share card element not found')
+          // Fallback to text-only
+          const url = `https://wa.me/?text=${encodeURIComponent(shareText)}`
+          window.open(url, '_blank')
+          return
+        }
+        
+        console.log('Generating image for share...')
+        const dataUrl = await toJpeg(shareCardRef, {
+          quality: 0.95,
+          pixelRatio: 2,
         })
-      } else {
-        // Fallback: Download image and copy text
-        await handleDownload()
-        await navigator.clipboard.writeText(shareText)
-        alert('📸 Image downloaded & text copied!\n\nNow:\n1. Open WhatsApp\n2. Paste the text\n3. Attach the downloaded image\n4. Send! ✨')
+        
+        const blob = await fetch(dataUrl).then(res => res.blob())
+        const file = new File([blob], 'onlyone-share.jpg', { type: 'image/jpeg' })
+        
+        // Try sharing with file
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          console.log('Using native share with image...')
+          await navigator.share({
+            text: shareText,
+            files: [file],
+          })
+          return
+        }
       }
+      
+      // Fallback for desktop or unsupported browsers
+      console.log('Fallback: Download + copy')
+      await handleDownload()
+      navigator.clipboard.writeText(shareText)
+      alert('📸 Image downloaded & text copied!\n\nNow:\n1. Open WhatsApp\n2. Paste the text\n3. Attach the downloaded image\n4. Send! ✨')
     } catch (error) {
       console.error('Share failed:', error)
-      // Fallback: just share text
+      // Last resort: just share text via WhatsApp web
       const shareText = getShareText()
       const url = `https://wa.me/?text=${encodeURIComponent(shareText)}`
       window.open(url, '_blank')
