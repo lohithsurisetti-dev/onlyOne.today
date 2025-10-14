@@ -595,8 +595,19 @@ export async function findSimilarPostsGlobal(params: {
               levenshteinSimilarity
             })
             
+            // BOOST: If verbs passed synonym check, they're likely same action
+            // Apply a +10% boost to help short texts match
+            let finalComposite = compositeSim.compositeScore
+            if (verbCheck.isSame && verbCheck.reason.includes('Same action')) {
+              finalComposite = Math.min(1, finalComposite + 0.10) // +10% boost
+            }
+            
             // Check if should match using scope-aware logic
-            const matchDecision = shouldMatch(compositeSim, scope, verbCheck.isSame)
+            const matchDecision = shouldMatch(
+              { ...compositeSim, compositeScore: finalComposite },
+              scope,
+              verbCheck.isSame
+            )
             
             // Debug detailed scores
             if (vectorMatches.length <= 3) {
