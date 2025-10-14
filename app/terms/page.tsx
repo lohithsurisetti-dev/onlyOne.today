@@ -106,21 +106,6 @@ export default function TermsPage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-bold text-white mb-3">📱 Third-Party Services</h2>
-              <p>
-                We use the following services to operate OnlyOne.Today:
-              </p>
-              <ul className="space-y-2 list-disc list-inside mt-2">
-                <li><strong>Vercel:</strong> Hosting and deployment</li>
-                <li><strong>Supabase:</strong> Database and storage</li>
-                <li><strong>IP Geolocation APIs:</strong> For location detection</li>
-              </ul>
-              <p className="mt-3">
-                Each service has its own privacy policy and terms.
-              </p>
-            </section>
-
-            <section>
               <h2 className="text-xl font-bold text-white mb-3">🔄 Changes to Terms</h2>
               <p>
                 We may update these terms from time to time. Significant changes will be communicated through the app. Continued use means you accept the updated terms.
