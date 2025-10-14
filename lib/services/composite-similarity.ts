@@ -95,9 +95,10 @@ export function calculateCompositeSimilarity(inputs: SimilarityInputs): Similari
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // COMPOSITE SCORE (Weighted combination)
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // Weights: Embedding (45%), Jaccard (35%), Token (20%)
+  // Weights adjusted: Prioritize embeddings for short texts
+  // Embedding (60%), Jaccard (25%), Token (15%)
   // Plus negation penalty and time bonus
-  const baseScore = (E * 0.45) + (J * 0.35) + (T * 0.20)
+  const baseScore = (E * 0.60) + (J * 0.25) + (T * 0.15)
   const compositeScore = Math.max(0, Math.min(1, baseScore + N + R))
   
   const breakdown = `E:${(E*100).toFixed(0)}% J:${(J*100).toFixed(0)}% T:${(T*100).toFixed(0)}% N:${N.toFixed(2)} R:${R.toFixed(2)}`
