@@ -164,76 +164,103 @@ export default function MyPostsPage() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {displayPosts.map((post) => {
                 const isUnique = post.uniquenessScore >= 70
+                const cardStyle = isUnique
+                  ? 'bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-purple-400/30 hover:border-purple-400/60'
+                  : 'bg-gradient-to-br from-blue-900/30 to-cyan-900/30 border-blue-400/30 hover:border-blue-400/60'
+                
                 return (
-                  <a
+                  <div
                     key={post.id}
-                    href={post.viewUrl}
-                    className="block bg-gradient-to-br from-space-mid/50 to-space-dark/50 backdrop-blur-sm rounded-2xl border border-white/10 shadow-xl hover:border-purple-400/30 transition-all hover:scale-[1.02] p-4"
+                    className={`group relative rounded-2xl p-4 backdrop-blur-md border transition-all duration-300 hover:scale-105 hover:shadow-xl flex flex-col justify-between ${cardStyle}`}
+                    style={{ minHeight: '160px' }}
                   >
-                    {/* Header */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className={`px-2 py-1 rounded-lg text-xs font-bold ${
-                        isUnique 
-                          ? 'bg-purple-500/20 text-purple-300 border border-purple-400/30'
-                          : 'bg-blue-500/20 text-blue-300 border border-blue-400/30'
-                      }`}>
-                        {isUnique ? '✨ Unique' : '👥 Common'}
+                    {/* Share Button - Top Right */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        const shareUrl = `${window.location.origin}${post.viewUrl}`
+                        if (navigator.share) {
+                          navigator.share({
+                            title: 'OnlyOne.Today',
+                            text: `Check out my ${isUnique ? 'unique' : 'common'} action: "${post.content}"`,
+                            url: shareUrl,
+                          }).catch(() => {})
+                        } else {
+                          navigator.clipboard.writeText(shareUrl)
+                          alert('Link copied to clipboard!')
+                        }
+                      }}
+                      className="absolute top-2 right-2 opacity-70 group-hover:opacity-100 hover:opacity-100 transition-opacity p-2 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-sm"
+                      title="Share this post"
+                    >
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                      </svg>
+                    </button>
+
+                    {/* Content - Center Aligned */}
+                    <a href={post.viewUrl} className="flex-1 flex items-center justify-center">
+                      <div>
+                        <p className="text-sm leading-snug text-center text-white/90 group-hover:text-white">
+                          {post.content}
+                        </p>
                       </div>
-                      <div className="text-white/40 text-xs capitalize">{post.scope}</div>
-                    </div>
+                    </a>
 
-                    {/* Content */}
-                    <p className="text-white/90 text-sm mb-4 line-clamp-2 leading-relaxed">
-                      {post.content}
-                    </p>
-
-                    {/* Stats */}
-                    <div className="flex items-center justify-between pt-3 border-t border-white/10">
-                      <div className="flex items-center gap-3">
-                        <div className={`text-2xl font-bold ${
-                          isUnique ? 'text-purple-300' : 'text-blue-300'
-                        }`}>
-                          {post.uniquenessScore}%
-                        </div>
-                        <div className="flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded-md">
-                          <svg className="w-3 h-3 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {/* Footer - Metrics */}
+                    <div className="flex items-center text-xs mb-1.5 justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="flex items-center gap-1 text-purple-300/80">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                          </svg>
+                          <span className="font-medium">{post.uniquenessScore}%</span>
+                        </span>
+                        <span className="text-white/30">·</span>
+                        <span className="flex items-center gap-1 text-blue-300/80">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                           </svg>
-                          <span className="text-xs font-medium text-white/60">{post.matchCount + 1}</span>
-                        </div>
+                          <span className="font-medium">{post.matchCount + 1}</span>
+                        </span>
                       </div>
-                      <div className="text-white/40 text-xs">
+                      <span className="text-white/50">
                         {new Date(post.timestamp).toLocaleTimeString([], { 
                           hour: 'numeric', 
                           minute: '2-digit' 
                         })}
-                      </div>
+                      </span>
                     </div>
 
-                    {/* Reactions */}
-                    {post.reactions && post.reactions.total_reactions > 0 && (
-                      <div className="flex items-center gap-3 pt-3 border-t border-white/5">
-                        {post.reactions.funny_count > 0 && (
-                          <div className="flex items-center gap-1 text-xs text-yellow-300/70">
-                            <span>😂</span>
-                            <span>{post.reactions.funny_count}</span>
+                    {/* Reactions & Scope */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex gap-1.5">
+                        {post.reactions && post.reactions.funny_count > 0 && (
+                          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs bg-yellow-500/20">
+                            <span className="text-xs">😂</span>
+                            <span className="text-white/80">{post.reactions.funny_count}</span>
                           </div>
                         )}
-                        {post.reactions.creative_count > 0 && (
-                          <div className="flex items-center gap-1 text-xs text-purple-300/70">
-                            <span>🎨</span>
-                            <span>{post.reactions.creative_count}</span>
+                        {post.reactions && post.reactions.creative_count > 0 && (
+                          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs bg-purple-500/20">
+                            <span className="text-xs">🎨</span>
+                            <span className="text-white/80">{post.reactions.creative_count}</span>
                           </div>
                         )}
-                        {post.reactions.must_try_count > 0 && (
-                          <div className="flex items-center gap-1 text-xs text-green-300/70">
-                            <span>🔥</span>
-                            <span>{post.reactions.must_try_count}</span>
+                        {post.reactions && post.reactions.must_try_count > 0 && (
+                          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs bg-green-500/20">
+                            <span className="text-xs">🔥</span>
+                            <span className="text-white/80">{post.reactions.must_try_count}</span>
                           </div>
                         )}
                       </div>
-                    )}
-                  </a>
+                      
+                      {/* Scope Badge - Right Aligned */}
+                      <span className="flex items-center gap-0.5 text-white/40 text-[10px] capitalize">
+                        <span className="font-medium">{post.scope}</span>
+                      </span>
+                    </div>
+                  </div>
                 )
               })}
             </div>
