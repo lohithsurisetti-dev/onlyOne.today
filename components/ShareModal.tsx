@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { X, Download, Share2, Twitter, Facebook, Link as LinkIcon, Check } from 'lucide-react'
+import { X, Download, Share2, Link as LinkIcon, Check, Instagram, MessageCircle } from 'lucide-react'
 import { toJpeg } from 'html-to-image'
 import Button from './ui/Button'
 
@@ -138,17 +138,18 @@ export default function ShareModal({
     setTimeout(() => setCopied(false), 2000)
   }
   
-  const handleShareTwitter = () => {
-    const homepageUrl = getHomepageUrl()
-    const text = `${message} ${content}\n\n🎯 What did YOU do today? Find out if you're unique at ${homepageUrl}`
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`
+  const handleShareWhatsApp = () => {
+    const shareText = getShareText()
+    const url = `https://wa.me/?text=${encodeURIComponent(shareText)}`
     window.open(url, '_blank')
   }
   
-  const handleShareFacebook = () => {
-    const homepageUrl = getHomepageUrl()
-    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(homepageUrl)}&quote=${encodeURIComponent(getShareText())}`
-    window.open(url, '_blank')
+  const handleShareInstagram = async () => {
+    // Download the image first (Instagram doesn't support direct web sharing)
+    await handleDownload()
+    
+    // Show helpful message
+    alert('📸 Image downloaded! Now:\n\n1. Open Instagram app\n2. Create a new Story or Post\n3. Select the downloaded image\n4. Share! ✨')
   }
   
   if (!isOpen) return null
@@ -292,19 +293,19 @@ export default function ShareModal({
           {/* Social Share Buttons */}
           <div className="grid grid-cols-3 gap-2.5">
             <button
-              onClick={handleShareTwitter}
-              className="flex items-center justify-center gap-1.5 py-2.5 bg-[#1DA1F2]/90 hover:bg-[#1DA1F2] text-white rounded-xl transition-all hover:scale-105 text-sm font-medium"
+              onClick={handleShareWhatsApp}
+              className="flex items-center justify-center gap-1.5 py-2.5 bg-[#25D366]/90 hover:bg-[#25D366] text-white rounded-xl transition-all hover:scale-105 text-sm font-medium shadow-lg"
             >
-              <Twitter size={16} />
-              Twitter
+              <MessageCircle size={16} />
+              WhatsApp
             </button>
             
             <button
-              onClick={handleShareFacebook}
-              className="flex items-center justify-center gap-1.5 py-2.5 bg-[#1877F2]/90 hover:bg-[#1877F2] text-white rounded-xl transition-all hover:scale-105 text-sm font-medium"
+              onClick={handleShareInstagram}
+              className="flex items-center justify-center gap-1.5 py-2.5 bg-gradient-to-tr from-[#833AB4] via-[#E1306C] to-[#FD1D1D] text-white rounded-xl transition-all hover:scale-105 text-sm font-medium shadow-lg"
             >
-              <Facebook size={16} />
-              Facebook
+              <Instagram size={16} />
+              Instagram
             </button>
             
             <button
