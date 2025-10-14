@@ -664,6 +664,11 @@ export async function findSimilarPostsGlobal(params: {
           .filter((m: any) => m !== null)
           // Filter: Keep only if should_match is true (scope-aware decision!)
           .filter((m: any) => m.should_match)
+          // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          // SCOPE ISOLATION: Only keep posts from the EXACT same scope!
+          // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          // This prevents City posts from being counted with State posts
+          .filter((m: any) => m.scope === scope)
           // Sort by composite score
           .sort((a: any, b: any) => b.similarity_score - a.similarity_score)
           // Limit results
@@ -709,8 +714,18 @@ export async function findSimilarPostsGlobal(params: {
     return []
   }
   
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // SCOPE ISOLATION: Only keep posts from the EXACT same scope!
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // applyScopeFilter returns hierarchical results, but we want exact scope only
+  const scopeFilteredPosts = allPosts.filter(p => p.scope === scope)
+  
+  if (scopeFilteredPosts.length === 0) {
+    return []
+  }
+  
   // OPTIMIZATION: Quick check for exact hash matches first
-  const exactMatches = allPosts.filter(p => p.content_hash === contentHash)
+  const exactMatches = scopeFilteredPosts.filter(p => p.content_hash === contentHash)
   if (exactMatches.length > 0) {
     console.log(`⚡ Found ${exactMatches.length} exact matches (fast path)`)
     return exactMatches.map(p => ({
@@ -724,10 +739,10 @@ export async function findSimilarPostsGlobal(params: {
   // Threshold 0.75: Catches core action matches (0.85) but not weak partials
   const similarPosts = findSimilarDynamic(
     content,
-    allPosts.map(p => ({ id: p.id, content: p.content })),
+    scopeFilteredPosts.map(p => ({ id: p.id, content: p.content })),
     0.75 // Raised from 0.6 for tighter matching
   ).map(result => {
-    const original = allPosts.find(p => p.id === result.id)!
+    const original = scopeFilteredPosts.find(p => p.id === result.id)!
     return {
       ...original,
       similarity_score: result.similarity,
