@@ -452,18 +452,36 @@ export async function createPost(data: {
 
     await supabase.from('post_matches').insert(matches)
     
-    // Update match counts for ALL similar posts (no hierarchy protection)
-    const postIds = similarPosts.map((sp: any) => sp.id)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // HIERARCHY PROTECTION: Only update posts in SAME or BROADER scopes
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Example: State post can update City posts (city ⊂ state)
+    //          But City post should NOT update State posts!
     
-    const { error: updateError } = await adminClient
-      .rpc('increment_match_counts', {
-        post_ids: postIds
-      })
+    const scopeOrder = { city: 1, state: 2, country: 3, world: 4 }
+    const currentScopeLevel = scopeOrder[data.scope]
     
-    if (updateError) {
-      console.error('❌ Batch update failed:', updateError)
+    const postsToUpdate = similarPosts.filter((sp: any) => {
+      const matchScopeLevel = scopeOrder[sp.scope as keyof typeof scopeOrder] || 4
+      // Only update if matched post is SAME or NARROWER scope
+      return matchScopeLevel <= currentScopeLevel
+    })
+    
+    if (postsToUpdate.length > 0) {
+      const postIds = postsToUpdate.map((sp: any) => sp.id)
+      
+      const { error: updateError } = await adminClient
+        .rpc('increment_match_counts', {
+          post_ids: postIds
+        })
+      
+      if (updateError) {
+        console.error('❌ Batch update failed:', updateError)
+      } else {
+        console.log(`✅ Updated ${postIds.length} matching posts (hierarchy protected)`)
+      }
     } else {
-      console.log(`✅ Updated ${postIds.length} matching posts`)
+      console.log(`ℹ️ No posts to update (hierarchy protection - matched posts are broader scope)`)
     }
   }
 
