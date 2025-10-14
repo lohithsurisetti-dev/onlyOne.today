@@ -54,17 +54,15 @@ export function getTodayStart(): string {
 /**
  * Apply scope-aware filtering to a Supabase query
  * 
- * TWO-LAYER LOGIC:
- * 1. Scope Level: What claim are you making? (city/country/world)
- * 2. Hierarchy: Higher scopes include lower scopes
+ * HIERARCHY (CORRECT):
+ * - City posts are PART of Country (country sees them)
+ * - Country posts are PART of World (world sees them)
  * 
  * MATCHING RULES:
- * - City: Only city-level posts in that city
- * - State: Only state-level posts in that state  
- * - Country: Only country-level posts in that country
- * - World: ALL posts (across all scopes)
- * 
- * IMPORTANT: When posting at country level, you're NOT claiming city uniqueness!
+ * - City: ONLY city-level posts in that specific city (isolated pool)
+ * - State: ALL posts in that state (city + state level)
+ * - Country: ALL posts in that country (city + state + country level)
+ * - World: ALL posts everywhere
  * 
  * @param query - Supabase query builder
  * @param userScope - The scope the user posted with
@@ -80,27 +78,25 @@ export function applyScopeFilter(
   }
 ) {
   if (userScope === 'world') {
-    // World scope: Match ALL posts (hierarchy includes everything)
+    // World scope: Match ALL posts everywhere
     return query
   }
   
   if (userScope === 'country' && location?.country) {
-    // Country scope: Match country-level posts in this country only
-    // Does NOT include city/state posts (they're making different claims)
-    return query
-      .eq('scope', 'country')
-      .eq('location_country', location.country)
+    // Country scope: Match ALL posts in this country
+    // Includes: cities in this country + states + country-level
+    return query.eq('location_country', location.country)
   }
   
   if (userScope === 'state' && location?.state) {
-    // State scope: Match state-level posts in this state only
-    return query
-      .eq('scope', 'state')
-      .eq('location_state', location.state)
+    // State scope: Match ALL posts in this state
+    // Includes: cities in this state + state-level
+    return query.eq('location_state', location.state)
   }
   
   if (userScope === 'city' && location?.city) {
-    // City scope: Match city-level posts in this city only
+    // City scope: Match ONLY city-level posts in this specific city
+    // Most isolated pool (hardest to have matches)
     return query
       .eq('scope', 'city')
       .eq('location_city', location.city)
