@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { EnhancedInput } from '@/components/EnhancedInput'
 import StarsBackground from '@/components/StarsBackground'
 import { LocationDetectorSilent } from '@/components/LocationDetectorSilent'
+import Footer from '@/components/Footer'
 import { useRouter } from 'next/navigation'
 import { useCreatePost } from '@/lib/hooks/usePosts'
 import { usePlatformStats } from '@/lib/hooks/useStats'
@@ -258,6 +259,8 @@ export default function Home() {
             </div>
           </div>
         </main>
+        
+        <Footer />
       </div>
     </div>
   )

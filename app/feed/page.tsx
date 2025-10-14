@@ -6,6 +6,7 @@ import StarsBackground from '@/components/StarsBackground'
 import ShareModal from '@/components/ShareModal'
 import GlobalStatsCard from '@/components/GlobalStatsCard'
 import MyPostsCard from '@/components/MyPostsCard'
+import Footer from '@/components/Footer'
 import FilterSheet from '@/components/FilterSheet'
 import TimezonePills from '@/components/TimezonePills'
 import { useRecentPosts } from '@/lib/hooks/usePosts'
@@ -1414,6 +1415,8 @@ export default function FeedPage() {
             </aside>
           </div>
         </main>
+        
+        <Footer />
       </div>
       
       {/* Share Modal */}

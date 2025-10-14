@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import StarsBackground from '@/components/StarsBackground'
 import Button from '@/components/ui/Button'
 import ShareModal from '@/components/ShareModal'
+import Footer from '@/components/Footer'
 import type { CreatePostResult } from '@/lib/hooks/usePosts'
 import { detectVibeSync } from '@/lib/services/vibe-detector'
 import { getWittyResponse, getWittyRank, getVibeCelebration } from '@/lib/services/witty-messages'
@@ -435,6 +436,8 @@ function ResponseContent() {
         inputType={inputType}
         vibe={vibe}
       />
+      
+      <Footer />
     </div>
   )
 }
