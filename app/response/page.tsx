@@ -174,7 +174,8 @@ function ResponseContent() {
     <div className="min-h-screen bg-gradient-to-br from-space-dark via-space-darker to-space-darkest relative overflow-hidden">
       <StarsBackground />
       
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-8">
+      <div className="relative z-10 min-h-screen flex flex-col">
+        <div className="flex-1 flex items-center justify-center px-4 py-8">
         {/* Main Container - Centered Single Card */}
         <div className="max-w-2xl w-full">
           {/* Single Unified Card */}
@@ -421,6 +422,9 @@ function ResponseContent() {
             </div>
           </div>
         </div>
+        </div>
+        
+        <Footer />
       </div>
       
       {/* Share Modal */}
@@ -436,8 +440,6 @@ function ResponseContent() {
         inputType={inputType}
         vibe={vibe}
       />
-      
-      <Footer />
     </div>
   )
 }

@@ -726,7 +726,7 @@ export default function FeedPage() {
         </svg>
       </button>
       
-      <div className="relative z-10">
+      <div className="relative z-10 min-h-screen flex flex-col">
         {/* Header - Mobile Responsive */}
         <header className="sticky top-0 z-30 backdrop-blur-xl bg-space-dark/80 border-b border-white/10">
           <div className="max-w-7xl mx-auto px-4 py-3">
@@ -1084,25 +1084,13 @@ export default function FeedPage() {
               </div>
               
               {/* Live Post Counter - Exciting Design */}
-              {stats && (
-                <div className="relative shrink-0">
-                  {/* Pulsing Glow */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full opacity-40 blur-lg animate-pulse"></div>
-                  
-                  {/* Badge */}
-                  <div className="relative flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-2 border-purple-400/50 backdrop-blur-sm shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all hover:scale-105">
-                    <span className="text-base font-bold text-white">{stats.today.totalPosts}</span>
-                    <span className="text-xs text-purple-200/80 font-medium whitespace-nowrap">posts today</span>
-              </div>
-              </div>
-            )}
             </div>
           </div>
         </header>
         
         
         {/* Feed Grid */}
-        <main className="max-w-7xl mx-auto px-4 py-8">
+        <main className="max-w-7xl mx-auto px-4 py-8 flex-1">
           {/* Mobile: My Posts Card */}
           <div className="lg:hidden mb-4">
             <MyPostsCard />
