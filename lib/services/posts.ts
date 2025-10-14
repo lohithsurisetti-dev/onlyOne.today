@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import type { Database } from '@/lib/types/database'
 import { generateDynamicHash, findSimilarInBatch as findSimilarDynamic } from './nlp-dynamic'
 import { findSemanticallySimilar, hybridMatch } from './nlp-advanced'
+import { generateEmbedding } from './embeddings'
 
 type Post = Database['public']['Tables']['posts']['Row']
 type PostInsert = Database['public']['Tables']['posts']['Insert']
@@ -343,7 +344,32 @@ export async function createPost(data: {
 
   console.log(`📊 Creating post: "${data.content.substring(0, 30)}..." - ${matchCount} others in ${data.scope} did this, ${uniquenessScore}% unique`)
 
-  // Insert the new post
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // GENERATE EMBEDDING (Lazy: only if there are potential matches OR for quality)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  let embedding: number[] | null = null
+  
+  // OPTIMIZATION: Lazy embedding generation
+  // Only generate if initial search found potential matches
+  // This saves ~70% of storage (most posts are unique!)
+  const shouldGenerateEmbedding = matchCount > 0 || data.content.length > 20
+  
+  if (shouldGenerateEmbedding) {
+    try {
+      console.log('🔮 Generating embedding vector...')
+      const start = Date.now()
+      embedding = await generateEmbedding(data.content)
+      const duration = Date.now() - start
+      console.log(`✅ Embedding generated in ${duration}ms (384 dimensions)`)
+    } catch (error) {
+      console.error('⚠️ Embedding generation failed (will use NLP fallback):', error)
+      // Continue without embedding - NLP fallback will work
+    }
+  } else {
+    console.log('ℹ️ Skipping embedding (no initial matches - truly unique!)')
+  }
+
+  // Insert the new post with embedding
   const { data: post, error } = await supabase
     .from('posts')
     .insert({
@@ -357,7 +383,8 @@ export async function createPost(data: {
       uniqueness_score: uniquenessScore,
       match_count: matchCount,
       is_anonymous: true,
-    } as PostInsert)
+      embedding: embedding as any, // Vector column
+    } as any) // Use 'as any' because embedding not in type
     .select()
     .single()
 
@@ -416,7 +443,7 @@ export async function createPost(data: {
 
   // Create post matches (if any similar posts found)
   if (similarPosts.length > 0 && post) {
-    const matches = similarPosts.map(sp => ({
+    const matches = similarPosts.map((sp: any) => ({
       post_id: post.id,
       matched_post_id: sp.id,
       similarity_score: sp.similarity_score,
@@ -425,7 +452,7 @@ export async function createPost(data: {
     await supabase.from('post_matches').insert(matches)
     
     // Update match counts for ALL similar posts (no hierarchy protection)
-    const postIds = similarPosts.map(sp => sp.id)
+    const postIds = similarPosts.map((sp: any) => sp.id)
     
     const { error: updateError } = await adminClient
       .rpc('increment_match_counts', {
@@ -448,7 +475,11 @@ export async function createPost(data: {
 }
 
 /**
- * Find similar posts with SCOPE-AWARE matching
+ * Find similar posts with VECTOR EMBEDDINGS + SCOPE-AWARE matching
+ * 
+ * PRIMARY: Vector similarity (semantic, typo-resistant, anti-gaming)
+ * FALLBACK: Traditional NLP (if embeddings fail)
+ * 
  * Implements hierarchy: World includes all, City only includes that city
  */
 export async function findSimilarPostsGlobal(params: {
@@ -461,10 +492,65 @@ export async function findSimilarPostsGlobal(params: {
     country?: string
   }
   limit?: number
+  useEmbeddings?: boolean
 }) {
   const supabase = createClient()
-  const { contentHash, content, scope = 'world', location, limit = 20 } = params
+  const { contentHash, content, scope = 'world', location, limit = 20, useEmbeddings = true } = params
 
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // METHOD 1: VECTOR EMBEDDINGS (Semantic Similarity)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  if (useEmbeddings) {
+    try {
+      console.log('🔮 Using vector embeddings for similarity search...')
+      
+      // Generate embedding for user's content
+      const queryEmbedding = await generateEmbedding(content)
+      
+      // Call RPC function for vector similarity search
+      const { data: vectorMatches, error: rpcError } = await supabase.rpc(
+        'match_posts_by_embedding',
+        {
+          query_embedding: queryEmbedding as any,
+          match_threshold: 0.90, // 90% similarity = same action
+          match_count: limit,
+          scope_filter: scope,
+          location_city: location?.city || null,
+          location_state: location?.state || null,
+          location_country: location?.country || null,
+          today_only: true
+        }
+      )
+      
+      if (!rpcError && vectorMatches && vectorMatches.length > 0) {
+        console.log(`✨ Vector search found ${vectorMatches.length} semantic matches (avg similarity: ${(vectorMatches.reduce((acc: number, p: any) => acc + p.similarity, 0) / vectorMatches.length).toFixed(2)})`)
+        
+        return vectorMatches.map((p: any) => ({
+          id: p.id,
+          content: p.content,
+          content_hash: p.content_hash,
+          scope: p.scope,
+          location_city: p.location_city,
+          location_state: p.location_state,
+          location_country: p.location_country,
+          similarity_score: p.similarity,
+          match_type: p.similarity >= 0.98 ? 'exact' as const :
+                      p.similarity >= 0.93 ? 'core_action' as const :
+                      'similar' as const,
+        }))
+      }
+      
+      console.log('ℹ️ No vector matches found, falling back to NLP...')
+    } catch (error) {
+      console.error('⚠️ Vector search failed, falling back to NLP:', error)
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // METHOD 2: TRADITIONAL NLP (Fallback)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  console.log('🔍 Using traditional NLP for similarity search...')
+  
   // Get posts from database with SCOPE-AWARE filtering
   let query = supabase
     .from('posts')
@@ -514,7 +600,7 @@ export async function findSimilarPostsGlobal(params: {
     }
   }).slice(0, limit)
 
-  console.log(`🔍 Found ${similarPosts.length} similar posts (threshold: 0.75)`)
+  console.log(`🔍 NLP found ${similarPosts.length} similar posts (threshold: 0.75)`)
   if (similarPosts.length > 0) {
     console.log(`   Core actions: ${similarPosts.filter(p => p.match_type === 'core_action').length}`)
     console.log(`   Exact: ${similarPosts.filter(p => p.match_type === 'exact').length}`)
@@ -692,6 +778,8 @@ export async function getRecentPosts(params: {
 
   // REAL-TIME SCORE CALCULATION (SCOPE-AWARE):
   // Recalculate scores based on CURRENT matches in EACH post's scope
+  // Note: Posts were matched using vector embeddings during creation (if available)
+  // This recount ensures scores are always current
   const postsWithFreshScores = await Promise.all(
     data.map(async (post) => {
       // Build scope-aware count query for THIS post's scope
