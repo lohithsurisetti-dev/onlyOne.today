@@ -1115,6 +1115,11 @@ export default function FeedPage() {
         
         {/* Feed Grid */}
         <main className="max-w-7xl mx-auto px-4 py-8">
+          {/* Mobile: My Posts Card */}
+          <div className="lg:hidden mb-4">
+            <MyPostsCard />
+          </div>
+          
           {/* Mobile Stats Section - Collapsible */}
           <div className="lg:hidden mb-4">
             {filter === 'trending' ? (
