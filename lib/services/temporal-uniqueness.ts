@@ -123,10 +123,10 @@ export async function calculateTemporalUniqueness(
     }
   })
   
-  // Calculate uniqueness for each period
+  // Calculate uniqueness for each period using RARITY
   const calculateForPeriod = (posts: any[] | null, periodName: string) => {
     if (!posts || posts.length === 0) {
-      console.log(`📊 ${periodName}: No posts found → 100% unique (default)`)
+      console.log(`📊 ${periodName}: No posts found → 100% unique (first!)`)
       return { uniqueness: 100, matchCount: 0, totalPosts: 0 }
     }
     
@@ -137,11 +137,19 @@ export async function calculateTemporalUniqueness(
     const matchCount = Math.max(0, totalMatches - 1) // Others (excluding self)
     const totalPosts = posts.length
     
-    // Use same formula as main uniqueness calculation: 100 - (matches * 10)
-    // This ensures consistency with the main score
-    const uniqueness = Math.max(0, 100 - (matchCount * 10))
+    // RARITY-BASED CALCULATION: What % of people DIDN'T do this
+    // If 5 out of 100 did it → 95% unique (intuitive!)
+    let uniqueness = 100
+    if (totalPosts > 0) {
+      uniqueness = ((totalPosts - matchCount) / totalPosts) * 100
+    }
     
-    console.log(`📊 ${periodName}: ${totalMatches} total matches (${matchCount} others) out of ${totalPosts} total posts → ${uniqueness}% unique`)
+    // Edge case: Only this post exists
+    if (totalPosts === 1) {
+      uniqueness = 100
+    }
+    
+    console.log(`📊 ${periodName}: ${matchCount} out of ${totalPosts} posts did this → ${Math.round(uniqueness)}% unique (rarity-based)`)
     
     return { uniqueness: Math.round(uniqueness), matchCount, totalPosts }
   }
@@ -213,7 +221,8 @@ function generateInsight(
   
   // Rising trend
   if (trend === 'rising') {
-    return `This is becoming a thing! ${allTime.matchCount} people have done this. You're early to the trend. 📈`
+    const percentage = allTime.totalPosts > 0 ? Math.round(((allTime.matchCount + 1) / allTime.totalPosts) * 100) : 0
+    return `This is becoming a thing! ${allTime.matchCount + 1} people (${percentage}% of all posts) have done this. You're early to the trend. 📈`
   }
   
   // Falling trend (becoming rare)
@@ -228,7 +237,8 @@ function generateInsight(
   
   // Consistently common
   if (today.uniqueness <= 30 && allTime.uniqueness <= 30) {
-    return `A timeless classic. ${allTime.matchCount}+ people have done this. You're in good company. 🤝`
+    const percentage = allTime.totalPosts > 0 ? Math.round(((allTime.matchCount + 1) / allTime.totalPosts) * 100) : 0
+    return `A timeless classic. ${allTime.matchCount + 1} people (${percentage}%) have done this. You're in good company. 🤝`
   }
   
   // Default

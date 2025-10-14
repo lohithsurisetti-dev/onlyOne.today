@@ -218,7 +218,7 @@ export async function GET(request: NextRequest) {
     // If requesting specific post by ID, fetch that with LIVE score calculation
     if (postId) {
       const { createClient } = await import('@/lib/supabase/server')
-      const { calculateUniquenessScore } = await import('@/lib/services/posts')
+      const { calculateUniquenessScore, getTotalPostsCount } = await import('@/lib/services/posts')
       const supabase = createClient()
       
       const { data: post, error } = await supabase
@@ -234,7 +234,10 @@ export async function GET(request: NextRequest) {
         )
       }
       
-      // IMPORTANT: Recalculate LIVE scores (same as feed does)
+      // IMPORTANT: Recalculate LIVE scores using RARITY (same as feed does)
+      // Get total posts today for rarity calculation
+      const totalPostsToday = await getTotalPostsCount('today')
+      
       // Count current matches in last 24 hours
       const { count, error: countError } = await supabase
         .from('posts')
@@ -243,18 +246,19 @@ export async function GET(request: NextRequest) {
         .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
       
       if (!countError && count) {
-        // Recalculate with live data
+        // Recalculate with live data using rarity
         const actualMatches = count - 1 // Exclude self
-        const freshScore = calculateUniquenessScore(actualMatches)
+        const freshScore = calculateUniquenessScore(actualMatches, totalPostsToday)
         
-        console.log(`✅ Fetched post ${postId} with LIVE scores: ${freshScore}% unique (was ${post.uniqueness_score}%), ${actualMatches} matches (was ${post.match_count})`)
+        console.log(`✅ Fetched post ${postId} with LIVE RARITY scores: ${freshScore}% unique (${actualMatches} out of ${totalPostsToday} posts today), was ${post.uniqueness_score}%`)
         
         // Return with fresh scores
         return NextResponse.json({ 
           post: {
             ...post,
             uniqueness_score: freshScore,
-            match_count: actualMatches
+            match_count: actualMatches,
+            total_posts_today: totalPostsToday // Add this for display
           }
         }, { status: 200 })
       }

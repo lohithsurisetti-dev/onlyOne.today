@@ -150,6 +150,7 @@ function ResponseContent() {
   // Calculate display data
   const uniquenessScore = postResult?.uniquenessScore ?? 94
   const matchCount = postResult?.matchCount ?? 0
+  const totalPostsToday = (postResult as any)?.post?.total_posts_today ?? matchCount + 1 // Fallback to at least match count
   const similarCount = matchCount + 1
   const commonalityScore = 100 - uniquenessScore
   
@@ -263,7 +264,14 @@ function ResponseContent() {
                       </div>
                       <div className="px-3 py-1 bg-white/10 rounded-full backdrop-blur-sm transition-all duration-500">
                         <span className="text-xs font-medium text-white/80">
-                          {shareType === 'uniqueness' ? `${matchCount + 1} did this` : `${matchCount} others`}
+                          {shareType === 'uniqueness' 
+                            ? totalPostsToday > 1 
+                              ? `${matchCount + 1} out of ${totalPostsToday} did this` 
+                              : `Only you!`
+                            : totalPostsToday > 1
+                              ? `${matchCount + 1} out of ${totalPostsToday} people`
+                              : `${matchCount} others`
+                          }
                         </span>
                       </div>
                     </div>

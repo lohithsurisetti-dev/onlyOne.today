@@ -22,18 +22,107 @@ export function generateContentHash(content: string): string {
 }
 
 /**
- * Calculate uniqueness score based on match count
- * Formula: 100 - (match_count * 10), minimum 0
+ * Calculate uniqueness score based on RARITY (what % of people DIDN'T do this)
+ * Formula: ((totalPosts - matchCount) / totalPosts) * 100
+ * 
+ * This is intuitive: If 5 out of 100 people did it, you're 95% unique!
  * 
  * Examples:
- * - 0 matches = 100% (completely unique!)
- * - 1 match = 90% (very rare)
- * - 2 matches = 80% (rare)
- * - 5 matches = 50% (uncommon)
- * - 10+ matches = 0% (very common)
+ * - 1 out of 100 = 99% unique (only you!)
+ * - 5 out of 100 = 95% unique (very rare)
+ * - 50 out of 100 = 50% unique (half did it)
+ * - 95 out of 100 = 5% unique (almost everyone did it)
+ * 
+ * Edge cases:
+ * - totalPosts = 0 → 100% (first post ever)
+ * - totalPosts = 1 → 100% (only you)
+ * - matchCount >= totalPosts → 0% (everyone did it)
  */
-export function calculateUniquenessScore(matchCount: number): number {
-  return Math.max(0, 100 - (matchCount * 10))
+export function calculateUniquenessScore(matchCount: number, totalPosts: number): number {
+  // Edge case: No posts yet (first post)
+  if (totalPosts === 0) {
+    return 100
+  }
+  
+  // Edge case: Only this post exists
+  if (totalPosts === 1) {
+    return matchCount === 0 ? 100 : 0
+  }
+  
+  // Edge case: Match count can't exceed total
+  const safeMatchCount = Math.min(matchCount, totalPosts)
+  
+  // Calculate rarity: what % of people DIDN'T do this
+  const uniqueness = ((totalPosts - safeMatchCount) / totalPosts) * 100
+  
+  // Round to whole number
+  return Math.round(Math.max(0, Math.min(100, uniqueness)))
+}
+
+/**
+ * Get total posts count for calculating rarity-based uniqueness
+ * Returns total posts in the relevant scope (today, this week, etc.)
+ */
+export async function getTotalPostsCount(
+  scope: 'today' | 'week' | 'month' | 'all' = 'today',
+  location?: {
+    city?: string
+    state?: string
+    country?: string
+  }
+): Promise<number> {
+  const supabase = createClient()
+  
+  // Calculate time range
+  const now = new Date()
+  let startDate: Date | null = null
+  
+  switch (scope) {
+    case 'today':
+      startDate = new Date(now)
+      startDate.setHours(0, 0, 0, 0)
+      break
+    case 'week':
+      startDate = new Date(now)
+      startDate.setDate(now.getDate() - 7)
+      break
+    case 'month':
+      startDate = new Date(now)
+      startDate.setMonth(now.getMonth() - 1)
+      break
+    case 'all':
+      startDate = null // No filter
+      break
+  }
+  
+  // Build query
+  let query = supabase
+    .from('posts')
+    .select('id', { count: 'exact', head: true })
+  
+  // Add time filter
+  if (startDate) {
+    query = query.gte('created_at', startDate.toISOString())
+  }
+  
+  // Add location filters if provided
+  if (location?.city) {
+    query = query.eq('location_city', location.city)
+  } else if (location?.state) {
+    query = query.eq('location_state', location.state)
+  } else if (location?.country) {
+    query = query.eq('location_country', location.country)
+  }
+  // If no location filter, it's "world" scope (all posts)
+  
+  const { count, error } = await query
+  
+  if (error) {
+    console.error('Error fetching total posts:', error)
+    return 1 // Default to 1 to avoid division by zero
+  }
+  
+  return count || 1 // At least 1 (avoid division by zero)
 }
 
 /**
@@ -119,32 +208,40 @@ export async function getHierarchicalScores(
     country: post.location_country || undefined
   })
   
-  // Calculate scores for each level
+  // Get total posts for each scope (for rarity calculation)
+  const [totalWorld, totalCountry, totalState, totalCity] = await Promise.all([
+    getTotalPostsCount('today'), // World total
+    getTotalPostsCount('today', { country: post.location_country || undefined }),
+    getTotalPostsCount('today', { state: post.location_state || undefined }),
+    getTotalPostsCount('today', { city: post.location_city || undefined })
+  ])
+  
+  // Calculate scores for each level using rarity
   const levels = [
     {
       level: 'city' as const,
-      score: calculateUniquenessScore(counts.city_count),
+      score: calculateUniquenessScore(counts.city_count, totalCity),
       count: counts.city_count,
       label: post.location_city || 'City',
       icon: '🏙️'
     },
     {
       level: 'state' as const,
-      score: calculateUniquenessScore(counts.state_count),
+      score: calculateUniquenessScore(counts.state_count, totalState),
       count: counts.state_count,
       label: post.location_state || 'State',
       icon: '🗺️'
     },
     {
       level: 'country' as const,
-      score: calculateUniquenessScore(counts.country_count),
+      score: calculateUniquenessScore(counts.country_count, totalCountry),
       count: counts.country_count,
       label: post.location_country || 'Country',
       icon: '🌍'
     },
     {
       level: 'world' as const,
-      score: calculateUniquenessScore(counts.world_count),
+      score: calculateUniquenessScore(counts.world_count, totalWorld),
       count: counts.world_count,
       label: 'World',
       icon: '🌐'
@@ -199,9 +296,12 @@ export async function createPost(data: {
   })
   
   const matchCount = similarPosts.length
-  const uniquenessScore = calculateUniquenessScore(matchCount)
+  
+  // Get total posts today for rarity calculation
+  const totalPostsToday = await getTotalPostsCount('today')
+  const uniquenessScore = calculateUniquenessScore(matchCount, totalPostsToday)
 
-  console.log(`📊 Creating post: "${data.content.substring(0, 30)}..." - ${matchCount} matches found, ${uniquenessScore}% unique`)
+  console.log(`📊 Creating post: "${data.content.substring(0, 30)}..." - ${matchCount} out of ${totalPostsToday} posts today did this, ${uniquenessScore}% unique`)
 
   // Insert the new post
   const { data: post, error } = await supabase
@@ -259,10 +359,13 @@ export async function createPost(data: {
   if (!recountError && finalCount) {
     // Recalculate with actual current matches
     finalMatchCount = finalCount - 1 // Exclude self
-    finalUniquenessScore = calculateUniquenessScore(finalMatchCount)
+    
+    // Get updated total posts (including this new post)
+    const updatedTotalPostsToday = await getTotalPostsCount('today')
+    finalUniquenessScore = calculateUniquenessScore(finalMatchCount, updatedTotalPostsToday)
     
     if (finalMatchCount !== matchCount) {
-      console.log(`📊 Score updated after insertion: ${matchCount} → ${finalMatchCount} matches, ${uniquenessScore}% → ${finalUniquenessScore}%`)
+      console.log(`📊 Score updated after insertion: ${matchCount} → ${finalMatchCount} matches out of ${updatedTotalPostsToday} total, ${uniquenessScore}% → ${finalUniquenessScore}%`)
     }
   }
 
@@ -530,6 +633,9 @@ export async function getRecentPosts(params: {
     return []
   }
 
+  // Get total posts today once (for rarity calculation)
+  const totalPostsToday = await getTotalPostsCount('today')
+  
   // REAL-TIME SCORE CALCULATION:
   // Recalculate scores based on CURRENT matches (not frozen scores)
   const postsWithFreshScores = await Promise.all(
@@ -546,10 +652,10 @@ export async function getRecentPosts(params: {
         return post // Return original if count fails
       }
 
-      // Calculate fresh score based on actual current matches
+      // Calculate fresh score based on RARITY
       // Subtract 1 because count includes the post itself
       const actualMatches = (count || 1) - 1
-      const freshScore = calculateUniquenessScore(actualMatches)
+      const freshScore = calculateUniquenessScore(actualMatches, totalPostsToday)
 
       return {
         ...post,
