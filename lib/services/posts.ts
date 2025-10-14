@@ -23,7 +23,9 @@ export function generateContentHash(content: string): string {
 
 /**
  * Calculate uniqueness score based on RARITY (what % of people DIDN'T do this)
- * Formula: ((totalPosts - matchCount) / totalPosts) * 100
+ * Formula: ((totalPosts - peopleWhoDidIt) / totalPosts) * 100
+ * 
+ * IMPORTANT: matchCount should be TOTAL people who did it (including the user)
  * 
  * This is intuitive: If 5 out of 100 people did it, you're 95% unique!
  * 
@@ -37,8 +39,11 @@ export function generateContentHash(content: string): string {
  * - totalPosts = 0 → 100% (first post ever)
  * - totalPosts = 1 → 100% (only you)
  * - matchCount >= totalPosts → 0% (everyone did it)
+ * 
+ * @param totalWhoDidIt - TOTAL people who did this action (including the user!)
+ * @param totalPosts - Total posts in the time period
  */
-export function calculateUniquenessScore(matchCount: number, totalPosts: number): number {
+export function calculateUniquenessScore(totalWhoDidIt: number, totalPosts: number): number {
   // Edge case: No posts yet (first post)
   if (totalPosts === 0) {
     return 100
@@ -46,14 +51,15 @@ export function calculateUniquenessScore(matchCount: number, totalPosts: number)
   
   // Edge case: Only this post exists
   if (totalPosts === 1) {
-    return matchCount === 0 ? 100 : 0
+    return 100
   }
   
-  // Edge case: Match count can't exceed total
-  const safeMatchCount = Math.min(matchCount, totalPosts)
+  // Edge case: Total who did it can't exceed total posts
+  const safeTotalWhoDidIt = Math.min(totalWhoDidIt, totalPosts)
   
   // Calculate rarity: what % of people DIDN'T do this
-  const uniqueness = ((totalPosts - safeMatchCount) / totalPosts) * 100
+  const peopleWhoDidntDoIt = totalPosts - safeTotalWhoDidIt
+  const uniqueness = (peopleWhoDidntDoIt / totalPosts) * 100
   
   // Round to whole number
   return Math.round(Math.max(0, Math.min(100, uniqueness)))
@@ -217,31 +223,32 @@ export async function getHierarchicalScores(
   ])
   
   // Calculate scores for each level using rarity
+  // Note: counts are "others", so add 1 for total who did it
   const levels = [
     {
       level: 'city' as const,
-      score: calculateUniquenessScore(counts.city_count, totalCity),
+      score: calculateUniquenessScore(counts.city_count + 1, totalCity),
       count: counts.city_count,
       label: post.location_city || 'City',
       icon: '🏙️'
     },
     {
       level: 'state' as const,
-      score: calculateUniquenessScore(counts.state_count, totalState),
+      score: calculateUniquenessScore(counts.state_count + 1, totalState),
       count: counts.state_count,
       label: post.location_state || 'State',
       icon: '🗺️'
     },
     {
       level: 'country' as const,
-      score: calculateUniquenessScore(counts.country_count, totalCountry),
+      score: calculateUniquenessScore(counts.country_count + 1, totalCountry),
       count: counts.country_count,
       label: post.location_country || 'Country',
       icon: '🌍'
     },
     {
       level: 'world' as const,
-      score: calculateUniquenessScore(counts.world_count, totalWorld),
+      score: calculateUniquenessScore(counts.world_count + 1, totalWorld),
       count: counts.world_count,
       label: 'World',
       icon: '🌐'
@@ -294,12 +301,14 @@ export async function createPost(data: {
     contentHash,
     content: data.content,
   })
-  
+
   const matchCount = similarPosts.length
   
   // Get total posts today for rarity calculation
   const totalPostsToday = await getTotalPostsCount('today')
-  const uniquenessScore = calculateUniquenessScore(matchCount, totalPostsToday)
+  // matchCount = others who did it, +1 for user = total who did it
+  const totalWhoDidIt = matchCount + 1
+  const uniquenessScore = calculateUniquenessScore(totalWhoDidIt, totalPostsToday)
 
   console.log(`📊 Creating post: "${data.content.substring(0, 30)}..." - ${matchCount} out of ${totalPostsToday} posts today did this, ${uniquenessScore}% unique`)
 
@@ -359,11 +368,13 @@ export async function createPost(data: {
   
   if (!recountError && finalCount) {
     // Recalculate with actual current matches
-    finalMatchCount = finalCount - 1 // Exclude self
+    finalMatchCount = finalCount - 1 // Exclude self (this is "others")
     
     // Get updated total posts (including this new post)
     const updatedTotalPostsToday = await getTotalPostsCount('today')
-    finalUniquenessScore = calculateUniquenessScore(finalMatchCount, updatedTotalPostsToday)
+    // finalMatchCount = others, +1 for user = total who did it
+    const totalWhoDidIt = finalMatchCount + 1
+    finalUniquenessScore = calculateUniquenessScore(totalWhoDidIt, updatedTotalPostsToday)
     finalTotalPosts = updatedTotalPostsToday
     
     if (finalMatchCount !== matchCount) {
@@ -532,7 +543,7 @@ export async function findSimilarPosts(params: {
   if (!allPosts || allPosts.length === 0) {
     return []
   }
-  
+
   // OPTIMIZATION: Quick check for exact hash matches first (avoid expensive NLP)
   const exactMatches = allPosts.filter(p => p.content_hash === contentHash)
   if (exactMatches.length > 0) {
@@ -659,9 +670,11 @@ export async function getRecentPosts(params: {
       }
 
       // Calculate fresh score based on RARITY
-      // Subtract 1 because count includes the post itself
+      // Subtract 1 because count includes the post itself (actualMatches = "others")
       const actualMatches = (count || 1) - 1
-      const freshScore = calculateUniquenessScore(actualMatches, totalPostsToday)
+      // actualMatches = others, +1 for user = total who did it
+      const totalWhoDidIt = actualMatches + 1
+      const freshScore = calculateUniquenessScore(totalWhoDidIt, totalPostsToday)
 
       return {
         ...post,

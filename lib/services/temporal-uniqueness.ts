@@ -138,10 +138,13 @@ export async function calculateTemporalUniqueness(
     const totalPosts = posts.length
     
     // RARITY-BASED CALCULATION: What % of people DIDN'T do this
+    // matchCount = others, +1 for user = total who did it
+    const totalWhoDidIt = matchCount + 1
+    
     // If 5 out of 100 did it → 95% unique (intuitive!)
     let uniqueness = 100
     if (totalPosts > 0) {
-      uniqueness = ((totalPosts - matchCount) / totalPosts) * 100
+      uniqueness = ((totalPosts - totalWhoDidIt) / totalPosts) * 100
     }
     
     // Edge case: Only this post exists
@@ -149,7 +152,7 @@ export async function calculateTemporalUniqueness(
       uniqueness = 100
     }
     
-    console.log(`📊 ${periodName}: ${matchCount} out of ${totalPosts} posts did this → ${Math.round(uniqueness)}% unique (rarity-based)`)
+    console.log(`📊 ${periodName}: ${totalWhoDidIt} out of ${totalPosts} posts did this → ${Math.round(uniqueness)}% unique (rarity-based)`)
     
     return { uniqueness: Math.round(uniqueness), matchCount, totalPosts }
   }

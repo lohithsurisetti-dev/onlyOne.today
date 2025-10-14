@@ -247,8 +247,10 @@ export async function GET(request: NextRequest) {
       
       if (!countError && count) {
         // Recalculate with live data using rarity
-        const actualMatches = count - 1 // Exclude self
-        const freshScore = calculateUniquenessScore(actualMatches, totalPostsToday)
+        const actualMatches = count - 1 // Exclude self (this is "others")
+        // actualMatches = others, +1 for user = total who did it
+        const totalWhoDidIt = actualMatches + 1
+        const freshScore = calculateUniquenessScore(totalWhoDidIt, totalPostsToday)
         
         console.log(`✅ Fetched post ${postId} with LIVE RARITY scores: ${freshScore}% unique (${actualMatches} out of ${totalPostsToday} posts today), was ${post.uniqueness_score}%`)
         

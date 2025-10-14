@@ -1108,8 +1108,8 @@ export default function FeedPage() {
                 )}
               </button>
               </div>
-            </div>
-            
+              </div>
+              
               {/* Live Post Counter - Exciting Design */}
               {stats && (
                 <div className="relative shrink-0">
