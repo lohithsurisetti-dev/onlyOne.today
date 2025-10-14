@@ -555,11 +555,11 @@ export async function findSimilarPostsGlobal(params: {
             }
           })
           // Filter: Keep if ANY of these conditions:
-          // 1. Hybrid score >= 75% (includes verb penalty!)
+          // 1. Hybrid score >= 70% (balanced threshold - includes verb penalty!)
           // 2. Levenshtein distance <= 2 (max 2 character typos)
           // Note: Removed separate vector condition so verb penalties always apply!
           .filter((m: any) => 
-            m.similarity_score >= 0.75 || 
+            m.similarity_score >= 0.70 || 
             m.levenshtein_distance <= 2
           )
           // Sort by hybrid score
