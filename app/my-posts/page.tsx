@@ -163,18 +163,23 @@ export default function MyPostsPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {displayPosts.map((post) => {
-                const isUnique = post.uniquenessScore >= 70
-                const cardStyle = isUnique
-                  ? 'bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-purple-400/30 hover:border-purple-400/60'
-                  : 'bg-gradient-to-br from-blue-900/30 to-cyan-900/30 border-blue-400/30 hover:border-blue-400/60'
+                const uniquenessScore = post.uniquenessScore
+                const isUnique = uniquenessScore >= 70
+                const getCardStyle = () => {
+                  if (isUnique) {
+                    return 'bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-purple-400/30 hover:border-purple-400/60'
+                  } else {
+                    return 'bg-gradient-to-br from-blue-900/30 to-cyan-900/30 border-blue-400/30 hover:border-blue-400/60'
+                  }
+                }
                 
                 return (
                   <div
                     key={post.id}
-                    className={`group relative rounded-2xl p-4 md:p-3 backdrop-blur-md border transition-all duration-300 hover:scale-105 hover:shadow-xl flex flex-col justify-between ${cardStyle}`}
+                    className={`group relative rounded-2xl p-4 md:p-3 backdrop-blur-md border transition-all duration-300 hover:scale-105 hover:shadow-xl flex flex-col justify-between ${getCardStyle()}`}
                     style={{ minHeight: '160px' }}
                   >
-                    {/* Share Button - Top Right */}
+                    {/* Share Button - Top Right (Always visible on mobile, hover on desktop) */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
@@ -197,7 +202,7 @@ export default function MyPostsPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                       </svg>
                     </button>
-
+                    
                     {/* Content - Center Aligned */}
                     <a href={post.viewUrl} className="flex-1 flex items-center justify-center">
                       <div>
@@ -206,15 +211,15 @@ export default function MyPostsPage() {
                         </p>
                       </div>
                     </a>
-
-                    {/* Footer - Metrics */}
+                    
+                    {/* Footer - Show Both Metrics (Bottom Aligned) */}
                     <div className="flex items-center text-xs mb-1.5 justify-between">
                       <div className="flex items-center gap-2">
                         <span className="flex items-center gap-1 text-purple-300/80">
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                           </svg>
-                          <span className="font-medium">{post.uniquenessScore}%</span>
+                          <span className="font-medium">{uniquenessScore}%</span>
                         </span>
                         <span className="text-white/30">·</span>
                         <span className="flex items-center gap-1 text-blue-300/80">
@@ -231,8 +236,8 @@ export default function MyPostsPage() {
                         })}
                       </span>
                     </div>
-
-                    {/* Reactions & Scope */}
+                    
+                    {/* Reactions */}
                     <div className="flex items-center justify-between">
                       <div className="flex gap-1.5 md:gap-1">
                         {post.reactions && post.reactions.funny_count > 0 && (
@@ -255,9 +260,9 @@ export default function MyPostsPage() {
                         )}
                       </div>
                       
-                      {/* Scope Badge - Right Aligned */}
-                      <span className="flex items-center gap-0.5 text-white/40 text-[10px] capitalize">
-                        <span className="font-medium">{post.scope}</span>
+                      {/* Scope Badge - Right Aligned, Very Small */}
+                      <span className="flex items-center gap-0.5 text-white/40 text-[10px]" title={`Compared in ${post.scope}`}>
+                        <span className="font-medium capitalize">{post.scope}</span>
                       </span>
                     </div>
                   </div>
