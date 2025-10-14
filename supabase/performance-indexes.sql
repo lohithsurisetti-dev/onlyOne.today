@@ -34,18 +34,17 @@ CREATE INDEX IF NOT EXISTS idx_posts_hash_scope
   ON posts(content_hash, scope);
 
 -- =====================================================
--- 2. Reactions Table Indexes
+-- 2. Reactions Table Indexes (OPTIONAL)
 -- =====================================================
+-- Only run these if you have a reactions table
+-- Skip this section if reactions table doesn't exist yet
 
--- Index for counting reactions per post
--- Used by: Displaying reaction counts on each post
-CREATE INDEX IF NOT EXISTS idx_reactions_post_id 
-  ON reactions(post_id);
-
--- Index for checking if user already reacted
--- Used by: Preventing duplicate reactions
-CREATE INDEX IF NOT EXISTS idx_reactions_post_user 
-  ON reactions(post_id, user_fingerprint);
+-- Uncomment these when you add reactions feature:
+-- CREATE INDEX IF NOT EXISTS idx_reactions_post_id 
+--   ON reactions(post_id);
+--
+-- CREATE INDEX IF NOT EXISTS idx_reactions_post_user 
+--   ON reactions(post_id, user_fingerprint);
 
 -- =====================================================
 -- 3. Temporal Queries (Date Range)
