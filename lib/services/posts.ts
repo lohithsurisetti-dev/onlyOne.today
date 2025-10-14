@@ -4,6 +4,7 @@ import type { Database } from '@/lib/types/database'
 import { generateDynamicHash, findSimilarInBatch as findSimilarDynamic } from './nlp-dynamic'
 import { findSemanticallySimilar, hybridMatch } from './nlp-advanced'
 import { generateEmbedding } from './embeddings'
+import { distance } from 'fastest-levenshtein'
 
 type Post = Database['public']['Tables']['posts']['Row']
 type PostInsert = Database['public']['Tables']['posts']['Insert']
@@ -514,12 +515,13 @@ export async function findSimilarPostsGlobal(params: {
       const queryEmbedding = await generateEmbedding(content)
       
       // Call RPC function for vector similarity search
+      // Lower threshold to catch more candidates, then filter with fuzzy matching
       const { data: vectorMatches, error: rpcError } = await supabase.rpc(
         'match_posts_by_embedding',
         {
           query_embedding: queryEmbedding as any,
-          match_threshold: 0.80, // 80% similarity = catches typos + synonyms
-          match_limit: limit,
+          match_threshold: 0.65, // 65% - cast wide net for candidates
+          match_limit: limit * 2, // Get more candidates for filtering
           scope_filter: scope,
           filter_city: location?.city || null,
           filter_state: location?.state || null,
@@ -532,25 +534,55 @@ export async function findSimilarPostsGlobal(params: {
       if (rpcError) {
         console.error('⚠️ Vector search RPC error:', rpcError)
       } else {
-        console.log(`📊 Vector search returned ${vectorMatches?.length || 0} results`)
+        console.log(`📊 Vector search returned ${vectorMatches?.length || 0} candidates`)
       }
       
       if (!rpcError && vectorMatches && vectorMatches.length > 0) {
-        console.log(`✨ Vector search found ${vectorMatches.length} semantic matches (avg similarity: ${(vectorMatches.reduce((acc: number, p: any) => acc + p.similarity, 0) / vectorMatches.length).toFixed(2)})`)
+        // HYBRID FILTERING: Combine semantic + fuzzy matching
+        const contentLower = content.toLowerCase().trim()
         
-        return vectorMatches.map((p: any) => ({
-          id: p.id,
-          content: p.content,
-          content_hash: p.content_hash,
-          scope: p.scope,
-          location_city: p.location_city,
-          location_state: p.location_state,
-          location_country: p.location_country,
-          similarity_score: p.similarity,
-          match_type: p.similarity >= 0.98 ? 'exact' as const :
-                      p.similarity >= 0.93 ? 'core_action' as const :
-                      'similar' as const,
-        }))
+        const hybridMatches = vectorMatches
+          .map((p: any) => {
+            const matchContentLower = p.content.toLowerCase().trim()
+            
+            // Calculate Levenshtein distance (character-level typo tolerance)
+            const levenshteinDist = distance(contentLower, matchContentLower)
+            const maxLength = Math.max(contentLower.length, matchContentLower.length)
+            const levenshteinSimilarity = 1 - (levenshteinDist / maxLength)
+            
+            // Hybrid score: 70% vector + 30% Levenshtein
+            const hybridScore = (p.similarity * 0.7) + (levenshteinSimilarity * 0.3)
+            
+            return {
+              id: p.id,
+              content: p.content,
+              content_hash: p.content_hash,
+              scope: p.scope,
+              location_city: p.location_city,
+              location_state: p.location_state,
+              location_country: p.location_country,
+              similarity_score: hybridScore,
+              vector_similarity: p.similarity,
+              levenshtein_similarity: levenshteinSimilarity,
+              levenshtein_distance: levenshteinDist,
+              match_type: hybridScore >= 0.95 ? 'exact' as const :
+                          hybridScore >= 0.75 ? 'core_action' as const :
+                          'similar' as const,
+            }
+          })
+          // Filter: Keep only if hybrid score >= 70% OR exact Levenshtein match
+          .filter(m => m.hybridScore >= 0.70 || m.levenshtein_distance <= 3)
+          // Sort by hybrid score
+          .sort((a, b) => b.similarity_score - a.similarity_score)
+          // Limit results
+          .slice(0, limit)
+        
+        if (hybridMatches.length > 0) {
+          console.log(`✨ Hybrid matching found ${hybridMatches.length} matches (vector + fuzzy)`)
+          console.log(`   Avg scores - Hybrid: ${(hybridMatches.reduce((acc, p) => acc + p.similarity_score, 0) / hybridMatches.length).toFixed(2)}, Vector: ${(hybridMatches.reduce((acc, p) => acc + p.vector_similarity, 0) / hybridMatches.length).toFixed(2)}, Levenshtein: ${(hybridMatches.reduce((acc, p) => acc + p.levenshtein_similarity, 0) / hybridMatches.length).toFixed(2)}`)
+          
+          return hybridMatches
+        }
       }
       
       console.log('ℹ️ No vector matches found, falling back to NLP...')
