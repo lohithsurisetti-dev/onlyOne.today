@@ -169,23 +169,23 @@ export function getAIModerationMessage(result: AIModerationResult): string {
   
   const messages: Record<string, string> = {
     'Content contains toxic language': 
-      '🚫 This content seems toxic or harmful. Please keep it friendly!',
+      '☢️ Yikes! Our AI detected some toxic vibes. Maybe dial it back a bit?',
     'Content contains severely toxic language': 
-      '🛑 This content is not appropriate. Please be respectful!',
+      '🛑 Whoa, that\'s REALLY toxic. We\'re gonna need you to calm down there, chief.',
     'Content contains obscene language': 
-      '🚫 This content contains inappropriate language. Keep it wholesome!',
+      '😳 Our AI\'s ears are burning! Keep it family-friendly, would ya?',
     'Content contains threatening language': 
-      '⚠️ This content sounds threatening. Please be kind!',
+      '⚠️ Easy there, tough guy. Threats aren\'t cool. How about something positive instead?',
     'Content contains insulting language': 
-      '🚫 This content is insulting. Let\'s keep things positive!',
+      '🙄 C\'mon, we\'re all friends here. Save the insults for your group chat.',
     'Content contains hate speech': 
-      '🛑 Hate speech is not allowed. Please be respectful to everyone!',
+      '🛑 Big nope. Hate speech is a one-way ticket to the exit. Try kindness instead!',
     'Content contains explicit sexual content': 
-      '🚫 This content is too explicit. Keep it appropriate for all ages!',
+      '😳 That\'s... very explicit. This isn\'t that kind of app. Keep it PG, please!',
     'Content contains excessive profanity': 
-      '🚫 Too much profanity. Please tone it down!',
+      '🤬 Potty mouth alert! We get it, you know words. But maybe use fewer of *those* words?',
     'Content violates community guidelines': 
-      '🚫 This content doesn\'t meet our community guidelines.',
+      '⚖️ Our AI thinks this breaks the rules. Read the room and try again!',
   }
   
   return messages[result.reason || ''] || result.reason || 'Content not allowed'

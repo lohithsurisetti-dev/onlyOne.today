@@ -263,7 +263,7 @@ export function checkSemanticCoherence(content: string, doc?: any): {
     return {
       score: 0,
       isCoherent: false,
-      reason: 'Content too short to be meaningful'
+      reason: 'That\'s... not much to go on. Mind giving us a few more words?'
     }
   }
   
@@ -308,7 +308,7 @@ export function checkSemanticCoherence(content: string, doc?: any): {
     return {
       score: 25,
       isCoherent: false,
-      reason: 'Multiple words have unusual character patterns'
+      reason: 'Did your cat walk on your keyboard? Those words look... creative.'
     }
   }
   
@@ -318,7 +318,7 @@ export function checkSemanticCoherence(content: string, doc?: any): {
     return {
       score: 20,
       isCoherent: false,
-      reason: 'Excessive character repetition'
+      reason: 'Okaaaaaay, we get it. But maybe use fewer repeated letters?'
     }
   }
   
@@ -330,7 +330,7 @@ export function checkSemanticCoherence(content: string, doc?: any): {
     return {
       score: 35,
       isCoherent: false,
-      reason: 'Low word diversity (repetitive content)'
+      reason: 'Are you stuck on repeat? Try using different words!'
     }
   }
   
@@ -348,7 +348,7 @@ export function checkSemanticCoherence(content: string, doc?: any): {
     return {
       score: 20,
       isCoherent: false,
-      reason: 'Content appears to be random keyboard characters'
+      reason: 'Did you fall asleep on your keyboard? That looks... random.'
     }
   }
   
@@ -358,7 +358,7 @@ export function checkSemanticCoherence(content: string, doc?: any): {
     return {
       score: 20,
       isCoherent: false,
-      reason: 'Content contains gibberish or random characters'
+      reason: 'That\'s not a language we recognize. Try using actual words!'
     }
   }
   
@@ -482,7 +482,7 @@ export function validateContentQuality(content: string, inputType: 'action' | 'd
       return {
         allowed: false,
         score: actionCheck.confidence,
-        reason: actionCheck.reason || 'Please describe a specific action you did (e.g., "played cricket", "cooked dinner", "went for a walk")',
+        reason: actionCheck.reason || 'Umm... what did you actually DO? Give us an action! (e.g., "played cricket", "cooked dinner", "went for a walk")',
         issues
       }
     }

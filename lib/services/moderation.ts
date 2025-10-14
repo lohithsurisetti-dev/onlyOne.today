@@ -259,27 +259,27 @@ export function getModerationMessage(result: ModerationResult): string {
   
   const messages: Record<string, string> = {
     'Phone numbers are not allowed for your safety': 
-      '📵 For your safety, please don\'t share phone numbers. Keep it anonymous!',
+      '📵 Nice try, but we\'re not a dating app. No phone numbers please!',
     'Email addresses are not allowed for your safety': 
-      '📧 For your safety, please don\'t share email addresses. Keep it anonymous!',
+      '📧 Is this LinkedIn? Keep your email to yourself, friend.',
     'URLs and links are not allowed': 
-      '🔗 Links aren\'t allowed. Just share what you did!',
+      '🔗 We\'re allergic to links. Just tell us what you did!',
     'Social media handles and usernames are not allowed': 
-      '📱 Social media handles aren\'t allowed. Keep it anonymous!',
+      '📱 This isn\'t a shoutout platform. Leave your @ at the door!',
     'Content contains inappropriate material': 
-      '🚫 This content isn\'t appropriate for OnlyOne. Keep it wholesome!',
+      '🚫 Whoa there, cowboy! Keep it PG-13. Your grandma might be using this app.',
     'Content contains concerning language. Please seek help if needed.': 
-      '💜 We noticed concerning language. If you need support, please reach out to a crisis helpline.',
+      '💜 We noticed some heavy stuff. If you need support, please reach out to a crisis helpline. You matter!',
     'Content appears to be spam': 
-      '⛔ This looks like spam. Share your real activities!',
+      '⛔ Are you a bot? This smells like spam. Tell us what you *actually* did!',
     'Content contains hate speech or offensive language': 
-      '🛑 Hate speech isn\'t allowed. Be kind!',
+      '🛑 Nope. We don\'t do hate speech here. Try being nice for a change!',
     'Content is too long. Please keep it brief.': 
-      '✂️ Keep it short and sweet! Max 500 characters.',
+      '📏 TL;DR! We\'re not reading your novel. Keep it under 500 characters.',
     'Content is too short. Please be more descriptive.': 
-      '✏️ Tell us a bit more! What did you do?',
+      '📝 That\'s it? Come on, give us the juicy details! What did you actually do?',
     'Content cannot be empty': 
-      '📝 Please share what you did!',
+      '🤔 Umm... you forgot to write something. Telepathy isn\'t enabled yet!',
   }
   
   return messages[result.reason || ''] || result.reason || 'Content not allowed'
