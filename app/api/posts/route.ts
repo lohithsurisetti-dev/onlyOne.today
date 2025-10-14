@@ -236,14 +236,15 @@ export async function GET(request: NextRequest) {
       
       // IMPORTANT: Recalculate LIVE scores using RARITY (same as feed does)
       // Get total posts today for rarity calculation
+      const { getTodayStart } = await import('@/lib/services/posts')
       const totalPostsToday = await getTotalPostsCount('today')
       
-      // Count current matches in last 24 hours
+      // Count current matches TODAY (calendar day, not 24 hours)
       const { count, error: countError } = await supabase
         .from('posts')
         .select('id', { count: 'exact', head: true })
         .eq('content_hash', post.content_hash)
-        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+        .gte('created_at', getTodayStart())
       
       if (!countError && count) {
         // Recalculate with live data using rarity

@@ -66,6 +66,16 @@ export function calculateUniquenessScore(totalWhoDidIt: number, totalPosts: numb
 }
 
 /**
+ * Get the start of today (midnight) in ISO format
+ * Ensures consistent "today" definition across the app
+ */
+export function getTodayStart(): string {
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  return now.toISOString()
+}
+
+/**
  * Get total posts count for calculating rarity-based uniqueness
  * Returns total posts in the relevant scope (today, this week, etc.)
  */
@@ -657,12 +667,12 @@ export async function getRecentPosts(params: {
   // Recalculate scores based on CURRENT matches (not frozen scores)
   const postsWithFreshScores = await Promise.all(
     data.map(async (post) => {
-      // Count how many posts have the same content_hash (globally)
+      // Count how many posts have the same content_hash TODAY (calendar day)
       const { count, error: countError } = await supabase
         .from('posts')
         .select('id', { count: 'exact', head: true })
         .eq('content_hash', post.content_hash)
-        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+        .gte('created_at', getTodayStart())
 
       if (countError) {
         console.error('Error counting matches:', countError)
