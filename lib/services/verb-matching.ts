@@ -22,6 +22,13 @@ import { distance } from 'fastest-levenshtein'
 export function extractActionVerb(text: string): string | null {
   const doc = nlp(text)
   
+  // Special pattern: "went/did [verb/gerund]" → Extract the main action
+  const wentPattern = text.match(/\b(went|did|got)\s+(\w+ing|\w+)\b/i)
+  if (wentPattern) {
+    // "went jogging" → "jogging", "did jog" → "jog"
+    return wentPattern[2].toLowerCase()
+  }
+  
   // Get all verbs
   const verbs = doc.verbs()
   if (!verbs.found) {
@@ -34,8 +41,15 @@ export function extractActionVerb(text: string): string | null {
     return null
   }
   
-  // Priority 1: Look for concrete action verbs (not be/have/do/go)
-  const auxiliaryVerbs = ['be', 'am', 'is', 'are', 'was', 'were', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'done']
+  // Priority 1: Look for gerunds (-ing form) - these are often the main action
+  const gerunds = doc.match('#Gerund').json() as any[]
+  if (gerunds.length > 0) {
+    // "went jogging", "enjoy playing" → "jogging", "playing"
+    return gerunds[0].normal || gerunds[0].text.toLowerCase()
+  }
+  
+  // Priority 2: Look for concrete action verbs (not be/have/do/go/get)
+  const auxiliaryVerbs = ['be', 'am', 'is', 'are', 'was', 'were', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'done', 'go', 'goes', 'went', 'gone', 'get', 'gets', 'got', 'gotten']
   
   for (const verb of verbArray) {
     const root = verb.normal || verb.text.toLowerCase()
@@ -45,17 +59,11 @@ export function extractActionVerb(text: string): string | null {
     }
   }
   
-  // Priority 2: Check for gerunds (-ing form) as nouns
-  const gerunds = doc.match('#Gerund').json() as any[]
-  if (gerunds.length > 0) {
-    // "went jogging" → "jogging"
-    return gerunds[0].normal || gerunds[0].text.toLowerCase().replace(/ing$/, '')
-  }
-  
-  // Priority 3: If only auxiliary verbs, return the first non-be verb
+  // Priority 3: If only auxiliary verbs, return the most meaningful one
   for (const verb of verbArray) {
     const root = verb.normal || verb.text.toLowerCase()
-    if (!['be', 'am', 'is', 'are', 'was', 'were', 'been'].includes(root)) {
+    // Prefer have/do over be
+    if (['have', 'has', 'had', 'do', 'does', 'did'].includes(root)) {
       return root
     }
   }
@@ -111,10 +119,20 @@ export function stemVerb(verb: string): string {
   
   // Try removing common suffixes
   if (verbLower.endsWith('ing')) {
-    return verbLower.slice(0, -3)
+    const stem = verbLower.slice(0, -3)
+    // Handle double consonants: "jogging" → "jog", "swimming" → "swim"
+    if (stem.length >= 3 && stem[stem.length - 1] === stem[stem.length - 2]) {
+      return stem.slice(0, -1)
+    }
+    return stem
   }
   if (verbLower.endsWith('ed')) {
-    return verbLower.slice(0, -2)
+    const stem = verbLower.slice(0, -2)
+    // Handle "e" additions: "baked" → "bake"
+    if (stem.length >= 2) {
+      return stem
+    }
+    return verbLower.slice(0, -1)
   }
   if (verbLower.endsWith('s')) {
     return verbLower.slice(0, -1)
