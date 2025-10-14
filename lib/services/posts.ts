@@ -570,16 +570,23 @@ export async function findSimilarPostsGlobal(params: {
                           'similar' as const,
             }
           })
-          // Filter: Keep only if hybrid score >= 70% OR exact Levenshtein match
-          .filter(m => m.hybridScore >= 0.70 || m.levenshtein_distance <= 3)
+          // Filter: Keep if ANY of these conditions:
+          // 1. Hybrid score >= 70% (balanced match)
+          // 2. Vector >= 85% (strong semantic match, even if spelling differs)
+          // 3. Levenshtein distance <= 3 (strong typo match, even if semantics differ)
+          .filter((m: any) => 
+            m.similarity_score >= 0.70 || 
+            m.vector_similarity >= 0.85 || 
+            m.levenshtein_distance <= 3
+          )
           // Sort by hybrid score
-          .sort((a, b) => b.similarity_score - a.similarity_score)
+          .sort((a: any, b: any) => b.similarity_score - a.similarity_score)
           // Limit results
           .slice(0, limit)
         
         if (hybridMatches.length > 0) {
           console.log(`✨ Hybrid matching found ${hybridMatches.length} matches (vector + fuzzy)`)
-          console.log(`   Avg scores - Hybrid: ${(hybridMatches.reduce((acc, p) => acc + p.similarity_score, 0) / hybridMatches.length).toFixed(2)}, Vector: ${(hybridMatches.reduce((acc, p) => acc + p.vector_similarity, 0) / hybridMatches.length).toFixed(2)}, Levenshtein: ${(hybridMatches.reduce((acc, p) => acc + p.levenshtein_similarity, 0) / hybridMatches.length).toFixed(2)}`)
+          console.log(`   Avg scores - Hybrid: ${(hybridMatches.reduce((acc: number, p: any) => acc + p.similarity_score, 0) / hybridMatches.length).toFixed(2)}, Vector: ${(hybridMatches.reduce((acc: number, p: any) => acc + p.vector_similarity, 0) / hybridMatches.length).toFixed(2)}, Levenshtein: ${(hybridMatches.reduce((acc: number, p: any) => acc + p.levenshtein_similarity, 0) / hybridMatches.length).toFixed(2)}`)
           
           return hybridMatches
         }
