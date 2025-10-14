@@ -539,13 +539,13 @@ export async function findSimilarPostsGlobal(params: {
             }
           })
           // Filter: Keep if ANY of these conditions:
-          // 1. Hybrid score >= 70% (balanced match)
-          // 2. Vector >= 75% (semantic match - lower threshold for more coverage)
-          // 3. Levenshtein distance <= 3 (strong typo match)
+          // 1. Hybrid score >= 75% (raised to prevent false positives)
+          // 2. Vector >= 85% (raised - only very strong semantic matches)
+          // 3. Levenshtein distance <= 2 (tightened - max 2 typos)
           .filter((m: any) => 
-            m.similarity_score >= 0.70 || 
-            m.vector_similarity >= 0.75 || 
-            m.levenshtein_distance <= 3
+            m.similarity_score >= 0.75 || 
+            m.vector_similarity >= 0.85 || 
+            m.levenshtein_distance <= 2
           )
           // Sort by hybrid score
           .sort((a: any, b: any) => b.similarity_score - a.similarity_score)
