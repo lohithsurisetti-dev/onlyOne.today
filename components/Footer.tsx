@@ -4,15 +4,13 @@ export default function Footer() {
   return (
     <footer className="relative mt-auto border-t border-white/5">
       <div className="max-w-7xl mx-auto px-6 py-6">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          {/* Left: Brand */}
-          <div className="text-center sm:text-left">
-            <p className="text-white/50 text-sm">
-              © {new Date().getFullYear()} <span className="text-white font-medium">OnlyOne.Today</span>
-            </p>
-          </div>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
+          {/* Brand */}
+          <p className="text-white/50 text-sm">
+            © {new Date().getFullYear()} <span className="text-white font-medium">OnlyOne.Today</span>
+          </p>
           
-          {/* Center: Links */}
+          {/* Links */}
           <div className="flex items-center gap-6 text-sm">
             <Link 
               href="/privacy" 
@@ -26,13 +24,6 @@ export default function Footer() {
             >
               Terms
             </Link>
-          </div>
-          
-          {/* Right: Tag */}
-          <div className="text-center sm:text-right">
-            <p className="text-white/30 text-xs">
-              Made with care
-            </p>
           </div>
         </div>
       </div>
