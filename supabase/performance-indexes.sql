@@ -50,10 +50,9 @@ CREATE INDEX IF NOT EXISTS idx_posts_hash_scope
 -- 3. Temporal Queries (Date Range)
 -- =====================================================
 
--- Index for "today" queries (most common)
--- Used by: GET /api/posts?filter=today
-CREATE INDEX IF NOT EXISTS idx_posts_created_at_date 
-  ON posts(DATE(created_at), created_at DESC);
+-- Note: We already have created_at indexes above (idx_posts_scope_created, etc.)
+-- Those are sufficient for date range queries
+-- No need for additional date-specific indexes
 
 -- =====================================================
 -- 4. Rate Limits Table (from rate-limit-schema.sql)
