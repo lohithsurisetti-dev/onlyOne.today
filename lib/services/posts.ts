@@ -53,7 +53,13 @@ export function getTodayStart(): string {
 
 /**
  * Apply scope-aware filtering to a Supabase query
- * Implements hierarchical matching: World includes all, City only includes that city
+ * Implements hierarchical matching: World includes all, Country includes cities in it
+ * 
+ * HIERARCHY:
+ * - World: matches ALL posts
+ * - Country: matches cities/states/country in that country
+ * - State: matches cities/state in that state
+ * - City: matches ONLY that specific city
  * 
  * @param query - Supabase query builder
  * @param userScope - The scope the user posted with
@@ -69,26 +75,25 @@ export function applyScopeFilter(
   }
 ) {
   if (userScope === 'world') {
-    // World scope: Match ALL posts (city posts are part of the world!)
+    // World scope: Match ALL posts (no filter)
     return query
   }
   
   if (userScope === 'country' && location?.country) {
-    // Country scope: Match posts in this country (any city/state in this country + country-level posts)
-    // This is complex, so for now: match country-level posts only
-    // TODO: Enhance to include cities/states in this country
-    return query.eq('scope', 'country').eq('location_country', location.country)
+    // Country scope: Match ALL posts in this country
+    // This includes: cities in country, states in country, country-level posts
+    return query.eq('location_country', location.country)
   }
   
   if (userScope === 'state' && location?.state) {
-    // State scope: Match posts in this state (cities in state + state-level posts)
-    // For now: match state-level posts only
-    return query.eq('scope', 'state').eq('location_state', location.state)
+    // State scope: Match ALL posts in this state
+    // This includes: cities in state, state-level posts
+    return query.eq('location_state', location.state)
   }
   
   if (userScope === 'city' && location?.city) {
     // City scope: Match ONLY this specific city
-    return query.eq('scope', 'city').eq('location_city', location.city)
+    return query.eq('location_city', location.city)
   }
   
   // Fallback: no additional filter (acts like world)
