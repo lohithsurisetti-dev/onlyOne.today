@@ -302,7 +302,7 @@ export default function ShareModal({
             
             <button
               onClick={handleShareInstagram}
-              className="flex items-center justify-center gap-1.5 py-2.5 bg-gradient-to-tr from-[#833AB4] via-[#E1306C] to-[#FD1D1D] text-white rounded-xl transition-all hover:scale-105 text-sm font-medium shadow-lg"
+              className="flex items-center justify-center gap-1.5 py-2.5 bg-gradient-to-br from-[#F58529] via-[#DD2A7B] to-[#8134AF] text-white rounded-xl transition-all hover:scale-105 text-sm font-medium shadow-lg"
             >
               <Instagram size={16} />
               Instagram
