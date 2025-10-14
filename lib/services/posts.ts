@@ -5,6 +5,7 @@ import { generateDynamicHash, findSimilarInBatch as findSimilarDynamic } from '.
 import { findSemanticallySimilar, hybridMatch } from './nlp-advanced'
 import { generateEmbedding } from './embeddings'
 import { distance } from 'fastest-levenshtein'
+import { isSameActionPost, getVerbSimilarity } from './verb-matching'
 
 type Post = Database['public']['Tables']['posts']['Row']
 type PostInsert = Database['public']['Tables']['posts']['Insert']
@@ -513,28 +514,27 @@ export async function findSimilarPostsGlobal(params: {
           .map((p: any) => {
             const matchContentLower = p.content.toLowerCase().trim()
             
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            // STEP 1: VERB-BASED MATCHING (Dynamic, works for all cases!)
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            const verbCheck = isSameActionPost(content, p.content)
+            
+            // If verbs are different → Automatic reject (even if high similarity)
+            if (!verbCheck.isSame) {
+              return null // Will be filtered out
+            }
+            
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            // STEP 2: CONTEXT VERIFICATION (Only if verbs match)
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            
             // Calculate Levenshtein distance (character-level typo tolerance)
             const levenshteinDist = distance(contentLower, matchContentLower)
             const maxLength = Math.max(contentLower.length, matchContentLower.length)
             const levenshteinSimilarity = 1 - (levenshteinDist / maxLength)
             
-            // Verb mismatch penalty: Check for conflicting action verbs
-            let verbPenalty = 0
-            const conflictingPairs = [
-              ['watch', 'play'], ['watching', 'playing'], ['watched', 'played'],
-              ['watch', 'do'], ['watching', 'doing'], ['watched', 'did'],
-              ['see', 'do'], ['seeing', 'doing'], ['saw', 'did'],
-            ]
-            for (const [verb1, verb2] of conflictingPairs) {
-              if ((contentLower.includes(verb1) && matchContentLower.includes(verb2)) ||
-                  (contentLower.includes(verb2) && matchContentLower.includes(verb1))) {
-                verbPenalty = 0.20 // 20% penalty for conflicting verbs
-                break
-              }
-            }
-            
-            // Hybrid score: 70% vector + 30% Levenshtein - verb penalty
-            const hybridScore = Math.max(0, (p.similarity * 0.7) + (levenshteinSimilarity * 0.3) - verbPenalty)
+            // Hybrid score: 70% vector + 30% Levenshtein
+            const hybridScore = (p.similarity * 0.7) + (levenshteinSimilarity * 0.3)
             
             return {
               id: p.id,
@@ -548,24 +548,35 @@ export async function findSimilarPostsGlobal(params: {
               vector_similarity: p.similarity,
               levenshtein_similarity: levenshteinSimilarity,
               levenshtein_distance: levenshteinDist,
-              verb_penalty: verbPenalty,
+              verb1: verbCheck.verb1,
+              verb2: verbCheck.verb2,
+              verb_match: verbCheck.reason,
               match_type: hybridScore >= 0.95 ? 'exact' as const :
-                          hybridScore >= 0.75 ? 'core_action' as const :
+                          hybridScore >= 0.65 ? 'core_action' as const :
                           'similar' as const,
             }
           })
-          // Filter: Keep if ANY of these conditions:
-          // 1. Hybrid score >= 70% (balanced threshold - includes verb penalty!)
-          // 2. Levenshtein distance <= 2 (max 2 character typos)
-          // Note: Removed separate vector condition so verb penalties always apply!
-          .filter((m: any) => 
-            m.similarity_score >= 0.70 || 
-            m.levenshtein_distance <= 2
-          )
+          // Remove nulls (rejected by verb check)
+          .filter((m: any) => m !== null)
+          // Filter: Keep if hybrid score >= 60% (lower since verbs already matched!)
+          .filter((m: any) => m.similarity_score >= 0.60)
           // Sort by hybrid score
           .sort((a: any, b: any) => b.similarity_score - a.similarity_score)
           // Limit results
           .slice(0, limit)
+        
+        // Log all candidates and their scores (for debugging)
+        if (vectorMatches.length > 0) {
+          const allScored = vectorMatches.map((p: any) => {
+            const matchContentLower = p.content.toLowerCase().trim()
+            const levenshteinDist = distance(contentLower, matchContentLower)
+            const maxLength = Math.max(contentLower.length, matchContentLower.length)
+            const levenshteinSimilarity = 1 - (levenshteinDist / maxLength)
+            const hybridScore = (p.similarity * 0.7) + (levenshteinSimilarity * 0.3)
+            return { content: p.content.substring(0, 30), vector: p.similarity.toFixed(2), lev: levenshteinSimilarity.toFixed(2), hybrid: hybridScore.toFixed(2) }
+          })
+          console.log(`🔍 All candidates:`, JSON.stringify(allScored, null, 2))
+        }
         
         if (hybridMatches.length > 0) {
           console.log(`✨ Hybrid matching found ${hybridMatches.length} matches (vector + fuzzy)`)
