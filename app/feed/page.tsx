@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import StarsBackground from '@/components/StarsBackground'
 import ShareModal from '@/components/ShareModal'
 import GlobalStatsCard from '@/components/GlobalStatsCard'
+import MyPostsCard from '@/components/MyPostsCard'
 import FilterSheet from '@/components/FilterSheet'
 import TimezonePills from '@/components/TimezonePills'
 import { useRecentPosts } from '@/lib/hooks/usePosts'
@@ -1318,7 +1319,10 @@ export default function FeedPage() {
             
             {/* Sidebar (Desktop Only) */}
             <aside className="hidden lg:block">
-              <div className="sticky top-24">
+              <div className="sticky top-24 space-y-4">
+                {/* My Posts Card (always show if user has posts) */}
+                <MyPostsCard />
+                
                 {filter === 'trending' ? (
                   trendingLoading ? (
                     /* Trending Info Skeleton */

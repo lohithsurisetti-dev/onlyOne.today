@@ -1,0 +1,17 @@
+# OnlyOne.Today Robots Configuration
+
+User-agent: *
+Allow: /
+Allow: /feed
+Allow: /api/share-preview
+
+# Disallow API endpoints (except share-preview for social cards)
+Disallow: /api/posts
+Disallow: /api/reactions
+Disallow: /api/stats
+Disallow: /api/moderation
+Disallow: /api/location
+
+# Sitemap
+Sitemap: https://onlyone-today.vercel.app/sitemap.xml
+

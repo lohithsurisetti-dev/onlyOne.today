@@ -119,6 +119,18 @@ export default function Home() {
       // Success! Store result and navigate
       sessionStorage.setItem('postResult', JSON.stringify(result))
 
+      // 💾 Save to "My Posts" history (localStorage)
+      const { saveMyPost } = await import('@/lib/utils/my-posts')
+      saveMyPost({
+        id: result.post.id,
+        content: data.content,
+        uniquenessScore: result.uniquenessScore,
+        matchCount: result.matchCount,
+        scope: data.scope,
+        timestamp: new Date().toISOString(),
+        viewUrl: `/response?postId=${result.post.id}`,
+      })
+
       // Navigate to unified response page
       const isUnique = result.uniquenessScore >= 70
       const params = new URLSearchParams({
@@ -128,7 +140,7 @@ export default function Home() {
         scope: data.scope,
         view: isUnique ? 'unique' : 'common', // Let response page know which view to show
       })
-
+      
       router.push(`/response?${params.toString()}`)
     } catch (err) {
       // Error caught - display immediately
