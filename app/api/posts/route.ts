@@ -234,34 +234,38 @@ export async function GET(request: NextRequest) {
         )
       }
       
-      // IMPORTANT: Recalculate LIVE scores using RARITY (same as feed does)
-      // Get total posts today for rarity calculation
-      const { getTodayStart } = await import('@/lib/services/posts')
-      const totalPostsToday = await getTotalPostsCount('today')
+      // IMPORTANT: Recalculate LIVE scores with SCOPE-AWARE matching (same as feed does)
+      const { getTodayStart, applyScopeFilter } = await import('@/lib/services/posts')
       
-      // Count current matches TODAY (calendar day, not 24 hours)
-      const { count, error: countError } = await supabase
+      // Build scope-aware count query
+      let countQuery = supabase
         .from('posts')
         .select('id', { count: 'exact', head: true })
         .eq('content_hash', post.content_hash)
         .gte('created_at', getTodayStart())
       
+      // Apply scope filter based on THIS post's scope
+      countQuery = applyScopeFilter(countQuery, post.scope as any, {
+        city: post.location_city || undefined,
+        state: post.location_state || undefined,
+        country: post.location_country || undefined
+      })
+      
+      const { count, error: countError } = await countQuery
+      
       if (!countError && count) {
-        // Recalculate with live data using rarity
-        const actualMatches = count - 1 // Exclude self (this is "others")
-        // actualMatches = others, +1 for user = total who did it
-        const totalWhoDidIt = actualMatches + 1
-        const freshScore = calculateUniquenessScore(totalWhoDidIt, totalPostsToday)
+        // Recalculate with live data (ACTION-BASED)
+        const actualMatches = count - 1 // Exclude self (this is "others" in scope)
+        const freshScore = calculateUniquenessScore(actualMatches)
         
-        console.log(`✅ Fetched post ${postId} with LIVE RARITY scores: ${freshScore}% unique (${actualMatches} out of ${totalPostsToday} posts today), was ${post.uniqueness_score}%`)
+        console.log(`✅ Fetched post ${postId} with LIVE scores: ${freshScore}% unique (${actualMatches} others in ${post.scope}), was ${post.uniqueness_score}%`)
         
         // Return with fresh scores
         return NextResponse.json({ 
           post: {
             ...post,
             uniqueness_score: freshScore,
-            match_count: actualMatches,
-            total_posts_today: totalPostsToday // Add this for display
+            match_count: actualMatches
           }
         }, { status: 200 })
       }

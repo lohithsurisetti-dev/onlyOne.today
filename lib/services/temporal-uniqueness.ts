@@ -137,22 +137,12 @@ export async function calculateTemporalUniqueness(
     const matchCount = Math.max(0, totalMatches - 1) // Others (excluding self)
     const totalPosts = posts.length
     
-    // RARITY-BASED CALCULATION: What % of people DIDN'T do this
-    // matchCount = others, +1 for user = total who did it
-    const totalWhoDidIt = matchCount + 1
+    // ACTION-BASED CALCULATION: How many others did this?
+    // matchCount = others who did it (excluding self)
+    // Formula: 100 - (matchCount * 10)
+    const uniqueness = Math.max(0, 100 - (matchCount * 10))
     
-    // If 5 out of 100 did it → 95% unique (intuitive!)
-    let uniqueness = 100
-    if (totalPosts > 0) {
-      uniqueness = ((totalPosts - totalWhoDidIt) / totalPosts) * 100
-    }
-    
-    // Edge case: Only this post exists
-    if (totalPosts === 1) {
-      uniqueness = 100
-    }
-    
-    console.log(`📊 ${periodName}: ${totalWhoDidIt} out of ${totalPosts} posts did this → ${Math.round(uniqueness)}% unique (rarity-based)`)
+    console.log(`📊 ${periodName}: ${matchCount} others did this out of ${totalPosts} total → ${uniqueness}% unique (action-based)`)
     
     return { uniqueness: Math.round(uniqueness), matchCount, totalPosts }
   }
@@ -224,8 +214,7 @@ function generateInsight(
   
   // Rising trend
   if (trend === 'rising') {
-    const percentage = allTime.totalPosts > 0 ? Math.round(((allTime.matchCount + 1) / allTime.totalPosts) * 100) : 0
-    return `This is becoming a thing! ${allTime.matchCount + 1} people (${percentage}% of all posts) have done this. You're early to the trend. 📈`
+    return `This is becoming a thing! ${allTime.matchCount + 1} people have done this. You're early to the trend. 📈`
   }
   
   // Falling trend (becoming rare)
@@ -240,8 +229,7 @@ function generateInsight(
   
   // Consistently common
   if (today.uniqueness <= 30 && allTime.uniqueness <= 30) {
-    const percentage = allTime.totalPosts > 0 ? Math.round(((allTime.matchCount + 1) / allTime.totalPosts) * 100) : 0
-    return `A timeless classic. ${allTime.matchCount + 1} people (${percentage}%) have done this. You're in good company. 🤝`
+    return `A timeless classic. ${allTime.matchCount + 1} people have done this. You're in good company. 🤝`
   }
   
   // Default

@@ -22,47 +22,23 @@ export function generateContentHash(content: string): string {
 }
 
 /**
- * Calculate uniqueness score based on RARITY (what % of people DIDN'T do this)
- * Formula: ((totalPosts - peopleWhoDidIt) / totalPosts) * 100
+ * Calculate uniqueness score based on ACTION RARITY within scope
+ * Formula: 100 - (matchCount * 10), minimum 0
  * 
- * IMPORTANT: matchCount should be TOTAL people who did it (including the user)
- * 
- * This is intuitive: If 5 out of 100 people did it, you're 95% unique!
+ * This is ACTION-BASED, not population-based!
+ * Focuses on how many OTHERS did the same action in your scope.
  * 
  * Examples:
- * - 1 out of 100 = 99% unique (only you!)
- * - 5 out of 100 = 95% unique (very rare)
- * - 50 out of 100 = 50% unique (half did it)
- * - 95 out of 100 = 5% unique (almost everyone did it)
+ * - 0 others = 100% unique (only you in scope!)
+ * - 1 other = 90% unique (very rare)
+ * - 2 others = 80% unique (rare)
+ * - 5 others = 50% unique (medium)
+ * - 10+ others = 0% unique (very common)
  * 
- * Edge cases:
- * - totalPosts = 0 → 100% (first post ever)
- * - totalPosts = 1 → 100% (only you)
- * - matchCount >= totalPosts → 0% (everyone did it)
- * 
- * @param totalWhoDidIt - TOTAL people who did this action (including the user!)
- * @param totalPosts - Total posts in the time period
+ * @param matchCount - Number of OTHERS who did this (excluding you!)
  */
-export function calculateUniquenessScore(totalWhoDidIt: number, totalPosts: number): number {
-  // Edge case: No posts yet (first post)
-  if (totalPosts === 0) {
-    return 100
-  }
-  
-  // Edge case: Only this post exists
-  if (totalPosts === 1) {
-    return 100
-  }
-  
-  // Edge case: Total who did it can't exceed total posts
-  const safeTotalWhoDidIt = Math.min(totalWhoDidIt, totalPosts)
-  
-  // Calculate rarity: what % of people DIDN'T do this
-  const peopleWhoDidntDoIt = totalPosts - safeTotalWhoDidIt
-  const uniqueness = (peopleWhoDidntDoIt / totalPosts) * 100
-  
-  // Round to whole number
-  return Math.round(Math.max(0, Math.min(100, uniqueness)))
+export function calculateUniquenessScore(matchCount: number): number {
+  return Math.max(0, 100 - (matchCount * 10))
 }
 
 /**
@@ -73,6 +49,50 @@ export function getTodayStart(): string {
   const now = new Date()
   now.setHours(0, 0, 0, 0)
   return now.toISOString()
+}
+
+/**
+ * Apply scope-aware filtering to a Supabase query
+ * Implements hierarchical matching: World includes all, City only includes that city
+ * 
+ * @param query - Supabase query builder
+ * @param userScope - The scope the user posted with
+ * @param location - User's location (for hierarchical matching)
+ */
+export function applyScopeFilter(
+  query: any,
+  userScope: 'city' | 'state' | 'country' | 'world',
+  location?: {
+    city?: string
+    state?: string
+    country?: string
+  }
+) {
+  if (userScope === 'world') {
+    // World scope: Match ALL posts (city posts are part of the world!)
+    return query
+  }
+  
+  if (userScope === 'country' && location?.country) {
+    // Country scope: Match posts in this country (any city/state in this country + country-level posts)
+    // This is complex, so for now: match country-level posts only
+    // TODO: Enhance to include cities/states in this country
+    return query.eq('scope', 'country').eq('location_country', location.country)
+  }
+  
+  if (userScope === 'state' && location?.state) {
+    // State scope: Match posts in this state (cities in state + state-level posts)
+    // For now: match state-level posts only
+    return query.eq('scope', 'state').eq('location_state', location.state)
+  }
+  
+  if (userScope === 'city' && location?.city) {
+    // City scope: Match ONLY this specific city
+    return query.eq('scope', 'city').eq('location_city', location.city)
+  }
+  
+  // Fallback: no additional filter (acts like world)
+  return query
 }
 
 /**
@@ -224,41 +244,33 @@ export async function getHierarchicalScores(
     country: post.location_country || undefined
   })
   
-  // Get total posts for each scope (for rarity calculation)
-  const [totalWorld, totalCountry, totalState, totalCity] = await Promise.all([
-    getTotalPostsCount('today'), // World total
-    getTotalPostsCount('today', { country: post.location_country || undefined }),
-    getTotalPostsCount('today', { state: post.location_state || undefined }),
-    getTotalPostsCount('today', { city: post.location_city || undefined })
-  ])
-  
-  // Calculate scores for each level using rarity
-  // Note: counts are "others", so add 1 for total who did it
+  // Calculate scores for each level (ACTION-BASED)
+  // counts represent "others", score based on that
   const levels = [
     {
       level: 'city' as const,
-      score: calculateUniquenessScore(counts.city_count + 1, totalCity),
+      score: calculateUniquenessScore(counts.city_count),
       count: counts.city_count,
       label: post.location_city || 'City',
       icon: '🏙️'
     },
     {
       level: 'state' as const,
-      score: calculateUniquenessScore(counts.state_count + 1, totalState),
+      score: calculateUniquenessScore(counts.state_count),
       count: counts.state_count,
       label: post.location_state || 'State',
       icon: '🗺️'
     },
     {
       level: 'country' as const,
-      score: calculateUniquenessScore(counts.country_count + 1, totalCountry),
+      score: calculateUniquenessScore(counts.country_count),
       count: counts.country_count,
       label: post.location_country || 'Country',
       icon: '🌍'
     },
     {
       level: 'world' as const,
-      score: calculateUniquenessScore(counts.world_count + 1, totalWorld),
+      score: calculateUniquenessScore(counts.world_count),
       count: counts.world_count,
       label: 'World',
       icon: '🌐'
@@ -306,21 +318,22 @@ export async function createPost(data: {
   // Generate content hash
   const contentHash = generateContentHash(data.content)
 
-  // Find similar posts GLOBALLY (simplified - no scope filtering)
+  // Find similar posts with SCOPE-AWARE matching
   const similarPosts = await findSimilarPostsGlobal({
     contentHash,
     content: data.content,
+    scope: data.scope,
+    location: {
+      city: data.locationCity,
+      state: data.locationState,
+      country: data.locationCountry
+    }
   })
-
-  const matchCount = similarPosts.length
   
-  // Get total posts today for rarity calculation
-  const totalPostsToday = await getTotalPostsCount('today')
-  // matchCount = others who did it, +1 for user = total who did it
-  const totalWhoDidIt = matchCount + 1
-  const uniquenessScore = calculateUniquenessScore(totalWhoDidIt, totalPostsToday)
+  const matchCount = similarPosts.length // This is "others" who did it in scope
+  const uniquenessScore = calculateUniquenessScore(matchCount)
 
-  console.log(`📊 Creating post: "${data.content.substring(0, 30)}..." - ${matchCount} out of ${totalPostsToday} posts today did this, ${uniquenessScore}% unique`)
+  console.log(`📊 Creating post: "${data.content.substring(0, 30)}..." - ${matchCount} others in ${data.scope} did this, ${uniquenessScore}% unique`)
 
   // Insert the new post
   const { data: post, error } = await supabase
@@ -363,32 +376,33 @@ export async function createPost(data: {
     }
   }
 
-  // IMPORTANT: Recalculate LIVE score right after insertion
+  // IMPORTANT: Recalculate LIVE score right after insertion (scope-aware)
   // Between finding similar posts and now, more posts might have been created
-  // This ensures we return the most up-to-date score to the user
-  const { count: finalCount, error: recountError } = await supabase
+  let countQuery = supabase
     .from('posts')
     .select('id', { count: 'exact', head: true })
     .eq('content_hash', contentHash)
     .gte('created_at', getTodayStart())
   
+  // Apply same scope filter as initial search
+  countQuery = applyScopeFilter(countQuery, data.scope, {
+    city: data.locationCity,
+    state: data.locationState,
+    country: data.locationCountry
+  })
+  
+  const { count: finalCount, error: recountError } = await countQuery
+  
   let finalMatchCount = matchCount
   let finalUniquenessScore = uniquenessScore
-  let finalTotalPosts = totalPostsToday
   
   if (!recountError && finalCount) {
-    // Recalculate with actual current matches
-    finalMatchCount = finalCount - 1 // Exclude self (this is "others")
-    
-    // Get updated total posts (including this new post)
-    const updatedTotalPostsToday = await getTotalPostsCount('today')
-    // finalMatchCount = others, +1 for user = total who did it
-    const totalWhoDidIt = finalMatchCount + 1
-    finalUniquenessScore = calculateUniquenessScore(totalWhoDidIt, updatedTotalPostsToday)
-    finalTotalPosts = updatedTotalPostsToday
+    // Recalculate with actual current matches in scope
+    finalMatchCount = finalCount - 1 // Exclude self (this is "others" in scope)
+    finalUniquenessScore = calculateUniquenessScore(finalMatchCount)
     
     if (finalMatchCount !== matchCount) {
-      console.log(`📊 Score updated after insertion: ${matchCount} → ${finalMatchCount} matches out of ${updatedTotalPostsToday} total, ${uniquenessScore}% → ${finalUniquenessScore}%`)
+      console.log(`📊 Score updated after insertion: ${matchCount} → ${finalMatchCount} others in ${data.scope}, ${uniquenessScore}% → ${finalUniquenessScore}%`)
     }
   }
 
@@ -418,35 +432,42 @@ export async function createPost(data: {
   }
 
   return {
-    post: {
-      ...post,
-      total_posts_today: finalTotalPosts // Add total for context
-    },
+    post,
     similarPosts,
-    matchCount: finalMatchCount,    // Return LIVE count, not initial
-    uniquenessScore: finalUniquenessScore, // Return LIVE score, not initial
-    totalPostsToday: finalTotalPosts, // For display
+    matchCount: finalMatchCount,    // Return LIVE count (others in scope)
+    uniquenessScore: finalUniquenessScore, // Return LIVE score
   }
 }
 
 /**
- * Find similar posts GLOBALLY (simplified, no scope filtering)
- * This is used for creating posts and calculating global uniqueness
+ * Find similar posts with SCOPE-AWARE matching
+ * Implements hierarchy: World includes all, City only includes that city
  */
 export async function findSimilarPostsGlobal(params: {
   contentHash: string
   content: string
+  scope?: 'city' | 'state' | 'country' | 'world'
+  location?: {
+    city?: string
+    state?: string
+    country?: string
+  }
   limit?: number
 }) {
   const supabase = createClient()
-  const { contentHash, content, limit = 20 } = params
+  const { contentHash, content, scope = 'world', location, limit = 20 } = params
 
-  // Get all recent posts from database (NO scope filtering)
-  const { data: allPosts, error } = await supabase
+  // Get posts from database with SCOPE-AWARE filtering
+  let query = supabase
     .from('posts')
-    .select('id, content, content_hash, uniqueness_score, match_count, scope')
-    .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+    .select('id, content, content_hash, uniqueness_score, match_count, scope, location_city, location_state, location_country')
+    .gte('created_at', getTodayStart()) // Today only
     .limit(limit)
+  
+  // Apply scope filter
+  query = applyScopeFilter(query, scope, location)
+  
+  const { data: allPosts, error } = await query
 
   if (error) {
     console.error('Error finding similar posts:', error)
@@ -661,31 +682,35 @@ export async function getRecentPosts(params: {
     return []
   }
 
-  // Get total posts today once (for rarity calculation)
-  const totalPostsToday = await getTotalPostsCount('today')
-  
-  // REAL-TIME SCORE CALCULATION:
-  // Recalculate scores based on CURRENT matches (not frozen scores)
+  // REAL-TIME SCORE CALCULATION (SCOPE-AWARE):
+  // Recalculate scores based on CURRENT matches in EACH post's scope
   const postsWithFreshScores = await Promise.all(
     data.map(async (post) => {
-      // Count how many posts have the same content_hash TODAY (calendar day)
-      const { count, error: countError } = await supabase
+      // Build scope-aware count query for THIS post's scope
+      let countQuery = supabase
         .from('posts')
         .select('id', { count: 'exact', head: true })
         .eq('content_hash', post.content_hash)
         .gte('created_at', getTodayStart())
+      
+      // Apply scope filter based on THIS post's scope
+      countQuery = applyScopeFilter(countQuery, post.scope as any, {
+        city: post.location_city || undefined,
+        state: post.location_state || undefined,
+        country: post.location_country || undefined
+      })
+      
+      const { count, error: countError } = await countQuery
 
       if (countError) {
         console.error('Error counting matches:', countError)
         return post // Return original if count fails
       }
 
-      // Calculate fresh score based on RARITY
-      // Subtract 1 because count includes the post itself (actualMatches = "others")
-      const actualMatches = (count || 1) - 1
-      // actualMatches = others, +1 for user = total who did it
-      const totalWhoDidIt = actualMatches + 1
-      const freshScore = calculateUniquenessScore(totalWhoDidIt, totalPostsToday)
+      // Calculate fresh score (ACTION-BASED)
+      // Subtract 1 because count includes the post itself
+      const actualMatches = (count || 1) - 1 // This is "others" in scope
+      const freshScore = calculateUniquenessScore(actualMatches)
 
       return {
         ...post,
