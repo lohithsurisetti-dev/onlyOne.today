@@ -85,7 +85,9 @@ export function moderateContent(content: string): ModerationResult {
     }
   }
   
-  // 5. Check for explicit sexual content (not overly strict)
+  // 5. Check for explicit sexual content (comprehensive but not overly strict)
+  
+  // 5a. Direct explicit terms
   const explicitSexualTerms = [
     'porn',
     'xxx',
@@ -94,10 +96,60 @@ export function moderateContent(content: string): ModerationResult {
     'naked',
     'sex video',
     'explicit',
+    'onlyfans',
+    'pornhub',
+    'xvideos',
   ]
   
   for (const term of explicitSexualTerms) {
     if (text.includes(term)) {
+      return { 
+        allowed: false, 
+        reason: 'Content contains inappropriate material', 
+        severity: 'high' 
+      }
+    }
+  }
+  
+  // 5b. Sexual activity patterns (catches euphemisms and creative phrasing)
+  const adultContentPatterns = [
+    // Sexual acts (explicit - no ambiguity)
+    /\b(cum|cumming|orgasm|climax|ejaculat)/i, // Removed word boundary at end for word variants
+    /\b(masturbat|jerk(ing|ed)?\s+off|jack(ing|ed)?\s+off|beat(ing)?\s+off)/i, // Catches masturbate, masturbated, masturbating
+    /\b(fuck|fucking|fucked)\b/i,
+    
+    // Sexual context patterns
+    /\b(horny|aroused|turned\s+on)\b.*\b(watch|look|see|view)/i,
+    /\b(watch|look|see|view)\b.*\b(horny|aroused|turned\s+on)\b/i,
+    
+    // "came" in SEXUAL context only (more precise patterns)
+    /\b(came|coming)\b\s+(\d+|multiple|several|many)\s+times?\b/i, // "came 9 times"
+    /\b\d+\s*times?\b.*\b(came|coming)\b(?!\s+(home|back|to|from|in\s+first|close))/i, // "9 times came"
+    /\b(came|coming)\b\s+(while|when|as)\s+(watch|look|see|view)/i, // "came while watching"
+    /\b(watch|look|see|view)\b.*\b(came|coming)\b(?!\s+(home|back|to|from))/i, // "watching X came"
+    /\b(came|coming)\b.*\b(orgasm|climax)\b/i, // "came to orgasm"
+    
+    // Quantified sexual acts (other than "came")
+    /\b(orgasm|climax|masturbat|jerk\s+off)\w*.*\b\d+\s*times?\b/i, // Added \w* for word variants
+    /\b\d+\s*times?\b.*\b(orgasm|climax|masturbat|jerk\s+off)/i,
+    
+    // Sexual content consumption
+    /\b(watch|view|look|see)\b.*\b(porn|xxx|nsfw|adult\s+(video|content|film))\b/i,
+    /\b(porn|xxx|nsfw|adult\s+(video|content|film))\b.*\b(watch|view|look|see)\b/i,
+    
+    // References to adult performers (generic patterns)
+    /\b(pornstar|porn\s+star|adult\s+(star|actress|actor|performer))\b/i,
+    /\b(looking\s+at|watching|viewing)\b.*\b(getting\s+off|orgasm)/i,
+    
+    // Body parts in sexual context
+    /\b(dick|cock|penis|pussy|vagina|tits|boobs|breast)\b/i,
+    
+    // Sexual gratification phrases
+    /\b(getting\s+off|get\s+off|got\s+off)\b/i,
+  ]
+  
+  for (const pattern of adultContentPatterns) {
+    if (pattern.test(content)) {
       return { 
         allowed: false, 
         reason: 'Content contains inappropriate material', 
