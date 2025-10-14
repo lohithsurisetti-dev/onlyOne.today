@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import StarsBackground from '@/components/StarsBackground'
 import Footer from '@/components/Footer'
-import { getMyPosts, getTodaysPosts, getMyPostsStats, clearMyPosts } from '@/lib/utils/my-posts'
+import { getMyPosts, getTodaysPosts, getMyPostsStats, clearMyPosts, refreshAllReactions } from '@/lib/utils/my-posts'
 import type { MyPost } from '@/lib/utils/my-posts'
 
 export default function MyPostsPage() {
@@ -13,9 +13,11 @@ export default function MyPostsPage() {
   const [todaysPosts, setTodaysPosts] = useState<MyPost[]>([])
   const [stats, setStats] = useState<ReturnType<typeof getMyPostsStats> | null>(null)
   const [tab, setTab] = useState<'today' | 'all'>('today')
+  const [loadingReactions, setLoadingReactions] = useState(false)
 
   useEffect(() => {
     loadPosts()
+    loadReactions()
   }, [])
 
   const loadPosts = () => {
@@ -26,6 +28,14 @@ export default function MyPostsPage() {
     setAllPosts(all)
     setTodaysPosts(today)
     setStats(postStats)
+  }
+
+  const loadReactions = async () => {
+    setLoadingReactions(true)
+    await refreshAllReactions()
+    // Reload posts after reactions are updated
+    loadPosts()
+    setLoadingReactions(false)
   }
 
   const handleClear = () => {
@@ -196,6 +206,30 @@ export default function MyPostsPage() {
                         })}
                       </div>
                     </div>
+
+                    {/* Reactions */}
+                    {post.reactions && post.reactions.total_reactions > 0 && (
+                      <div className="flex items-center gap-3 pt-3 border-t border-white/5">
+                        {post.reactions.funny_count > 0 && (
+                          <div className="flex items-center gap-1 text-xs text-yellow-300/70">
+                            <span>😂</span>
+                            <span>{post.reactions.funny_count}</span>
+                          </div>
+                        )}
+                        {post.reactions.creative_count > 0 && (
+                          <div className="flex items-center gap-1 text-xs text-purple-300/70">
+                            <span>🎨</span>
+                            <span>{post.reactions.creative_count}</span>
+                          </div>
+                        )}
+                        {post.reactions.must_try_count > 0 && (
+                          <div className="flex items-center gap-1 text-xs text-green-300/70">
+                            <span>🔥</span>
+                            <span>{post.reactions.must_try_count}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </a>
                 )
               })}

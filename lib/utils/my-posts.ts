@@ -11,6 +11,12 @@ export interface MyPost {
   scope: string
   timestamp: string
   viewUrl: string
+  reactions?: {
+    funny_count: number
+    creative_count: number
+    must_try_count: number
+    total_reactions: number
+  }
 }
 
 const STORAGE_KEY = 'onlyone_my_posts'
@@ -104,6 +110,54 @@ export function getMyPostsStats() {
     avgUniqueness,
     totalUnique,
     totalCommon,
+  }
+}
+
+/**
+ * Fetch and update reactions for a post
+ */
+export async function refreshPostReactions(postId: string): Promise<void> {
+  if (typeof window === 'undefined') return
+  
+  try {
+    const response = await fetch(`/api/posts/${postId}`)
+    if (!response.ok) return
+    
+    const post = await response.json()
+    
+    // Update the post in localStorage with fresh reactions
+    const posts = getMyPosts()
+    const updatedPosts = posts.map(p => 
+      p.id === postId 
+        ? { 
+            ...p, 
+            reactions: {
+              funny_count: post.funny_count || 0,
+              creative_count: post.creative_count || 0,
+              must_try_count: post.must_try_count || 0,
+              total_reactions: post.total_reactions || 0,
+            }
+          }
+        : p
+    )
+    
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedPosts))
+  } catch (error) {
+    console.error('Failed to refresh reactions:', error)
+  }
+}
+
+/**
+ * Batch refresh reactions for multiple posts
+ */
+export async function refreshAllReactions(): Promise<void> {
+  const posts = getMyPosts()
+  
+  // Refresh in parallel (but limit concurrency)
+  const batchSize = 5
+  for (let i = 0; i < posts.length; i += batchSize) {
+    const batch = posts.slice(i, i + batchSize)
+    await Promise.all(batch.map(p => refreshPostReactions(p.id)))
   }
 }
 

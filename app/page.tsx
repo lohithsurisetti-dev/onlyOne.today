@@ -130,6 +130,12 @@ export default function Home() {
         scope: data.scope,
         timestamp: new Date().toISOString(),
         viewUrl: `/response?postId=${result.post.id}`,
+        reactions: {
+          funny_count: 0,
+          creative_count: 0,
+          must_try_count: 0,
+          total_reactions: 0,
+        },
       })
 
       // Navigate to unified response page
