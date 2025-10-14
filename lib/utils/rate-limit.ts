@@ -1,30 +1,34 @@
 /**
- * Rate Limiting Utility
+ * Rate Limiting Utility (Serverless-Compatible)
  * 
- * Simple in-memory rate limiter for API endpoints.
- * Uses IP address + endpoint as key.
+ * Uses Supabase as a distributed rate limit store.
+ * Works across all Vercel serverless function instances.
  * 
- * For production at scale, use Redis or Upstash.
- * For MVP, in-memory is sufficient.
+ * 100% open source - no Redis/Upstash needed!
  */
 
+import { createClient } from '@supabase/supabase-js'
+
 interface RateLimitEntry {
+  id: string
   count: number
-  resetTime: number
+  reset_time: number
+  updated_at?: string
 }
 
-// In-memory store (will reset on server restart)
-const rateLimitStore = new Map<string, RateLimitEntry>()
+// Initialize Supabase client for rate limiting
+// Using anon key is fine - we have RLS policies
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-// Cleanup old entries every 5 minutes
-setInterval(() => {
-  const now = Date.now()
-  for (const [key, entry] of rateLimitStore.entries()) {
-    if (now > entry.resetTime) {
-      rateLimitStore.delete(key)
-    }
+let supabaseClient: ReturnType<typeof createClient> | null = null
+
+function getSupabaseClient() {
+  if (!supabaseClient) {
+    supabaseClient = createClient(supabaseUrl, supabaseKey)
   }
-}, 5 * 60 * 1000)
+  return supabaseClient
+}
 
 export interface RateLimitConfig {
   /**
@@ -46,47 +50,112 @@ export interface RateLimitResult {
 }
 
 /**
- * Check if a request should be rate limited
+ * Check if a request should be rate limited (ASYNC - Serverless Compatible)
  * 
  * @param identifier - Unique identifier (e.g., IP address)
  * @param endpoint - API endpoint name
  * @param config - Rate limit configuration
  * @returns Result indicating if request is allowed
  */
-export function rateLimit(
+export async function rateLimit(
   identifier: string,
   endpoint: string,
   config: RateLimitConfig
-): RateLimitResult {
+): Promise<RateLimitResult> {
+  const supabase = getSupabaseClient()
   const key = `${endpoint}:${identifier}`
   const now = Date.now()
   const windowMs = config.windowInSeconds * 1000
+  const resetTime = now + windowMs
   
-  // Get or create entry
-  let entry = rateLimitStore.get(key)
-  
-  // Create new entry if doesn't exist or window has passed
-  if (!entry || now > entry.resetTime) {
-    entry = {
-      count: 0,
-      resetTime: now + windowMs
+  try {
+    // Try to get existing entry
+    const { data: existing, error: fetchError } = await supabase
+      .from('rate_limits')
+      .select('*')
+      .eq('id', key)
+      .single()
+    
+    let entry: RateLimitEntry
+    
+    // Cast to unknown first to avoid TypeScript errors with dynamic schemas
+    const existingData = existing as unknown as RateLimitEntry | null
+    
+    if (fetchError || !existingData || now > existingData.reset_time) {
+      // Create or reset entry
+      const { data: newEntry, error: upsertError } = await supabase
+        .from('rate_limits')
+        .upsert({
+          id: key,
+          count: 1,
+          reset_time: resetTime,
+          updated_at: new Date().toISOString()
+        } as any, {
+          onConflict: 'id'
+        })
+        .select()
+        .single()
+      
+      if (upsertError) {
+        console.error('Rate limit upsert error:', upsertError)
+        // Fail open - allow request if DB error
+        return {
+          success: true,
+          limit: config.limit,
+          remaining: config.limit - 1,
+          reset: Math.ceil(resetTime / 1000)
+        }
+      }
+      
+      entry = newEntry as unknown as RateLimitEntry
+    } else {
+      // Increment existing counter
+      const newCount = existingData.count + 1
+      
+      const { data: updated, error: updateError } = await (supabase
+        .from('rate_limits') as any)
+        .update({ 
+          count: newCount,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', key)
+        .select()
+        .single()
+      
+      if (updateError) {
+        console.error('Rate limit update error:', updateError)
+        // Fail open
+        return {
+          success: true,
+          limit: config.limit,
+          remaining: config.limit - 1,
+          reset: Math.ceil(existingData.reset_time / 1000)
+        }
+      }
+      
+      entry = updated as unknown as RateLimitEntry
     }
-    rateLimitStore.set(key, entry)
-  }
-  
-  // Increment counter
-  entry.count++
-  
-  // Check if limit exceeded
-  const success = entry.count <= config.limit
-  const remaining = Math.max(0, config.limit - entry.count)
-  const reset = Math.ceil(entry.resetTime / 1000) // Unix timestamp in seconds
-  
-  return {
-    success,
-    limit: config.limit,
-    remaining,
-    reset
+    
+    // Check if limit exceeded
+    const success = entry.count <= config.limit
+    const remaining = Math.max(0, config.limit - entry.count)
+    const reset = Math.ceil(entry.reset_time / 1000)
+    
+    return {
+      success,
+      limit: config.limit,
+      remaining,
+      reset
+    }
+  } catch (error) {
+    console.error('Rate limit error:', error)
+    // Fail open - allow request if error
+    return {
+      success: true,
+      limit: config.limit,
+      remaining: config.limit - 1,
+      reset: Math.ceil(resetTime / 1000)
+    }
   }
 }
 

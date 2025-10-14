@@ -8,9 +8,9 @@ import { rateLimit, getIP, RateLimitPresets, createRateLimitResponse } from '@/l
  */
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting
+    // Rate limiting (async - Supabase-backed)
     const ip = getIP(request)
-    const rateLimitResult = rateLimit(ip, 'reactions', RateLimitPresets.REACTIONS)
+    const rateLimitResult = await rateLimit(ip, 'reactions', RateLimitPresets.REACTIONS)
     
     if (!rateLimitResult.success) {
       console.log(`⚠️ Rate limit exceeded for reactions from IP: ${ip}`)

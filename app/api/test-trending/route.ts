@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server'
 import { getGhostPosts } from '@/lib/services/ghost-posts'
 import { getAllTrendingData } from '@/lib/services/trending-data'
 
+// =====================================================
+// PERFORMANCE: Enable response caching
+// =====================================================
+// Cache trending for 5 minutes (external API data)
+export const revalidate = 300 // 5 minutes
+
 /**
  * Test endpoint to preview ghost posts with real trending data
  */

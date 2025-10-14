@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getModerationStats } from '@/lib/services/moderation-hybrid'
 
+// =====================================================
+// PERFORMANCE: Enable response caching
+// =====================================================
+// Cache stats for 60 seconds (stats don't need real-time updates)
+// This dramatically reduces DB load
+export const revalidate = 60 // seconds
+
 /**
  * GET /api/stats - Get public platform statistics
  * Supports timezone-aware queries via ?timezone=America/New_York

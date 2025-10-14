@@ -2,10 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit, getIP, RateLimitPresets, createRateLimitResponse } from '@/lib/utils/rate-limit'
 import { detectVibeSync } from '@/lib/services/vibe-detector'
 
+// =====================================================
+// PERFORMANCE: Enable response caching
+// =====================================================
+// Cache share previews for 5 minutes (same content = same preview)
+export const revalidate = 300 // 5 minutes
+
 export async function GET(request: NextRequest) {
-  // Rate limiting
+  // Rate limiting (async - Supabase-backed)
   const ip = getIP(request)
-  const rateLimitResult = rateLimit(ip, 'share-generation', RateLimitPresets.SHARE_GENERATION)
+  const rateLimitResult = await rateLimit(ip, 'share-generation', RateLimitPresets.SHARE_GENERATION)
   
   if (!rateLimitResult.success) {
     console.log(`⚠️ Rate limit exceeded for share generation from IP: ${ip}`)
