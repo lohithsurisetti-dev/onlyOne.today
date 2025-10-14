@@ -64,3 +64,40 @@ export function TrendingInfoSkeleton() {
   )
 }
 
+/**
+ * Skeleton for Temporal Stats (Across Time)
+ */
+export function TemporalStatsSkeleton() {
+  return (
+    <div className="px-6 pb-4">
+      <div className="bg-white/5 rounded-2xl p-4 border border-white/10 animate-pulse">
+        {/* Header */}
+        <div className="flex items-center gap-2 mb-3">
+          <div className="h-4 w-4 bg-white/10 rounded"></div>
+          <div className="h-4 w-24 bg-white/10 rounded"></div>
+          <div className="h-4 w-4 bg-white/10 rounded ml-auto"></div>
+        </div>
+        
+        {/* Grid of time period cards */}
+        <div className="grid grid-cols-2 gap-2.5 mb-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-white/5 rounded-lg p-2.5 border border-white/10">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <div className="h-3 w-3 bg-white/10 rounded"></div>
+                <div className="h-3 w-16 bg-white/10 rounded"></div>
+              </div>
+              <div className="h-6 w-12 bg-white/10 rounded mt-1"></div>
+            </div>
+          ))}
+        </div>
+        
+        {/* Insight text skeleton */}
+        <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
+          <div className="h-3 bg-white/10 rounded w-full"></div>
+          <div className="h-3 bg-white/10 rounded w-4/5"></div>
+        </div>
+      </div>
+    </div>
+  )
+}
+

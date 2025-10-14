@@ -9,6 +9,7 @@ import type { CreatePostResult } from '@/lib/hooks/usePosts'
 import { detectVibeSync } from '@/lib/services/vibe-detector'
 import { getWittyResponse, getWittyRank, getVibeCelebration } from '@/lib/services/witty-messages'
 import { calculateTemporalUniqueness, formatTemporalStats, getTemporalEmoji, type TemporalUniqueness } from '@/lib/services/temporal-uniqueness'
+import { TemporalStatsSkeleton } from '@/components/PostCardSkeleton'
 
 function ResponseContent() {
   const searchParams = useSearchParams()
@@ -325,6 +326,10 @@ function ResponseContent() {
               </div>
               
             {/* Temporal Stats Section */}
+            {loadingTemporal && !temporal && (
+              <TemporalStatsSkeleton />
+            )}
+            
             {temporal && (
               <div className="px-6 pb-4">
                 <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
