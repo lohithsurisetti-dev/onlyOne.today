@@ -23,6 +23,7 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
+  metadataBase: new URL('https://onlyone-today.vercel.app'),
   openGraph: {
     title: 'OnlyOne.today - Discover How Unique You Are',
     description: 'Share what you did today and discover your uniqueness! Anonymous, fun, and instant.',
@@ -32,7 +33,7 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: '/og-image.png', // We'll create this
+        url: '/api/og-image', // Dynamic OG image
         width: 1200,
         height: 630,
         alt: 'OnlyOne.today - Discover Your Uniqueness',
@@ -43,7 +44,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'OnlyOne.today - Discover How Unique You Are',
     description: 'Share what you did today and discover your uniqueness!',
-    images: ['/og-image.png'],
+    images: ['/api/og-image'],
   },
   robots: {
     index: true,
