@@ -41,9 +41,9 @@ CREATE OR REPLACE FUNCTION match_posts_by_embedding(
   match_threshold float DEFAULT 0.90,
   match_count int DEFAULT 20,
   scope_filter text DEFAULT 'world',
-  location_city text DEFAULT NULL,
-  location_state text DEFAULT NULL,
-  location_country text DEFAULT NULL,
+  filter_city text DEFAULT NULL,
+  filter_state text DEFAULT NULL,
+  filter_country text DEFAULT NULL,
   today_only boolean DEFAULT true
 )
 RETURNS TABLE (
@@ -90,13 +90,13 @@ BEGIN
       scope_filter = 'world'
       OR
       -- Country scope: match posts in that country
-      (scope_filter = 'country' AND posts.location_country = location_country AND posts.scope IN ('city', 'state', 'country'))
+      (scope_filter = 'country' AND posts.location_country = filter_country AND posts.scope IN ('city', 'state', 'country'))
       OR
       -- State scope: match posts in that state
-      (scope_filter = 'state' AND posts.location_state = location_state AND posts.scope IN ('city', 'state'))
+      (scope_filter = 'state' AND posts.location_state = filter_state AND posts.scope IN ('city', 'state'))
       OR
       -- City scope: match only city posts in that city
-      (scope_filter = 'city' AND posts.location_city = location_city AND posts.scope = 'city')
+      (scope_filter = 'city' AND posts.location_city = filter_city AND posts.scope = 'city')
     )
   ORDER BY posts.embedding <=> query_embedding
   LIMIT match_count;

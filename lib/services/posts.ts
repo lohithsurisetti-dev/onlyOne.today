@@ -515,9 +515,9 @@ export async function findSimilarPostsGlobal(params: {
           match_threshold: 0.90, // 90% similarity = same action
           match_count: limit,
           scope_filter: scope,
-          location_city: location?.city || null,
-          location_state: location?.state || null,
-          location_country: location?.country || null,
+          filter_city: location?.city || null,
+          filter_state: location?.state || null,
+          filter_country: location?.country || null,
           today_only: true
         }
       )
