@@ -168,13 +168,13 @@ export default function MyPostsPage() {
                   <a
                     key={post.id}
                     href={post.viewUrl}
-                    className={`group relative rounded-2xl p-3 backdrop-blur-md border transition-all duration-300 hover:scale-105 hover:shadow-xl flex flex-col min-h-[140px] ${
+                    className={`group relative rounded-2xl p-4 backdrop-blur-md border transition-all duration-300 hover:scale-105 hover:shadow-xl flex flex-col justify-between min-h-[160px] ${
                       isUnique
                         ? 'bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-purple-400/30 hover:border-purple-400/60'
                         : 'bg-gradient-to-br from-blue-900/30 to-cyan-900/30 border-blue-400/30 hover:border-blue-400/60'
                     }`}
                   >
-                    {/* Share Button */}
+                    {/* Share Button - Top Right */}
                     <button
                       onClick={(e) => {
                         e.preventDefault()
@@ -191,69 +191,74 @@ export default function MyPostsPage() {
                           alert('Link copied!')
                         }
                       }}
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg bg-white/10 hover:bg-white/20"
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg bg-white/10 hover:bg-white/20"
                     >
-                      <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                       </svg>
                     </button>
 
-                    {/* Time & Scope - Top Right */}
-                    <div className="absolute top-2 left-2 flex items-center gap-2 text-[10px] text-white/40">
-                      <span>{new Date(post.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
-                      <span>·</span>
-                      <span className="capitalize">{post.scope}</span>
-                    </div>
-
                     {/* Content - Center */}
-                    <div className="flex-1 flex items-center justify-center px-2 py-6">
-                      <p className="text-white/90 text-sm leading-snug text-center line-clamp-2">
+                    <div className="flex-1 flex items-center justify-center">
+                      <p className="text-white/90 text-sm leading-relaxed text-center line-clamp-3">
                         {post.content}
                       </p>
                     </div>
 
-                    {/* Bottom Stats */}
-                    <div className="flex items-center justify-between text-xs">
-                      {/* Left: Unique & Common side by side */}
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1 text-purple-300/80">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                          </svg>
-                          <span className="font-medium">{post.uniquenessScore}%</span>
+                    {/* Bottom Section */}
+                    <div className="space-y-2">
+                      {/* Metrics Row */}
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 text-purple-300/80">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                            </svg>
+                            <span className="font-medium">{post.uniquenessScore}%</span>
+                          </div>
+                          <span className="text-white/30">·</span>
+                          <div className="flex items-center gap-1 text-blue-300/80">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <span className="font-medium">{post.matchCount + 1}</span>
+                          </div>
                         </div>
-                        <span className="text-white/30">·</span>
-                        <div className="flex items-center gap-1 text-blue-300/80">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                          <span className="font-medium">{post.matchCount + 1}</span>
-                        </div>
+                        <span className="text-white/50">
+                          {new Date(post.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                        </span>
                       </div>
 
-                      {/* Right: Reactions */}
-                      {post.reactions && post.reactions.total_reactions > 0 && (
-                        <div className="flex gap-1.5">
-                          {post.reactions.funny_count > 0 && (
-                            <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs bg-yellow-500/20 text-white/80">
-                              <span className="text-xs">😂</span>
-                              <span className="text-[10px]">{post.reactions.funny_count}</span>
-                            </div>
-                          )}
-                          {post.reactions.creative_count > 0 && (
-                            <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs bg-purple-500/20 text-white/80">
-                              <span className="text-xs">🎨</span>
-                              <span className="text-[10px]">{post.reactions.creative_count}</span>
-                            </div>
-                          )}
-                          {post.reactions.must_try_count > 0 && (
-                            <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs bg-green-500/20 text-white/80">
-                              <span className="text-xs">🔥</span>
-                              <span className="text-[10px]">{post.reactions.must_try_count}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      {/* Reactions & Scope Row */}
+                      <div className="flex items-center justify-between">
+                        {/* Reactions */}
+                        {post.reactions && post.reactions.total_reactions > 0 ? (
+                          <div className="flex gap-1">
+                            {post.reactions.funny_count > 0 && (
+                              <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs bg-yellow-500/20 text-white/80">
+                                <span className="text-xs">😂</span>
+                                <span className="text-[10px]">{post.reactions.funny_count}</span>
+                              </div>
+                            )}
+                            {post.reactions.creative_count > 0 && (
+                              <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs bg-purple-500/20 text-white/80">
+                                <span className="text-xs">🎨</span>
+                                <span className="text-[10px]">{post.reactions.creative_count}</span>
+                              </div>
+                            )}
+                            {post.reactions.must_try_count > 0 && (
+                              <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs bg-green-500/20 text-white/80">
+                                <span className="text-xs">🔥</span>
+                                <span className="text-[10px]">{post.reactions.must_try_count}</span>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div></div>
+                        )}
+                        {/* Scope */}
+                        <span className="text-white/40 text-[10px] capitalize">{post.scope}</span>
+                      </div>
                     </div>
                   </a>
                 )
