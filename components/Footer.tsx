@@ -26,14 +26,6 @@ export default function Footer() {
             >
               Terms
             </Link>
-            <a
-              href="https://github.com/lohithsurisetti-dev/onlyOne.today"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-white/50 hover:text-white transition-colors"
-            >
-              GitHub
-            </a>
           </div>
           
           {/* Right: Tag */}
