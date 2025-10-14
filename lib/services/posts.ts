@@ -518,7 +518,7 @@ export async function findSimilarPostsGlobal(params: {
         'match_posts_by_embedding',
         {
           query_embedding: queryEmbedding as any,
-          match_threshold: 0.90, // 90% similarity = same action
+          match_threshold: 0.80, // 80% similarity = catches typos + synonyms
           match_limit: limit,
           scope_filter: scope,
           filter_city: location?.city || null,
