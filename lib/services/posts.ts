@@ -6,6 +6,8 @@ import { findSemanticallySimilar, hybridMatch } from './nlp-advanced'
 import { generateEmbedding } from './embeddings'
 import { distance } from 'fastest-levenshtein'
 import { isSameActionPost, getVerbSimilarity } from './verb-matching'
+import { normalizeText, ngramJaccard, tokenOverlap } from './text-normalization'
+import { calculateCompositeSimilarity, getScopeThreshold, shouldMatch } from './composite-similarity'
 
 type Post = Database['public']['Tables']['posts']['Row']
 type PostInsert = Database['public']['Tables']['posts']['Insert']
@@ -326,14 +328,33 @@ export async function createPost(data: {
   const supabase = createClient()
   const adminClient = createAdminClient()
 
-  // Generate content hash
-  const contentHash = generateContentHash(data.content)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ADVANCED TEXT NORMALIZATION (Phase 1 enhancements!)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const normalizationResult = normalizeText(data.content)
+  const {
+    normalized: normalizedContent,
+    hasNegation,
+    timeExpressions,
+    emojis
+  } = normalizationResult
+  
+  console.log(`🔤 Normalized: "${data.content}" → "${normalizedContent}"`)
+  if (hasNegation) console.log(`⛔ Negation detected`)
+  if (timeExpressions.length > 0) console.log(`⏰ Time tags: ${timeExpressions.join(', ')}`)
+  if (emojis.length > 0) console.log(`😀 Emojis: ${emojis.join(', ')}`)
+
+  // Generate content hash from NORMALIZED text
+  const contentHash = generateContentHash(normalizedContent)
 
   // Find similar posts with SCOPE-AWARE matching
   const similarPosts = await findSimilarPostsGlobal({
     contentHash,
-    content: data.content,
+    content: normalizedContent, // Use normalized text for matching!
+    originalContent: data.content,
     scope: data.scope,
+    hasNegation,
+    timeExpressions,
     location: {
       city: data.locationCity,
       state: data.locationState,
@@ -364,9 +385,10 @@ export async function createPost(data: {
     // Continue without embedding - NLP fallback will work
   }
 
-  // Insert the new post with embedding
+  // Insert the new post with embedding + NLP enhancements
   const insertData = {
-    content: data.content,
+    content: data.content, // Store original (for display)
+    text_normalized: normalizedContent, // Store normalized (for analysis)
     input_type: data.inputType,
     scope: data.scope,
     location_city: data.locationCity,
@@ -376,7 +398,10 @@ export async function createPost(data: {
     uniqueness_score: uniquenessScore,
     match_count: matchCount,
     is_anonymous: true,
-    embedding: embedding, // Pass array directly, Supabase will handle vector type
+    embedding: embedding, // Vector for semantic search
+    has_negation: hasNegation, // Negation flag for accurate matching
+    time_tags: timeExpressions, // Time context
+    emoji_tags: emojis, // Emoji context
   }
   
   console.log(`🔍 Inserting post with embedding: ${embedding ? 'YES' : 'NO'}`)
@@ -461,7 +486,10 @@ export async function createPost(data: {
 export async function findSimilarPostsGlobal(params: {
   contentHash: string
   content: string
+  originalContent?: string
   scope?: 'city' | 'state' | 'country' | 'world'
+  hasNegation?: boolean
+  timeExpressions?: string[]
   location?: {
     city?: string
     state?: string
@@ -471,7 +499,17 @@ export async function findSimilarPostsGlobal(params: {
   useEmbeddings?: boolean
 }) {
   const supabase = createClient()
-  const { contentHash, content, scope = 'world', location, limit = 20, useEmbeddings = true } = params
+  const { 
+    contentHash, 
+    content, 
+    originalContent = content,
+    scope = 'world', 
+    hasNegation = false,
+    timeExpressions = [],
+    location, 
+    limit = 20, 
+    useEmbeddings = true 
+  } = params
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // METHOD 1: VECTOR EMBEDDINGS (Semantic Similarity)
@@ -484,18 +522,19 @@ export async function findSimilarPostsGlobal(params: {
       const queryEmbedding = await generateEmbedding(content)
       
       // Call RPC function for vector similarity search
-      // Lower threshold to catch more candidates, then filter with fuzzy matching
+      // Lower threshold to catch more candidates, then filter with composite scoring
       const { data: vectorMatches, error: rpcError } = await supabase.rpc(
         'match_posts_by_embedding',
         {
           query_embedding: queryEmbedding as any,
-          match_threshold: 0.65, // 65% - cast wide net for candidates
+          match_threshold: 0.60, // 60% - cast wide net (composite scoring will filter)
           match_limit: limit * 2, // Get more candidates for filtering
           scope_filter: scope,
           filter_city: location?.city || null,
           filter_state: location?.state || null,
           filter_country: location?.country || null,
-          today_only: true
+          today_only: true,
+          query_has_negation: hasNegation // CRITICAL: Only match same negation!
         }
       )
       
@@ -507,39 +546,62 @@ export async function findSimilarPostsGlobal(params: {
       }
       
       if (!rpcError && vectorMatches && vectorMatches.length > 0) {
-        // HYBRID FILTERING: Combine semantic + fuzzy matching
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // COMPOSITE SIMILARITY SCORING (Phase 1 Enhancement!)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         const contentLower = content.toLowerCase().trim()
+        
+        // Get scope-aware threshold
+        const scopeThreshold = getScopeThreshold(scope)
+        console.log(`📏 Using scope-aware threshold for ${scope}: ${(scopeThreshold * 100).toFixed(0)}%`)
         
         const hybridMatches = vectorMatches
           .map((p: any) => {
             const matchContentLower = p.content.toLowerCase().trim()
             
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            // STEP 1: VERB-BASED MATCHING (Dynamic, works for all cases!)
+            // STEP 1: VERB-BASED MATCHING (Gate)
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            const verbCheck = isSameActionPost(content, p.content)
+            const verbCheck = isSameActionPost(originalContent, p.content)
             
             // Debug: Log verb check results
             if (vectorMatches.length <= 3) {
               console.log(`   🔍 Verb check: "${p.content.substring(0, 30)}" → ${verbCheck.reason}`)
             }
             
-            // If verbs are different → Automatic reject (even if high similarity)
+            // If verbs are different → Automatic reject
             if (!verbCheck.isSame) {
               return null // Will be filtered out
             }
             
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            // STEP 2: CONTEXT VERIFICATION (Only if verbs match)
+            // STEP 2: COMPOSITE SIMILARITY SCORING
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            // Multi-dimensional scoring (more robust than single metric!)
             
-            // Calculate Levenshtein distance (character-level typo tolerance)
             const levenshteinDist = distance(contentLower, matchContentLower)
             const maxLength = Math.max(contentLower.length, matchContentLower.length)
             const levenshteinSimilarity = 1 - (levenshteinDist / maxLength)
             
-            // Hybrid score: 70% vector + 30% Levenshtein
-            const hybridScore = (p.similarity * 0.7) + (levenshteinSimilarity * 0.3)
+            // Calculate composite similarity
+            const compositeSim = calculateCompositeSimilarity({
+              content1: content,
+              content2: p.content,
+              vectorSimilarity: p.similarity,
+              hasNegation1: hasNegation,
+              hasNegation2: p.has_negation || false,
+              timeTags1: timeExpressions,
+              timeTags2: [], // Would need to fetch from DB if available
+              levenshteinSimilarity
+            })
+            
+            // Check if should match using scope-aware logic
+            const matchDecision = shouldMatch(compositeSim, scope, verbCheck.isSame)
+            
+            // Debug detailed scores
+            if (vectorMatches.length <= 3) {
+              console.log(`   📊 Composite: ${(compositeSim.compositeScore * 100).toFixed(0)}% (${compositeSim.breakdown})`)
+            }
             
             return {
               id: p.id,
@@ -549,43 +611,34 @@ export async function findSimilarPostsGlobal(params: {
               location_city: p.location_city,
               location_state: p.location_state,
               location_country: p.location_country,
-              similarity_score: hybridScore,
+              similarity_score: compositeSim.compositeScore,
               vector_similarity: p.similarity,
+              jaccard_similarity: compositeSim.jaccardScore,
+              token_similarity: compositeSim.tokenScore,
               levenshtein_similarity: levenshteinSimilarity,
-              levenshtein_distance: levenshteinDist,
+              negation_penalty: compositeSim.negationPenalty,
+              time_bonus: compositeSim.timeBonus,
               verb1: verbCheck.verb1,
               verb2: verbCheck.verb2,
-              verb_match: verbCheck.reason,
-              match_type: hybridScore >= 0.95 ? 'exact' as const :
-                          hybridScore >= 0.65 ? 'core_action' as const :
+              should_match: matchDecision.shouldMatch,
+              match_reason: matchDecision.reason,
+              match_type: compositeSim.compositeScore >= 0.90 ? 'exact' as const :
+                          compositeSim.compositeScore >= 0.70 ? 'core_action' as const :
                           'similar' as const,
             }
           })
           // Remove nulls (rejected by verb check)
           .filter((m: any) => m !== null)
-          // Filter: Keep if hybrid score >= 60% (lower since verbs already matched!)
-          .filter((m: any) => m.similarity_score >= 0.60)
-          // Sort by hybrid score
+          // Filter: Keep only if should_match is true (scope-aware decision!)
+          .filter((m: any) => m.should_match)
+          // Sort by composite score
           .sort((a: any, b: any) => b.similarity_score - a.similarity_score)
           // Limit results
           .slice(0, limit)
         
-        // Log all candidates and their scores (for debugging)
-        if (vectorMatches.length > 0) {
-          const allScored = vectorMatches.map((p: any) => {
-            const matchContentLower = p.content.toLowerCase().trim()
-            const levenshteinDist = distance(contentLower, matchContentLower)
-            const maxLength = Math.max(contentLower.length, matchContentLower.length)
-            const levenshteinSimilarity = 1 - (levenshteinDist / maxLength)
-            const hybridScore = (p.similarity * 0.7) + (levenshteinSimilarity * 0.3)
-            return { content: p.content.substring(0, 30), vector: p.similarity.toFixed(2), lev: levenshteinSimilarity.toFixed(2), hybrid: hybridScore.toFixed(2) }
-          })
-          console.log(`🔍 All candidates:`, JSON.stringify(allScored, null, 2))
-        }
-        
         if (hybridMatches.length > 0) {
-          console.log(`✨ Hybrid matching found ${hybridMatches.length} matches (vector + fuzzy)`)
-          console.log(`   Avg scores - Hybrid: ${(hybridMatches.reduce((acc: number, p: any) => acc + p.similarity_score, 0) / hybridMatches.length).toFixed(2)}, Vector: ${(hybridMatches.reduce((acc: number, p: any) => acc + p.vector_similarity, 0) / hybridMatches.length).toFixed(2)}, Levenshtein: ${(hybridMatches.reduce((acc: number, p: any) => acc + p.levenshtein_similarity, 0) / hybridMatches.length).toFixed(2)}`)
+          console.log(`✨ Composite matching found ${hybridMatches.length} matches`)
+          console.log(`   Avg scores - Composite: ${(hybridMatches.reduce((acc: number, p: any) => acc + p.similarity_score, 0) / hybridMatches.length).toFixed(2)}, Vector: ${(hybridMatches.reduce((acc: number, p: any) => acc + p.vector_similarity, 0) / hybridMatches.length).toFixed(2)}, Jaccard: ${(hybridMatches.reduce((acc: number, p: any) => acc + p.jaccard_similarity, 0) / hybridMatches.length).toFixed(2)}`)
           
           return hybridMatches
         }
