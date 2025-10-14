@@ -126,35 +126,52 @@ export default function ShareModal({
     return 'https://onlyone.today'
   }
   
-  const getShareUrl = () => {
-    const homepageUrl = getHomepageUrl()
-    // Create shareable URL with OG image
-    const params = new URLSearchParams({
-      content,
-      score: score.toString(),
-      type,
-      scope,
-    })
-    return `${homepageUrl}/share/post?${params.toString()}`
-  }
-  
   const getShareText = () => {
-    const shareUrl = getShareUrl()
-    return `${message}\n\n"${content}"\n\n🎯 Check it out: ${shareUrl}`
+    const homepageUrl = getHomepageUrl()
+    return `${message}\n\n"${content}"\n\n🎯 Discover your uniqueness: ${homepageUrl}`
   }
   
   const handleCopyLink = () => {
-    const shareUrl = getShareUrl()
-    navigator.clipboard.writeText(shareUrl)
+    const shareText = getShareText()
+    navigator.clipboard.writeText(shareText)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
   
-  const handleShareWhatsApp = () => {
-    const shareUrl = getShareUrl()
-    // Share URL (WhatsApp will fetch OG image)
-    const url = `https://wa.me/?text=${encodeURIComponent(`${message}\n\n"${content}"\n\n${shareUrl}`)}`
-    window.open(url, '_blank')
+  const handleShareWhatsApp = async () => {
+    try {
+      // Generate and download the image first
+      const shareCardRef = document.getElementById('share-card-preview')
+      if (!shareCardRef) return
+      
+      // Convert to blob
+      const blob = await toJpeg(shareCardRef, {
+        quality: 0.95,
+        pixelRatio: 2,
+      }).then(dataUrl => fetch(dataUrl)).then(res => res.blob())
+      
+      const file = new File([blob], 'onlyone-share.jpg', { type: 'image/jpeg' })
+      const shareText = getShareText()
+      
+      // Try native share API (works on mobile!)
+      if (navigator.share && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          text: shareText,
+          files: [file],
+        })
+      } else {
+        // Fallback: Download image and copy text
+        await handleDownload()
+        await navigator.clipboard.writeText(shareText)
+        alert('📸 Image downloaded & text copied!\n\nNow:\n1. Open WhatsApp\n2. Paste the text\n3. Attach the downloaded image\n4. Send! ✨')
+      }
+    } catch (error) {
+      console.error('Share failed:', error)
+      // Fallback: just share text
+      const shareText = getShareText()
+      const url = `https://wa.me/?text=${encodeURIComponent(shareText)}`
+      window.open(url, '_blank')
+    }
   }
   
   const handleShareInstagram = async () => {
