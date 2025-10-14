@@ -116,7 +116,7 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-xl font-bold text-white mb-3">🌍 International Users</h2>
               <p>
-                We comply with GDPR, CCPA, and other privacy regulations. Your data is processed securely in the cloud (Supabase/Vercel).
+                We comply with GDPR, CCPA, and other privacy regulations. Your data is processed securely in the cloud using industry-standard encryption and security practices.
               </p>
             </section>
 
