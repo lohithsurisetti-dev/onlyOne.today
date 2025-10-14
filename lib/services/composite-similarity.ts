@@ -22,7 +22,7 @@ export interface SimilarityInputs {
   hasNegation2: boolean
   timeTags1: string[]
   timeTags2: string[]
-  levenshteinSimilarity?: number
+  levenshteinSimilarity: number // Required now!
 }
 
 export interface SimilarityResult {
@@ -93,12 +93,13 @@ export function calculateCompositeSimilarity(inputs: SimilarityInputs): Similari
   }
   
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // COMPOSITE SCORE (Weighted combination)
+  // COMPOSITE SCORE (Simplified for short texts!)
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // Weights adjusted: Prioritize embeddings for short texts
-  // Embedding (60%), Jaccard (25%), Token (15%)
+  // LEARNING: Jaccard & Token fail on 2-3 word posts
+  // SOLUTION: Use proven Vector + Levenshtein formula
+  // Vector (70%), Levenshtein (30%)
   // Plus negation penalty and time bonus
-  const baseScore = (E * 0.60) + (J * 0.25) + (T * 0.15)
+  const baseScore = (E * 0.70) + (levenshteinSimilarity * 0.30)
   const compositeScore = Math.max(0, Math.min(1, baseScore + N + R))
   
   const breakdown = `E:${(E*100).toFixed(0)}% J:${(J*100).toFixed(0)}% T:${(T*100).toFixed(0)}% N:${N.toFixed(2)} R:${R.toFixed(2)}`
@@ -120,10 +121,10 @@ export function calculateCompositeSimilarity(inputs: SimilarityInputs): Similari
  */
 export function getScopeThreshold(scope: 'city' | 'state' | 'country' | 'world'): number {
   const thresholds = {
-    city: 0.60,    // Most lenient (small pool, less noise)
-    state: 0.65,   // Moderate
-    country: 0.70, // Stricter (larger pool)
-    world: 0.72    // Strictest but not too strict (was 78%, too high!)
+    city: 0.58,    // Most lenient (small pool, less noise)
+    state: 0.62,   // Moderate
+    country: 0.66, // Stricter (larger pool)
+    world: 0.68    // Strictest (but realistic for Vector+Lev formula)
   }
   
   return thresholds[scope]
