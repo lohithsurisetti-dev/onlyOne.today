@@ -453,18 +453,22 @@ export async function createPost(data: {
     await supabase.from('post_matches').insert(matches)
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // HIERARCHY PROTECTION: Only update posts in SAME or BROADER scopes
+    // SCOPE ISOLATION: Only update posts in the EXACT SAME scope
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // Example: State post can update City posts (city ⊂ state)
-    //          But City post should NOT update State posts!
-    
-    const scopeOrder = { city: 1, state: 2, country: 3, world: 4 }
-    const currentScopeLevel = scopeOrder[data.scope]
+    // Each scope is independent!
+    // - City posts only count City posts in same city
+    // - State posts only count State posts in same state
+    // - Country posts only count Country posts in same country
+    // - World posts count all World posts
+    //
+    // This prevents:
+    // ❌ State post updating City post's count
+    // ❌ Country post updating City/State post's count
+    // ✅ Each scope maintains its own accurate count
     
     const postsToUpdate = similarPosts.filter((sp: any) => {
-      const matchScopeLevel = scopeOrder[sp.scope as keyof typeof scopeOrder] || 4
-      // Only update if matched post is SAME or NARROWER scope
-      return matchScopeLevel <= currentScopeLevel
+      // Only update if EXACT same scope
+      return sp.scope === data.scope
     })
     
     if (postsToUpdate.length > 0) {
@@ -478,10 +482,10 @@ export async function createPost(data: {
       if (updateError) {
         console.error('❌ Batch update failed:', updateError)
       } else {
-        console.log(`✅ Updated ${postIds.length} matching posts (hierarchy protected)`)
+        console.log(`✅ Updated ${postIds.length} matching posts (same ${data.scope} scope)`)
       }
     } else {
-      console.log(`ℹ️ No posts to update (hierarchy protection - matched posts are broader scope)`)
+      console.log(`ℹ️ No posts to update (no matches in same ${data.scope} scope)`)
     }
   }
 
