@@ -140,48 +140,42 @@ export default function ShareModal({
   
   const handleShareWhatsApp = async () => {
     try {
-      const shareText = getShareText()
-      
-      // Check if native share API is available (mobile)
-      if (navigator.share) {
-        // Generate image blob
-        const shareCardRef = document.getElementById('share-card-preview')
-        if (!shareCardRef) {
-          console.error('Share card element not found')
-          // Fallback to text-only
-          const url = `https://wa.me/?text=${encodeURIComponent(shareText)}`
-          window.open(url, '_blank')
-          return
-        }
-        
-        console.log('Generating image for share...')
-        const dataUrl = await toJpeg(shareCardRef, {
-          quality: 0.95,
-          pixelRatio: 2,
-        })
-        
-        const blob = await fetch(dataUrl).then(res => res.blob())
-        const file = new File([blob], 'onlyone-share.jpg', { type: 'image/jpeg' })
-        
-        // Try sharing with file
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          console.log('Using native share with image...')
-          await navigator.share({
-            text: shareText,
-            files: [file],
-          })
-          return
-        }
+      // Generate image blob
+      const shareCardRef = document.getElementById('share-card-preview')
+      if (!shareCardRef) {
+        console.error('Share card element not found')
+        return
       }
       
-      // Fallback for desktop or unsupported browsers
-      console.log('Fallback: Download + copy')
-      await handleDownload()
-      navigator.clipboard.writeText(shareText)
-      alert('📸 Image downloaded & text copied!\n\nNow:\n1. Open WhatsApp\n2. Paste the text\n3. Attach the downloaded image\n4. Send! ✨')
+      const shareText = getShareText()
+      
+      // Convert card to image
+      const dataUrl = await toJpeg(shareCardRef, {
+        quality: 0.95,
+        pixelRatio: 2,
+      })
+      
+      const blob = await fetch(dataUrl).then(res => res.blob())
+      const file = new File([blob], 'onlyone-share.jpg', { type: 'image/jpeg' })
+      
+      // Try native share API (like game screenshots!)
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          text: shareText,
+          files: [file],
+        })
+      } else {
+        // Fallback: Open WhatsApp web with text only
+        const url = `https://wa.me/?text=${encodeURIComponent(shareText)}`
+        window.open(url, '_blank')
+        // Also download the image so they can attach manually
+        const link = document.createElement('a')
+        link.download = 'onlyone-share.jpg'
+        link.href = dataUrl
+        link.click()
+      }
     } catch (error) {
       console.error('Share failed:', error)
-      // Last resort: just share text via WhatsApp web
       const shareText = getShareText()
       const url = `https://wa.me/?text=${encodeURIComponent(shareText)}`
       window.open(url, '_blank')
