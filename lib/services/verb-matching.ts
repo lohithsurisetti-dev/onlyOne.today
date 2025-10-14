@@ -23,11 +23,38 @@ export function extractActionVerb(text: string): string | null {
   const doc = nlp(text)
   const textLower = text.toLowerCase().trim()
   
-  // Special pattern: "went/did [verb/gerund]" → Extract the main action
+  // Special patterns for common structures
+  
+  // Pattern 1: "went for a [noun]" → Extract the noun
+  const wentForPattern = text.match(/\b(went|did|got)\s+for\s+a\s+(\w+)\b/i)
+  if (wentForPattern) {
+    // "went for a jog" → "jog", "went for a swim" → "swim"
+    return wentForPattern[2].toLowerCase()
+  }
+  
+  // Pattern 2: "went/did [verb/gerund]" → Extract the action
   const wentPattern = text.match(/\b(went|did|got)\s+(\w+ing|\w+)\b/i)
-  if (wentPattern) {
+  if (wentPattern && wentPattern[2].toLowerCase() !== 'to' && wentPattern[2].toLowerCase() !== 'for') {
     // "went jogging" → "jogging", "did jog" → "jog"
     return wentPattern[2].toLowerCase()
+  }
+  
+  // Pattern 3: "had a [sport/game]" → Extract the sport
+  const hadGamePattern = text.match(/\b(had|played)\s+a?\s*(\w+)\s+(game|match)\b/i)
+  if (hadGamePattern) {
+    // "had a tennis game" → "tennis", "played a basketball match" → "basketball"
+    return hadGamePattern[2].toLowerCase()
+  }
+  
+  // Pattern 4: "[phrasal verb]" → Keep as is
+  if (textLower.includes('worked out')) {
+    return 'worked out'
+  }
+  if (textLower.includes('hit the gym')) {
+    return 'worked out' // Synonym
+  }
+  if (textLower.includes('went to the gym')) {
+    return 'worked out' // Synonym
   }
   
   // Regex fallback: Look for common action verbs anywhere in text
@@ -181,14 +208,16 @@ export function areSameAction(verb1: string | null, verb2: string | null): boole
     return true
   }
   
-  // Check for known synonyms (food/consumption actions)
+  // Check for known synonyms
   const synonymGroups = [
     ['eat', 'have', 'consume'],
     ['make', 'cook', 'bake', 'prepare'],
     ['watch', 'see', 'view'],
-    ['play', 'do'], // "played cricket" vs "did cricket"
-    ['jog', 'run'], // Close enough
+    ['jog', 'run'], // "jogging" ≈ "running"
     ['walk', 'stroll'],
+    ['worked out', 'workout', 'exercise'], // Gym activities
+    // Sports are compared by name, not verb
+    ['tennis', 'basketball', 'football', 'cricket', 'volleyball'], // Same sport = same action
   ]
   
   for (const group of synonymGroups) {
