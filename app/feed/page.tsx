@@ -13,6 +13,7 @@ import { getShareMessage } from '@/lib/services/witty-messages'
 import { detectVibeSync } from '@/lib/services/vibe-detector'
 import { formatGhostPost, isGhostPost } from '@/lib/services/ghost-posts'
 import { fetchTrendingPosts } from '@/lib/services/trending-client'
+import PostCardSkeleton, { TrendingInfoSkeleton } from '@/components/PostCardSkeleton'
 
 interface UserLocation {
   city: string
@@ -1140,19 +1141,11 @@ export default function FeedPage() {
           <div className="grid lg:grid-cols-[1fr,300px] gap-6">
             <div>
               {(apiLoading || postsLoading || trendingLoading) && (
-                <div className="text-center text-white/60 py-12">
-                  <div className="inline-flex items-center gap-3">
-                    <svg className="w-6 h-6 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    <span>
-                      {trendingLoading 
-                        ? trendingRetryAttempt > 1 
-                          ? `Loading trending posts... (retry ${trendingRetryAttempt}/3)`
-                          : 'Loading trending posts...'
-                        : 'Loading posts...'}
-                    </span>
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {/* Show 12 skeleton cards while loading */}
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <PostCardSkeleton key={i} />
+                  ))}
                 </div>
               )}
               
@@ -1252,6 +1245,10 @@ export default function FeedPage() {
             <aside className="hidden lg:block">
               <div className="sticky top-24">
                 {filter === 'trending' ? (
+                  trendingLoading ? (
+                    /* Trending Info Skeleton */
+                    <TrendingInfoSkeleton />
+                  ) : (
                   /* Trending Info Card */
                   <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 backdrop-blur-sm rounded-2xl border border-orange-400/20 shadow-xl p-6">
                     <div className="flex items-center gap-3 mb-4">
@@ -1325,6 +1322,7 @@ export default function FeedPage() {
                       </div>
                     </div>
                   </div>
+                  )
                 ) : (
                   /* Regular Stats Card */
                   <GlobalStatsCard 
