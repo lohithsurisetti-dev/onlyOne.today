@@ -803,45 +803,10 @@ export async function getRecentPosts(params: {
     return []
   }
 
-  // REAL-TIME SCORE CALCULATION (SCOPE-AWARE):
-  // Recalculate scores based on CURRENT matches in EACH post's scope
-  // Note: Posts were matched using vector embeddings during creation (if available)
-  // This recount ensures scores are always current
-  const postsWithFreshScores = await Promise.all(
-    data.map(async (post) => {
-      // Build scope-aware count query for THIS post's scope
-      let countQuery = supabase
-        .from('posts')
-        .select('id', { count: 'exact', head: true })
-        .eq('content_hash', post.content_hash)
-        .gte('created_at', getTodayStart())
-      
-      // Apply scope filter based on THIS post's scope
-      countQuery = applyScopeFilter(countQuery, post.scope as any, {
-        city: post.location_city || undefined,
-        state: post.location_state || undefined,
-        country: post.location_country || undefined
-      })
-      
-      const { count, error: countError } = await countQuery
-
-      if (countError) {
-        console.error('Error counting matches:', countError)
-        return post // Return original if count fails
-      }
-
-      // Calculate fresh score (ACTION-BASED)
-      // Subtract 1 because count includes the post itself
-      const actualMatches = (count || 1) - 1 // This is "others" in scope
-      const freshScore = calculateUniquenessScore(actualMatches)
-
-      return {
-        ...post,
-        match_count: actualMatches,
-        uniqueness_score: freshScore
-      }
-    })
-  )
+  // Use stored match_count and uniqueness_score from vector-based creation
+  // These were calculated using semantic similarity (vectors + fuzzy matching)
+  // Recounting by content_hash would break this and only find exact matches!
+  const postsWithFreshScores = data
 
   // Apply filter AFTER recalculation
   let filteredPosts = postsWithFreshScores
