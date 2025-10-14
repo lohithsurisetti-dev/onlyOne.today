@@ -107,10 +107,15 @@ export function validateAction(content: string, doc?: any): {
   // Abstract states are internal: "felt", "thought", "believed"
   const abstractVerbs = nlpDoc.match('(be|am|is|are|was|were|have|has|had|seem|seemed|feel|felt|think|thought|believe|believed|know|knew|can|could|should|would|will|shall|may|might|must)').found
   
+  // Special case: "had" with food/object = action (ate/consumed)
+  const hadWithObject = /\b(had|have|has)\s+\w+/.test(content.toLowerCase())
+  const hasNouns = nlpDoc.nouns().found
+  
   // Check if ONLY abstract/be verbs exist (no concrete actions)
+  // Exception: "had" with object/noun is allowed
   const onlyAbstractVerbs = abstractVerbs && verbWords.every((v: string) => 
     ['be', 'am', 'is', 'are', 'was', 'were', 'have', 'has', 'had', 'seem', 'seemed', 'feel', 'felt', 'think', 'thought', 'believe', 'believed', 'know', 'knew', 'can', 'could', 'should', 'would', 'will', 'shall', 'may', 'might', 'must'].includes(v.toLowerCase())
-  )
+  ) && !(hadWithObject && hasNouns)
   
   if (verbs.length > 0 && !abstractVerbs) {
     actionScore += 20
