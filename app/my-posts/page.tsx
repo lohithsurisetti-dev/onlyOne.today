@@ -171,7 +171,7 @@ export default function MyPostsPage() {
                 return (
                   <div
                     key={post.id}
-                    className={`group relative rounded-2xl p-4 backdrop-blur-md border transition-all duration-300 hover:scale-105 hover:shadow-xl flex flex-col justify-between ${cardStyle}`}
+                    className={`group relative rounded-2xl p-4 md:p-3 backdrop-blur-md border transition-all duration-300 hover:scale-105 hover:shadow-xl flex flex-col justify-between ${cardStyle}`}
                     style={{ minHeight: '160px' }}
                   >
                     {/* Share Button - Top Right */}
@@ -190,10 +190,10 @@ export default function MyPostsPage() {
                           alert('Link copied to clipboard!')
                         }
                       }}
-                      className="absolute top-2 right-2 opacity-70 group-hover:opacity-100 hover:opacity-100 transition-opacity p-2 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-sm"
+                      className="absolute top-2 right-2 opacity-70 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 transition-opacity p-3 md:p-2 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-sm min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 flex items-center justify-center"
                       title="Share this post"
                     >
-                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 md:w-4 md:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                       </svg>
                     </button>
@@ -201,7 +201,7 @@ export default function MyPostsPage() {
                     {/* Content - Center Aligned */}
                     <a href={post.viewUrl} className="flex-1 flex items-center justify-center">
                       <div>
-                        <p className="text-sm leading-snug text-center text-white/90 group-hover:text-white">
+                        <p className="text-base md:text-sm leading-relaxed md:leading-snug text-center text-white/90 group-hover:text-white">
                           {post.content}
                         </p>
                       </div>
@@ -234,22 +234,22 @@ export default function MyPostsPage() {
 
                     {/* Reactions & Scope */}
                     <div className="flex items-center justify-between">
-                      <div className="flex gap-1.5">
+                      <div className="flex gap-1.5 md:gap-1">
                         {post.reactions && post.reactions.funny_count > 0 && (
-                          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs bg-yellow-500/20">
-                            <span className="text-xs">😂</span>
+                          <div className="flex items-center gap-1 px-2.5 py-1.5 md:px-1.5 md:py-0.5 rounded-full text-sm md:text-xs bg-yellow-500/20 min-h-[44px] md:min-h-0">
+                            <span className="text-base md:text-xs">😂</span>
                             <span className="text-white/80">{post.reactions.funny_count}</span>
                           </div>
                         )}
                         {post.reactions && post.reactions.creative_count > 0 && (
-                          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs bg-purple-500/20">
-                            <span className="text-xs">🎨</span>
+                          <div className="flex items-center gap-1 px-2.5 py-1.5 md:px-1.5 md:py-0.5 rounded-full text-sm md:text-xs bg-purple-500/20 min-h-[44px] md:min-h-0">
+                            <span className="text-base md:text-xs">🎨</span>
                             <span className="text-white/80">{post.reactions.creative_count}</span>
                           </div>
                         )}
                         {post.reactions && post.reactions.must_try_count > 0 && (
-                          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs bg-green-500/20">
-                            <span className="text-xs">🔥</span>
+                          <div className="flex items-center gap-1 px-2.5 py-1.5 md:px-1.5 md:py-0.5 rounded-full text-sm md:text-xs bg-green-500/20 min-h-[44px] md:min-h-0">
+                            <span className="text-base md:text-xs">🔥</span>
                             <span className="text-white/80">{post.reactions.must_try_count}</span>
                           </div>
                         )}
