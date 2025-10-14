@@ -29,13 +29,15 @@ interface Props {
 
 export default function GlobalStatsCard({ posts, currentFilter, userLocation }: Props) {
   const [rankings, setRankings] = useState<RankingData | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [expanded, setExpanded] = useState(false)
 
   const fetchRankings = async () => {
     try {
       setRefreshing(true)
+      setLoading(true)
       const offset = new Date().getTimezoneOffset()
       const params = new URLSearchParams({
         offset: offset.toString(),
@@ -61,10 +63,12 @@ export default function GlobalStatsCard({ posts, currentFilter, userLocation }: 
     }
   }
 
+  // Only fetch when expanded
   useEffect(() => {
-    fetchRankings()
-    // Removed auto-refresh interval - now manual only!
-  }, [userLocation])
+    if (expanded && !rankings) {
+      fetchRankings()
+    }
+  }, [expanded, userLocation])
 
   // Calculate stats from posts
   const totalPosts = posts.length
@@ -178,56 +182,80 @@ export default function GlobalStatsCard({ posts, currentFilter, userLocation }: 
 
   return (
     <div className="bg-gradient-to-br from-space-mid/50 to-space-dark/50 backdrop-blur-sm rounded-2xl border border-white/10 shadow-xl overflow-hidden">
-      {/* Top Rankings - 3 Columns Side by Side */}
-      <div className="p-4 border-b border-white/10">
-        {/* Clean header */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              <h3 className="text-base font-bold text-white">Today's Top Performers</h3>
-            </div>
-            
-            <button
-              onClick={fetchRankings}
-              disabled={refreshing || loading}
-              className="p-1.5 rounded-lg bg-white/5 hover:bg-purple-500/20 border border-white/10 hover:border-purple-400/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed group"
-              title="Refresh rankings"
-            >
-              <svg 
-                className={`w-4 h-4 text-purple-300 ${refreshing ? 'animate-spin' : 'group-hover:rotate-180'} transition-transform duration-300`}
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </button>
-          </div>
-          
-          <div className="text-[10px] text-white/40 leading-relaxed">
-            <span>📍 Location-enabled users</span>
-            {lastRefreshed && (
-              <span className="ml-2 text-white/30">
-                • Updated {lastRefreshed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-              </span>
-            )}
+      {/* Collapsible Header */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+          <div className="text-left">
+            <h3 className="text-sm font-bold text-white">Today's Top Performers</h3>
+            <p className="text-[10px] text-white/40">Tap to {expanded ? 'hide' : 'view'}</p>
           </div>
         </div>
         
-        {loading ? (
-          <div className="text-center py-8 text-white/40 text-sm">
-            <div className="animate-pulse">Loading rankings...</div>
-          </div>
-        ) : !hasRankings ? (
-          <div className="text-center py-8 text-white/40 text-sm">
-            <p className="mb-2">📍 No location data yet</p>
-            <p className="text-xs">Rankings will appear as users post from different locations</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
+        <svg 
+          className={`w-5 h-5 text-white/60 transition-transform ${expanded ? 'rotate-180' : ''}`}
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {/* Expanded Content */}
+      {expanded && (
+        <div className="border-t border-white/10">
+          {/* Top Rankings - 3 Columns Side by Side */}
+          <div className="p-4 border-b border-white/10">
+            {/* Clean header */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="text-[10px] text-white/40 leading-relaxed">
+                  <span>📍 Location-enabled users</span>
+                  {lastRefreshed && (
+                    <span className="ml-2 text-white/30">
+                      • Updated {lastRefreshed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                    </span>
+                  )}
+                </div>
+                
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    fetchRankings()
+                  }}
+                  disabled={refreshing || loading}
+                  className="p-1.5 rounded-lg bg-white/5 hover:bg-purple-500/20 border border-white/10 hover:border-purple-400/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed group"
+                  title="Refresh rankings"
+                >
+                  <svg 
+                    className={`w-4 h-4 text-purple-300 ${refreshing ? 'animate-spin' : 'group-hover:rotate-180'} transition-transform duration-300`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+        
+            {loading ? (
+              <div className="text-center py-8 text-white/40 text-sm">
+                <div className="animate-pulse">Loading rankings...</div>
+              </div>
+            ) : !hasRankings ? (
+              <div className="text-center py-8 text-white/40 text-sm">
+                <p className="mb-2">📍 No location data yet</p>
+                <p className="text-xs">Rankings will appear as users post from different locations</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
             {/* Countries Leaderboard */}
             {rankings.countries.top.length > 0 && (
               <div className="bg-white/5 rounded-lg p-3 border border-white/5">
@@ -393,11 +421,13 @@ export default function GlobalStatsCard({ posts, currentFilter, userLocation }: 
               </div>
             )}
           </div>
+          )}
+        </div>
+          </div>
         )}
-      </div>
 
-      {/* Global Pulse - Detailed */}
-      <div className="p-4">
+      {/* Global Pulse - Always Visible */}
+      <div className="p-4 border-t border-white/10">
         <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
           <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -461,7 +491,6 @@ export default function GlobalStatsCard({ posts, currentFilter, userLocation }: 
           )}
         </div>
       </div>
-
     </div>
   )
 }
