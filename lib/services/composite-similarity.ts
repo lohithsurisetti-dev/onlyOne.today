@@ -119,10 +119,10 @@ export function calculateCompositeSimilarity(inputs: SimilarityInputs): Similari
  */
 export function getScopeThreshold(scope: 'city' | 'state' | 'country' | 'world'): number {
   const thresholds = {
-    city: 0.65,    // Most lenient (small pool, less noise)
-    state: 0.70,   // Moderate
-    country: 0.75, // Stricter (larger pool)
-    world: 0.78    // Strictest (global pool, most paraphrases)
+    city: 0.60,    // Most lenient (small pool, less noise)
+    state: 0.65,   // Moderate
+    country: 0.70, // Stricter (larger pool)
+    world: 0.72    // Strictest but not too strict (was 78%, too high!)
   }
   
   return thresholds[scope]
