@@ -214,6 +214,11 @@ export async function GET(request: NextRequest) {
     const filter = searchParams.get('filter') || 'all'
     const limitParam = searchParams.get('limit') || '25'
     const offsetParam = searchParams.get('offset') || '0'
+    const scopeFilter = searchParams.get('scopeFilter') || 'world'
+    const reactionFilter = searchParams.get('reactionFilter') || 'all'
+    const locationCity = searchParams.get('locationCity') || undefined
+    const locationState = searchParams.get('locationState') || undefined
+    const locationCountry = searchParams.get('locationCountry') || undefined
     
     // If requesting specific post by ID, fetch that with LIVE score calculation
     if (postId) {
@@ -289,14 +294,21 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(Math.max(parseInt(limitParam) || 25, 1), 100) // Max 100
     const offset = Math.max(parseInt(offsetParam) || 0, 0)
 
-    // 3. Fetch posts
-    const posts = await getRecentPosts({ 
+    // 3. Fetch posts with total count for pagination + server-side filters
+    const { posts, total } = await getRecentPosts({ 
       filter: filter as 'all' | 'unique' | 'common', 
       limit, 
-      offset 
+      offset,
+      scopeFilter: scopeFilter as 'all' | 'city' | 'state' | 'country' | 'world',
+      reactionFilter: reactionFilter as 'all' | 'funny' | 'creative' | 'must_try',
+      location: {
+        city: locationCity,
+        state: locationState,
+        country: locationCountry
+      }
     })
 
-    return NextResponse.json({ posts }, { status: 200 })
+    return NextResponse.json({ posts, total }, { status: 200 })
   } catch (error) {
     return createSecureErrorResponse(error, 'Failed to get posts')
   }

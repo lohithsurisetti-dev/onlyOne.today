@@ -86,15 +86,19 @@ export function useCreatePost() {
 }
 
 /**
- * Hook to fetch recent posts
+ * Hook to fetch recent posts with pagination and server-side filtering
  */
 export function useRecentPosts(
   filter: 'all' | 'unique' | 'common' = 'all',
   limit: number = 25,
   offset: number = 0,
-  refreshKey: number = 0
+  refreshKey: number = 0,
+  scopeFilter: 'all' | 'city' | 'state' | 'country' | 'world' = 'world',
+  reactionFilter: 'all' | 'funny' | 'creative' | 'must_try' = 'all',
+  location?: { city?: string; state?: string; country?: string }
 ) {
   const [posts, setPosts] = useState<Post[]>([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -108,6 +112,11 @@ export function useRecentPosts(
           filter,
           limit: limit.toString(),
           offset: offset.toString(),
+          scopeFilter,
+          reactionFilter,
+          ...(location?.city && { locationCity: location.city }),
+          ...(location?.state && { locationState: location.state }),
+          ...(location?.country && { locationCountry: location.country }),
         })
 
         const response = await fetch(`/api/posts?${params}`, {
@@ -120,8 +129,9 @@ export function useRecentPosts(
 
         const data = await response.json()
         console.log('📡 API Response:', data)
-        console.log('📊 Posts fetched:', data.posts?.length, 'posts')
+        console.log('📊 Posts fetched:', data.posts?.length, 'posts, total:', data.total)
         setPosts(data.posts || [])
+        setTotal(data.total || 0)
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'An error occurred'
         setError(errorMessage)
@@ -131,9 +141,9 @@ export function useRecentPosts(
     }
 
     fetchPosts()
-  }, [filter, limit, offset, refreshKey])
+  }, [filter, limit, offset, refreshKey, scopeFilter, reactionFilter, location?.city, location?.state, location?.country])
 
-  return { posts, loading, error }
+  return { posts, total, loading, error }
 }
 
 /**

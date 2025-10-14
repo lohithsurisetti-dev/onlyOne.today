@@ -897,44 +897,86 @@ export async function getRecentPosts(params: {
   filter?: 'all' | 'unique' | 'common'
   limit?: number
   offset?: number
+  scopeFilter?: 'all' | 'city' | 'state' | 'country' | 'world'
+  reactionFilter?: 'all' | 'funny' | 'creative' | 'must_try'
+  location?: {
+    city?: string
+    state?: string
+    country?: string
+  }
 }) {
   const supabase = createClient()
-  const { filter = 'all', limit = 25, offset = 0 } = params
+  const { 
+    filter = 'all', 
+    limit = 25, 
+    offset = 0,
+    scopeFilter = 'world',
+    reactionFilter = 'all',
+    location
+  } = params
 
-  let query = supabase
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // BUILD BASE QUERY (with all filters applied at DB level)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  let baseQuery = supabase
     .from('posts')
-    .select('id, content, input_type, scope, location_city, location_state, location_country, uniqueness_score, match_count, funny_count, creative_count, must_try_count, total_reactions, created_at, content_hash')
+    .select('id, content, input_type, scope, location_city, location_state, location_country, uniqueness_score, match_count, funny_count, creative_count, must_try_count, total_reactions, created_at, content_hash', { count: 'exact' })
     .gte('created_at', getTodayStart()) // TODAY ONLY (calendar day)
+  
+  // Apply type filter (unique/common/all)
+  if (filter === 'unique') {
+    baseQuery = baseQuery.gte('uniqueness_score', 70)
+  } else if (filter === 'common') {
+    baseQuery = baseQuery.lt('uniqueness_score', 70)
+  }
+  
+  // Apply scope filter (city/state/country/world)
+  if (scopeFilter !== 'world' && scopeFilter !== 'all') {
+    if (scopeFilter === 'city' && location?.city) {
+      baseQuery = baseQuery.eq('location_city', location.city)
+    } else if (scopeFilter === 'state' && location?.state) {
+      baseQuery = baseQuery.eq('location_state', location.state)
+    } else if (scopeFilter === 'country' && location?.country) {
+      baseQuery = baseQuery.eq('location_country', location.country)
+    }
+  }
+  
+  // Apply reaction filter (funny/creative/must_try)
+  if (reactionFilter !== 'all') {
+    if (reactionFilter === 'funny') {
+      baseQuery = baseQuery.gt('funny_count', 0)
+    } else if (reactionFilter === 'creative') {
+      baseQuery = baseQuery.gt('creative_count', 0)
+    } else if (reactionFilter === 'must_try') {
+      baseQuery = baseQuery.gt('must_try_count', 0)
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // STEP 1: Get total count (with all filters applied)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const { count: totalCount, error: countError } = await baseQuery
+
+  if (countError) {
+    console.error('Error counting posts:', countError)
+    throw new Error('Failed to count posts')
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // STEP 2: Fetch paginated posts (with all filters applied)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const { data, error } = await baseQuery
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)
-    .limit(limit) // Explicit limit for speed
-
-  // Note: We'll recalculate scores after fetching, so filter is applied post-processing
-  const { data, error } = await query
 
   if (error) {
     console.error('Error getting recent posts:', error)
     throw new Error('Failed to get posts')
   }
 
-  if (!data || data.length === 0) {
-    return []
-  }
+  console.log(`📊 Server-side pagination: ${data?.length || 0} posts (offset: ${offset}, limit: ${limit}, total: ${totalCount})`)
 
-  // Use stored match_count and uniqueness_score from vector-based creation
-  // These were calculated using semantic similarity (vectors + fuzzy matching)
-  // Recounting by content_hash would break this and only find exact matches!
-  const postsWithFreshScores = data
-
-  // Apply filter AFTER recalculation
-  let filteredPosts = postsWithFreshScores
-  if (filter === 'unique') {
-    filteredPosts = postsWithFreshScores.filter(p => p.uniqueness_score >= 70)
-  } else if (filter === 'common') {
-    filteredPosts = postsWithFreshScores.filter(p => p.uniqueness_score < 70)
-  }
-
-  return filteredPosts
+  return { posts: data || [], total: totalCount || 0 }
 }
 
 /**

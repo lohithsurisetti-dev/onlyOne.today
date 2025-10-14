@@ -522,9 +522,25 @@ export default function FeedPage() {
     }
   }
   
-  // Fetch real posts from API (trending filter shows all posts, filtering happens client-side)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // SERVER-SIDE PAGINATION + FILTERING (Efficient!)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   const apiFilter = filter === 'trending' ? 'all' : filter
-  const { posts: apiPosts, loading: apiLoading, error } = useRecentPosts(apiFilter, 100, 0, refreshKey)
+  const offset = (currentPage - 1) * postsPerPage
+  const { 
+    posts: apiPosts, 
+    total: totalPosts, 
+    loading: apiLoading, 
+    error 
+  } = useRecentPosts(
+    apiFilter, 
+    postsPerPage, 
+    offset, 
+    refreshKey,
+    scopeFilter,
+    reactionFilter,
+    userLocation || undefined
+  )
   
   // State for posts with ghost posts injected
   const [allPosts, setAllPosts] = useState<DisplayPost[]>([])
@@ -653,64 +669,31 @@ export default function FeedPage() {
     loadPostsWithGhosts()
   }, [apiPosts, apiLoading, filter, trendingRefreshKey])
   
-  const filteredPosts = React.useMemo(() => {
-    console.log(`🔍 Filtering: allPosts=${allPosts.length}, filter=${filter}, ghostPosts=${allPosts.filter(p => p.isGhost).length}`)
-    
-    let filtered = allPosts.filter(post => {
-      // Filter by type
-      let passesTypeFilter = true
-      if (filter === 'all') passesTypeFilter = !post.isGhost // Exclude ghost posts from "All"
-      else if (filter === 'unique') passesTypeFilter = post.type === 'unique' && !post.isGhost
-      else if (filter === 'common') passesTypeFilter = post.type === 'common' && !post.isGhost
-      else if (filter === 'trending') passesTypeFilter = post.isGhost === true
-      
-      // Filter by scope (skip for ghost posts)
-      let passesScopeFilter = true
-      if (!post.isGhost && scopeFilter !== 'world') {
-        // Check actual location field, not just scope
-        if (scopeFilter === 'city') {
-          passesScopeFilter = post.location_city === userLocation?.city
-        } else if (scopeFilter === 'state') {
-          passesScopeFilter = post.location_state === userLocation?.state
-        } else if (scopeFilter === 'country') {
-          passesScopeFilter = post.location_country === userLocation?.country
-        }
-      }
-      
-      // Filter by reaction (skip for ghost posts)
-      let passesReactionFilter = true
-      if (!post.isGhost) {
-      if (reactionFilter === 'funny') passesReactionFilter = (post.funny_count || 0) > 0
-      else if (reactionFilter === 'creative') passesReactionFilter = (post.creative_count || 0) > 0
-      else if (reactionFilter === 'must_try') passesReactionFilter = (post.must_try_count || 0) > 0
-      }
-      
-      return passesTypeFilter && passesScopeFilter && passesReactionFilter
-    })
-    
-    console.log(`✅ Filtered result: ${filtered.length} posts (${filtered.filter(p => p.isGhost).length} ghost posts)`)
-    
-    // Sort by reaction count if filtering
-    if (reactionFilter !== 'all') {
-      filtered = filtered.sort((a, b) => {
-        const aCount = reactionFilter === 'funny' ? (a.funny_count || 0) :
-                       reactionFilter === 'creative' ? (a.creative_count || 0) :
-                       (a.must_try_count || 0)
-        const bCount = reactionFilter === 'funny' ? (b.funny_count || 0) :
-                       reactionFilter === 'creative' ? (b.creative_count || 0) :
-                       (b.must_try_count || 0)
-        return bCount - aCount
-      })
-    }
-    
-    return filtered
-  }, [allPosts, filter, scopeFilter, reactionFilter, userLocation])
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // NO CLIENT-SIDE FILTERING NEEDED!
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Server handles: type (unique/common), scope (city/state/country), reactions
+  // Client only handles: ghost posts (trending)
   
-  // Pagination
-  const totalPages = Math.ceil(filteredPosts.length / postsPerPage)
-  const startIndex = (currentPage - 1) * postsPerPage
-  const endIndex = startIndex + postsPerPage
-  const currentPosts = filteredPosts.slice(startIndex, endIndex)
+  const filteredPosts = React.useMemo(() => {
+    if (filter === 'trending') {
+      // Trending: Show only ghost posts
+      return allPosts.filter(post => post.isGhost)
+    } else {
+      // Regular: Show only real posts (already filtered by server)
+      return allPosts.filter(post => !post.isGhost)
+    }
+  }, [allPosts, filter])
+  
+  // Calculate pagination
+  const totalPages = filter === 'trending' 
+    ? Math.ceil(filteredPosts.length / postsPerPage) // Trending: Use filtered length
+    : Math.ceil(totalPosts / postsPerPage) // Regular: Use server total
+  
+  // Paginate (trending only, regular posts already paginated by server)
+  const currentPosts = filter === 'trending'
+    ? filteredPosts.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage)
+    : filteredPosts // Already paginated by server!
   
   // Reset scope and reaction filters when switching to trending
   React.useEffect(() => {

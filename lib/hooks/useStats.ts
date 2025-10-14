@@ -23,9 +23,11 @@ export interface PlatformStats {
 export function usePlatformStats(timezone?: string) {
   const [stats, setStats] = useState<PlatformStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [userTimezone, setUserTimezone] = useState<string>('UTC')
   const [timezoneOffset, setTimezoneOffset] = useState<number>(0)
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
 
   useEffect(() => {
     // Detect user's timezone on client-side
@@ -38,47 +40,46 @@ export function usePlatformStats(timezone?: string) {
     }
   }, [])
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        // Use provided timezone or detected timezone
-        const tz = timezone || userTimezone
-        
-        // Build query with timezone info
-        const params = new URLSearchParams({
-          timezone: tz,
-          offset: timezoneOffset.toString()
-        })
-        
-        const response = await fetch(`/api/stats?${params}`, {
-          cache: 'no-store'
-        })
+  const fetchStats = async () => {
+    try {
+      setRefreshing(true)
+      // Use provided timezone or detected timezone
+      const tz = timezone || userTimezone
+      
+      // Build query with timezone info
+      const params = new URLSearchParams({
+        timezone: tz,
+        offset: timezoneOffset.toString()
+      })
+      
+      const response = await fetch(`/api/stats?${params}`, {
+        cache: 'no-store'
+      })
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch stats')
-        }
-
-        const data = await response.json()
-        setStats(data)
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'An error occurred'
-        setError(errorMessage)
-      } finally {
-        setLoading(false)
+      if (!response.ok) {
+        throw new Error('Failed to fetch stats')
       }
-    }
 
+      const data = await response.json()
+      setStats(data)
+      setLastRefreshed(new Date())
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred'
+      setError(errorMessage)
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }
+
+  useEffect(() => {
     // Only fetch when timezone is detected
     if (userTimezone) {
       fetchStats()
-      
-      // Refresh stats every 30 seconds
-      const interval = setInterval(fetchStats, 30000)
-      
-      return () => clearInterval(interval)
+      // Removed auto-refresh - manual only now!
     }
   }, [timezone, userTimezone, timezoneOffset])
 
-  return { stats, loading, error, userTimezone, timezoneOffset }
+  return { stats, loading, refreshing, error, userTimezone, timezoneOffset, lastRefreshed, refreshStats: fetchStats }
 }
 
