@@ -116,21 +116,88 @@ export default function ShareModal({
   const handleDownload = async () => {
     setDownloading(true)
     try {
-      const blob = await generateImage()
-      if (!blob) {
-        alert('Failed to generate image')
+      if (!cardRef.current) {
+        console.error('❌ cardRef.current is null')
+        alert('Card element not found. Please try refreshing the page.')
         return
       }
       
-      const url = URL.createObjectURL(blob)
+      console.log('🖼️ Starting image capture...')
+      console.log('📏 Card element:', cardRef.current)
+      console.log('📐 Card dimensions:', cardRef.current.offsetWidth, 'x', cardRef.current.offsetHeight)
+      
+      // Check if element is visible and has content
+      const computedStyle = window.getComputedStyle(cardRef.current)
+      console.log('🎨 Element styles:', {
+        display: computedStyle.display,
+        visibility: computedStyle.visibility,
+        opacity: computedStyle.opacity,
+        position: computedStyle.position
+      })
+      
+      // Wait a bit for any animations to settle
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Simple capture without complex options first
+      const dataUrl = await toPng(cardRef.current, {
+        quality: 1.0,
+        pixelRatio: 1, // Reduce to 1 first
+        backgroundColor: '#ffffff',
+        skipFonts: true, // Skip font loading issues
+        skipAutoScale: true // Skip auto-scaling
+      })
+      
+      console.log('✅ Image captured, dataUrl length:', dataUrl.length)
+      
+      // Create download link
       const link = document.createElement('a')
       link.download = `onlyone-${Date.now()}.png`
-      link.href = url
+      link.href = dataUrl
+      link.style.display = 'none'
+      
+      // Trigger download
+      document.body.appendChild(link)
       link.click()
-      URL.revokeObjectURL(url)
+      document.body.removeChild(link)
+      
+      console.log('✅ Download link triggered!')
     } catch (error) {
-      console.error('Download failed:', error)
-      alert('Failed to download image. Please try again.')
+      console.error('❌ Download failed with error:', error)
+      console.error('❌ Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      })
+      
+      // Try a simpler fallback
+      try {
+        console.log('🔄 Trying fallback method...')
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        canvas.width = 1200
+        canvas.height = 630
+        
+        // Fill with white background
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, 1200, 630)
+        
+        // Add text
+        ctx.fillStyle = '#333333'
+        ctx.font = '48px Arial'
+        ctx.fillText('Share Image Preview', 100, 100)
+        ctx.fillText(content.substring(0, 50), 100, 200)
+        
+        const fallbackDataUrl = canvas.toDataURL('image/png')
+        const link = document.createElement('a')
+        link.download = `onlyone-fallback-${Date.now()}.png`
+        link.href = fallbackDataUrl
+        link.click()
+        
+        console.log('✅ Fallback download completed!')
+      } catch (fallbackError) {
+        console.error('❌ Fallback also failed:', fallbackError)
+        alert('Download failed. Please try using the "Copy Link" button instead.')
+      }
     } finally {
       setDownloading(false)
     }
@@ -146,12 +213,31 @@ export default function ShareModal({
   const handleShareWhatsApp = async () => {
     setSharing(true)
     try {
-      const blob = await generateImage()
-      if (!blob) {
+      if (!cardRef.current) {
         const url = `https://wa.me/?text=${encodeURIComponent(getShareText())}`
         window.open(url, '_blank')
         return
       }
+      
+      console.log('📱 Starting WhatsApp share...')
+      
+      // Capture the DOM element directly as PNG
+      const dataUrl = await toPng(cardRef.current, {
+        quality: 1.0,
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+        width: 1200,
+        height: 630,
+        cacheBust: true,
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left',
+        }
+      })
+      
+      // Convert data URL to blob
+      const response = await fetch(dataUrl)
+      const blob = await response.blob()
       
       const file = new File([blob], 'onlyone-share.png', { type: 'image/png' })
       
@@ -160,6 +246,7 @@ export default function ShareModal({
           text: getShareText(),
           files: [file],
         })
+        console.log('✅ WhatsApp share completed!')
       } else {
         const url = `https://wa.me/?text=${encodeURIComponent(getShareText())}`
         window.open(url, '_blank')
@@ -170,9 +257,13 @@ export default function ShareModal({
         link.href = imageUrl
         link.click()
         URL.revokeObjectURL(imageUrl)
+        console.log('✅ Fallback: WhatsApp opened, image downloaded')
       }
     } catch (error) {
-      console.error('Share failed:', error)
+      console.error('❌ WhatsApp share failed:', error)
+      // Final fallback: just open WhatsApp with text
+      const url = `https://wa.me/?text=${encodeURIComponent(getShareText())}`
+      window.open(url, '_blank')
     } finally {
       setSharing(false)
     }
