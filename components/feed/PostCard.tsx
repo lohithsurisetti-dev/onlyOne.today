@@ -335,14 +335,6 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
           {reactions.must_try > 0 && <span className="text-white/80">{reactions.must_try}</span>}
         </button>
           </div>
-          
-          {/* Scope Badge - Right Aligned, Very Small */}
-          <span className="flex items-center gap-0.5 text-white/40 text-[10px]" title={`Compared in ${getScopeInfo(post.scope, post).label}`}>
-            <span className="scale-75">
-              {getScopeInfo(post.scope, post).iconSvg}
-            </span>
-            <span className="font-medium">{getScopeInfo(post.scope, post).label}</span>
-          </span>
         </div>
       )}
       
