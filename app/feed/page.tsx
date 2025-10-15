@@ -27,6 +27,7 @@ import FilterBar, { FilterType, ScopeFilter, ReactionFilter, LocationData } from
 import PostGrid from '@/components/feed/PostGrid'
 import PaginationControls from '@/components/feed/PaginationControls'
 import { DisplayPost } from '@/components/feed/PostCard'
+import DaySummaryCard, { DaySummaryPost } from '@/components/feed/DaySummaryCard'
 import ExclusiveDropdowns from '@/components/feed/ExclusiveDropdowns'
 
 // ============================================================================
@@ -86,6 +87,7 @@ export default function FeedPage() {
   const [filter, setFilter] = useState<FilterType>('all')
   const [scopeFilter, setScopeFilter] = useState<ScopeFilter>('world')
   const [reactionFilter, setReactionFilter] = useState<ReactionFilter>('all')
+  const [inputTypeFilter, setInputTypeFilter] = useState<'all' | 'action' | 'day'>('all')
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
@@ -186,7 +188,7 @@ export default function FeedPage() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [filter, scopeFilter, reactionFilter])
+  }, [filter, scopeFilter, reactionFilter, inputTypeFilter])
   
   // Update "My Posts" count from localStorage
   useEffect(() => {
@@ -367,6 +369,10 @@ export default function FeedPage() {
           location_country: post.location_country,
           score: post.uniqueness_score,
           count: post.match_count + 1,
+          // Day summary fields
+          input_type: (post as any).input_type,
+          activities: (post as any).activities,
+          activityCount: (post as any).activity_count,
           percentile, // OnlyFans-style ranking
           funny_count: post.funny_count || 0,
           creative_count: post.creative_count || 0,
@@ -468,6 +474,13 @@ export default function FeedPage() {
     // Filter out ghost posts first
     let posts = allPosts.filter(post => !post.isGhost)
     
+    // Apply input type filter (actions vs day summaries)
+    if (inputTypeFilter === 'action') {
+      posts = posts.filter(post => (post as any).input_type === 'action')
+    } else if (inputTypeFilter === 'day') {
+      posts = posts.filter(post => (post as any).input_type === 'day')
+    }
+    
     // Apply unique/common filter based on percentile tiers (Top 25% threshold)
     if (filter === 'unique') {
       // Top 25% = elite, rare, unique, notable tiers
@@ -484,7 +497,7 @@ export default function FeedPage() {
     }
     
     return posts
-  }, [allPosts, filter])
+  }, [allPosts, filter, inputTypeFilter])
   
   const totalPages = filter === 'trending' 
     ? Math.ceil(filteredPosts.length / postsPerPage)
@@ -533,9 +546,11 @@ export default function FeedPage() {
           filter={filter}
           scopeFilter={scopeFilter}
           reactionFilter={reactionFilter}
+          inputTypeFilter={inputTypeFilter}
           onFilterChange={handleFilterChange}
           onScopeFilterChange={handleScopeFilterChange}
           onReactionFilterChange={setReactionFilter}
+          onInputTypeFilterChange={setInputTypeFilter}
           userLocation={userLocation || undefined}
           trendingLoading={trendingLoading}
           trendingRetryAttempt={trendingRetryAttempt}

@@ -31,6 +31,10 @@ export interface DisplayPost {
   must_try_count?: number
   total_reactions?: number
   isGhost?: boolean
+  // Day summary fields
+  input_type?: 'action' | 'day'
+  activities?: string[]
+  activityCount?: number
 }
 
 export interface PostCardProps {

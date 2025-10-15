@@ -2,6 +2,7 @@
 
 import React from 'react'
 import PostCard, { DisplayPost } from './PostCard'
+import DaySummaryCard, { DaySummaryPost } from './DaySummaryCard'
 
 // ============================================================================
 // TYPES
@@ -71,18 +72,34 @@ export default function PostGrid({
     )
   }
   
-  // Posts grid
+  // Posts grid - Use appropriate card component based on input_type
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-3">
-      {posts.map((post) => (
-        <PostCard
-          key={post.id}
-          post={post}
-          onReact={onReact}
-          onShare={onShare}
-          userReactions={userReactions}
-        />
-      ))}
+      {posts.map((post) => {
+        const postType = (post as any).input_type
+        
+        // Render DaySummaryCard for day summaries, PostCard for actions
+        if (postType === 'day') {
+          return (
+            <DaySummaryCard
+              key={post.id}
+              post={post as DaySummaryPost}
+              onShare={onShare}
+            />
+          )
+        }
+        
+        // Default: Render as action card
+        return (
+          <PostCard
+            key={post.id}
+            post={post}
+            onReact={onReact}
+            onShare={onShare}
+            userReactions={userReactions}
+          />
+        )
+      })}
     </div>
   )
 }
