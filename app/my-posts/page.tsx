@@ -163,17 +163,33 @@ export default function MyPostsPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {displayPosts.map((post) => {
-                const isUnique = post.uniquenessScore >= 70
+                // Determine tier based on Top 25% threshold
+                const isTopTier = post.uniquenessScore >= 70 // Approximate (we don't have live percentile for historical posts)
+                
+                const getScopeIcon = () => {
+                  const iconClass = "w-3 h-3"
+                  switch (post.scope) {
+                    case 'city':
+                      return <svg className={iconClass} fill="currentColor" viewBox="0 0 24 24"><path d="M12 11.5A2.5 2.5 0 019.5 9 2.5 2.5 0 0112 6.5 2.5 2.5 0 0114.5 9a2.5 2.5 0 01-2.5 2.5M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7z"/></svg>
+                    case 'state':
+                      return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>
+                    case 'country':
+                      return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" /></svg>
+                    default:
+                      return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  }
+                }
                 
                 return (
                   <a
                     key={post.id}
                     href={post.viewUrl}
-                    className={`group relative rounded-2xl p-3 backdrop-blur-md border transition-all duration-300 hover:scale-105 hover:shadow-xl flex flex-col justify-between min-h-[130px] ${
-                      isUnique
+                    className={`group relative rounded-xl p-3 backdrop-blur-md border transition-all duration-300 hover:scale-105 hover:shadow-xl flex flex-col ${
+                      isTopTier
                         ? 'bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-purple-400/30 hover:border-purple-400/60'
                         : 'bg-gradient-to-br from-blue-900/30 to-cyan-900/30 border-blue-400/30 hover:border-blue-400/60'
                     }`}
+                    style={{ minHeight: '140px' }}
                   >
                     {/* Share Button - Top Right */}
                     <button
@@ -192,73 +208,69 @@ export default function MyPostsPage() {
                           alert('Link copied!')
                         }
                       }}
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg bg-white/10 hover:bg-white/20"
+                      className="absolute top-2 right-2 opacity-60 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 transition-opacity p-2 rounded-lg bg-white/10 hover:bg-white/20"
                     >
-                      <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                       </svg>
                     </button>
 
                     {/* Content - Center */}
-                    <div className="flex-1 flex items-center justify-center py-2">
-                      <p className="text-white/90 text-sm leading-snug text-center line-clamp-2">
+                    <div className="flex-1 flex items-center justify-center py-2 px-2">
+                      <p className="text-white/90 text-[15px] leading-snug text-center break-words">
                         {post.content}
                       </p>
                     </div>
 
-                    {/* Bottom Section */}
+                    {/* Footer - Same as feed cards */}
                     <div className="space-y-1.5">
-                      {/* Metrics Row */}
-                      <div className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-1 text-purple-300/80">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                            </svg>
-                            <span className="font-medium">{post.uniquenessScore}%</span>
-                          </div>
-                          <span className="text-white/30">·</span>
-                          <div className="flex items-center gap-1 text-blue-300/80">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                            <span className="font-medium">{post.matchCount + 1}</span>
-                          </div>
+                      {/* Score Badge (similar to percentile badge) */}
+                      <div className="flex items-center justify-between px-2 py-1.5 bg-white/5 rounded-lg border border-white/10">
+                        <div className="flex items-center gap-1">
+                          <svg className="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                          <span className="font-bold text-[10px] text-white">{post.uniquenessScore}%</span>
                         </div>
-                        <span className="text-white/50 text-[10px]">
-                          {new Date(post.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                        </span>
+                        <span className="text-[9px] text-white/50 font-medium">{post.matchCount + 1} people</span>
                       </div>
 
-                      {/* Reactions & Scope Row */}
-                      <div className="flex items-center justify-between">
+                      {/* Metadata & Reactions Row */}
+                      <div className="space-y-1">
+                        {/* Scope + Time */}
+                        <div className="flex items-center justify-between text-[10px] text-white/50">
+                          <span className="flex items-center gap-0.5">
+                            {getScopeIcon()}
+                            <span className="font-medium capitalize">{post.scope}</span>
+                          </span>
+                          <span className="whitespace-nowrap">
+                            {new Date(post.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                          </span>
+                        </div>
+
                         {/* Reactions */}
-                        {post.reactions && post.reactions.total_reactions > 0 ? (
+                        {post.reactions && post.reactions.total_reactions > 0 && (
                           <div className="flex gap-1">
                             {post.reactions.funny_count > 0 && (
                               <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-yellow-500/20">
                                 <span className="text-xs">😂</span>
-                                <span className="text-[10px] text-white/80">{post.reactions.funny_count}</span>
+                                <span className="text-[9px] text-white/80">{post.reactions.funny_count}</span>
                               </div>
                             )}
                             {post.reactions.creative_count > 0 && (
                               <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-purple-500/20">
                                 <span className="text-xs">🎨</span>
-                                <span className="text-[10px] text-white/80">{post.reactions.creative_count}</span>
+                                <span className="text-[9px] text-white/80">{post.reactions.creative_count}</span>
                               </div>
                             )}
                             {post.reactions.must_try_count > 0 && (
                               <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-green-500/20">
                                 <span className="text-xs">🔥</span>
-                                <span className="text-[10px] text-white/80">{post.reactions.must_try_count}</span>
+                                <span className="text-[9px] text-white/80">{post.reactions.must_try_count}</span>
                               </div>
                             )}
                           </div>
-                        ) : (
-                          <div></div>
                         )}
-                        {/* Scope */}
-                        <span className="text-white/40 text-[10px] capitalize">{post.scope}</span>
                       </div>
                     </div>
                   </a>
