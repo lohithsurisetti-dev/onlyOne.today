@@ -60,14 +60,14 @@ export const CacheKeys = {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export const CacheTTL = {
-  TRENDING_POSTS: 300,      // 5 minutes
-  TRENDING_TOPICS: 300,     // 5 minutes
-  STATS: 60,                // 1 minute
-  FEED_RESULTS: 30,         // 30 seconds
-  RANKINGS: 300,            // 5 minutes
+  TRENDING_POSTS: 180,      // 3 minutes (reduced from 5)
+  TRENDING_TOPICS: 180,     // 3 minutes
+  STATS: 30,                // 30 seconds (reduced from 60)
+  FEED_RESULTS: 15,         // 15 seconds (reduced from 30)
+  RANKINGS: 180,            // 3 minutes (reduced from 5)
   RATE_LIMIT: 60,           // 1 minute
-  USER_POSTS: 600,          // 10 minutes
-  SIMILAR_POSTS: 600,       // 10 minutes
+  USER_POSTS: 300,          // 5 minutes (reduced from 10)
+  SIMILAR_POSTS: 300,       // 5 minutes (reduced from 10)
 } as const
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

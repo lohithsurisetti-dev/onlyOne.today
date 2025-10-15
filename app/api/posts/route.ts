@@ -4,6 +4,7 @@ import { rateLimit, getIP, RateLimitPresets, createRateLimitResponse } from '@/l
 import { sanitizeContent } from '@/lib/services/moderation'
 import { moderateWithOptions, trackModerationResult } from '@/lib/services/moderation-hybrid'
 import { validateContentQuality } from '@/lib/services/content-quality'
+import { cacheGet, cacheSet, invalidateFeedCache, invalidateStatsCache, CacheKeys, CacheTTL } from '@/lib/utils/redis'
 
 // =====================================================
 // PERFORMANCE: Enable response caching
@@ -187,6 +188,13 @@ export async function POST(request: NextRequest) {
       locationCountry: locationValidation.sanitized?.country,
     })
 
+    // 14. Invalidate caches (feed & stats need fresh data)
+    await Promise.all([
+      invalidateFeedCache(),
+      invalidateStatsCache()
+    ])
+    console.log('🗑️ Cache invalidated: feed & stats')
+
     console.log(`✅ Post created successfully from IP: ${ip}`)
     return NextResponse.json(result, { status: 201 })
   } catch (error) {
@@ -299,6 +307,28 @@ export async function GET(request: NextRequest) {
     const offset = Math.max(parseInt(offsetParam) || 0, 0)
     const timezoneOffset = parseInt(timezoneOffsetParam) || 0
 
+    // Create cache key based on all filter parameters
+    const cacheKey = CacheKeys.feed(
+      `${filter}:${scopeFilter}:${reactionFilter}:${timezoneOffset}:${locationCity || 'none'}:${locationState || 'none'}:${locationCountry || 'none'}`,
+      String(offset),
+      limit
+    )
+
+    // Try Redis cache first
+    const cached = await cacheGet<{ posts: any[]; total: number }>(cacheKey)
+    if (cached) {
+      console.log(`✅ Feed cache HIT for ${filter}:${scopeFilter}:${offset}`)
+      return NextResponse.json(cached, {
+        status: 200,
+        headers: {
+          'Cache-Control': 'public, max-age=10',
+          'X-Cache-Status': 'HIT'
+        }
+      })
+    }
+
+    console.log(`❌ Feed cache MISS for ${filter}:${scopeFilter}:${offset}`)
+
     // 3. Fetch posts with total count for pagination + server-side filters
     const { posts, total } = await getRecentPosts({ 
       filter: filter as 'all' | 'unique' | 'common', 
@@ -314,7 +344,17 @@ export async function GET(request: NextRequest) {
       timezoneOffset // Pass user's timezone offset
     })
 
-    return NextResponse.json({ posts, total }, { status: 200 })
+    // Cache the result
+    const result = { posts, total }
+    await cacheSet(cacheKey, result, CacheTTL.FEED_RESULTS)
+
+    return NextResponse.json(result, {
+      status: 200,
+      headers: {
+        'Cache-Control': 'public, max-age=10',
+        'X-Cache-Status': 'MISS'
+      }
+    })
   } catch (error) {
     return createSecureErrorResponse(error, 'Failed to get posts')
   }
