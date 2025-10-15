@@ -51,19 +51,47 @@ export function calculateUniquenessScore(matchCount: number): number {
  * Ensures consistent "today" definition across the app
  */
 /**
- * Get the start of today in UTC
- * This ensures consistent "today" filtering across the app
- * Note: Uses UTC day boundary, not user's local timezone
+ * Get the start of today in UTC (server-side)
+ * @deprecated Use getTodayStartWithOffset() for user-timezone aware filtering
  */
 export function getTodayStart(): string {
   const now = new Date()
-  // Use UTC methods to get UTC midnight (start of today in UTC)
   const year = now.getUTCFullYear()
   const month = now.getUTCMonth()
   const date = now.getUTCDate()
   const todayUTC = new Date(Date.UTC(year, month, date, 0, 0, 0, 0))
-  const isoString = todayUTC.toISOString()
-  console.log(`📅 getTodayStart() returning: ${isoString} (UTC midnight for ${year}-${month+1}-${date})`)
+  return todayUTC.toISOString()
+}
+
+/**
+ * Get the start of today based on timezone offset (in minutes)
+ * This allows filtering posts by user's local calendar day
+ * 
+ * @param offsetMinutes - Timezone offset in minutes from UTC (e.g., 300 for UTC-5/Chicago)
+ * @returns ISO string of midnight in user's timezone
+ * 
+ * Example:
+ * - User in Chicago (UTC-5) at 8:35 PM on Oct 14
+ * - offsetMinutes = 300 (5 hours * 60 minutes)
+ * - Returns: 2025-10-14T05:00:00.000Z (which is Oct 14 midnight in Chicago)
+ */
+export function getTodayStartWithOffset(offsetMinutes: number = 0): string {
+  const now = new Date()
+  
+  // Get current time in user's timezone
+  const userTime = new Date(now.getTime() - offsetMinutes * 60 * 1000)
+  
+  // Get midnight in user's timezone
+  const year = userTime.getUTCFullYear()
+  const month = userTime.getUTCMonth()
+  const date = userTime.getUTCDate()
+  
+  // Create midnight in user's timezone, then convert back to UTC
+  const midnightUserTime = new Date(Date.UTC(year, month, date, 0, 0, 0, 0))
+  const midnightUTC = new Date(midnightUserTime.getTime() + offsetMinutes * 60 * 1000)
+  
+  const isoString = midnightUTC.toISOString()
+  console.log(`📅 getTodayStartWithOffset(${offsetMinutes}min) returning: ${isoString} (midnight in user TZ)`)
   return isoString
 }
 
@@ -400,15 +428,15 @@ export async function createPost(data: {
   const insertData = {
     content: data.content, // Store original (for display)
     text_normalized: normalizedContent, // Store normalized (for analysis)
-    input_type: data.inputType,
-    scope: data.scope,
-    location_city: data.locationCity,
-    location_state: data.locationState,
-    location_country: data.locationCountry,
-    content_hash: contentHash,
-    uniqueness_score: uniquenessScore,
-    match_count: matchCount,
-    is_anonymous: true,
+      input_type: data.inputType,
+      scope: data.scope,
+      location_city: data.locationCity,
+      location_state: data.locationState,
+      location_country: data.locationCountry,
+      content_hash: contentHash,
+      uniqueness_score: uniquenessScore,
+      match_count: matchCount,
+      is_anonymous: true,
     embedding: embedding, // Vector for semantic search
     has_negation: hasNegation, // Negation flag for accurate matching
     time_tags: timeExpressions, // Time context
@@ -915,6 +943,7 @@ export async function getRecentPosts(params: {
     state?: string
     country?: string
   }
+  timezoneOffset?: number // Offset in minutes from UTC
 }) {
   const supabase = createClient()
   const { 
@@ -923,7 +952,8 @@ export async function getRecentPosts(params: {
     offset = 0,
     scopeFilter = 'world',
     reactionFilter = 'all',
-    location
+    location,
+    timezoneOffset = 0
   } = params
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -932,7 +962,7 @@ export async function getRecentPosts(params: {
   let baseQuery = supabase
     .from('posts')
     .select('id, content, input_type, scope, location_city, location_state, location_country, uniqueness_score, match_count, funny_count, creative_count, must_try_count, total_reactions, created_at, content_hash', { count: 'exact' })
-    .gte('created_at', getTodayStart()) // TODAY ONLY (calendar day)
+    .gte('created_at', getTodayStartWithOffset(timezoneOffset)) // TODAY ONLY (user's calendar day)
   
   // Apply type filter (unique/common/all)
   if (filter === 'unique') {

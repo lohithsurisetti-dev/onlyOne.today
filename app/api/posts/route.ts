@@ -219,6 +219,7 @@ export async function GET(request: NextRequest) {
     const locationCity = searchParams.get('locationCity') || undefined
     const locationState = searchParams.get('locationState') || undefined
     const locationCountry = searchParams.get('locationCountry') || undefined
+    const timezoneOffsetParam = searchParams.get('timezoneOffset') || '0' // User's timezone offset in minutes
     
     // If requesting specific post by ID, fetch that with LIVE score calculation
     if (postId) {
@@ -293,6 +294,7 @@ export async function GET(request: NextRequest) {
     // Validate and sanitize numeric parameters
     const limit = Math.min(Math.max(parseInt(limitParam) || 25, 1), 100) // Max 100
     const offset = Math.max(parseInt(offsetParam) || 0, 0)
+    const timezoneOffset = parseInt(timezoneOffsetParam) || 0
 
     // 3. Fetch posts with total count for pagination + server-side filters
     const { posts, total } = await getRecentPosts({ 
@@ -305,7 +307,8 @@ export async function GET(request: NextRequest) {
         city: locationCity,
         state: locationState,
         country: locationCountry
-      }
+      },
+      timezoneOffset // Pass user's timezone offset
     })
 
     return NextResponse.json({ posts, total }, { status: 200 })

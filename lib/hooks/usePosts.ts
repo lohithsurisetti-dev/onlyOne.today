@@ -114,12 +114,16 @@ export function useRecentPosts(
       setError(null)
 
       try {
+        // Get user's timezone offset in minutes (e.g., Chicago = 300 for UTC-5)
+        const timezoneOffset = new Date().getTimezoneOffset()
+        
         const params = new URLSearchParams({
           filter,
           limit: limit.toString(),
           offset: offset.toString(),
           scopeFilter,
           reactionFilter,
+          timezoneOffset: timezoneOffset.toString(), // Send user's timezone offset
           ...(location?.city && { locationCity: location.city }),
           ...(location?.state && { locationState: location.state }),
           ...(location?.country && { locationCountry: location.country }),
