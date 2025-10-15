@@ -118,6 +118,11 @@ export function moderateContent(content: string): ModerationResult {
     /\b(masturbat|jerk(ing|ed)?\s+off|jack(ing|ed)?\s+off|beat(ing)?\s+off)/i, // Catches masturbate, masturbated, masturbating
     /\b(fuck|fucking|fucked)\b/i,
     
+    // Sexual positions with partner context (doggy, missionary, etc.)
+    /\b(doggy|missionary|cowgirl|reverse\s+cowgirl|69|sixty\s*nine)\b.*\b(with|gf|bf|girlfriend|boyfriend|partner|bae)\b/i,
+    /\b(with|gf|bf|girlfriend|boyfriend|partner|bae)\b.*\b(doggy|missionary|cowgirl|reverse\s+cowgirl|69|sixty\s*nine)\b/i,
+    /\b(did|doing|tried|had)\s+(doggy|missionary|cowgirl|reverse\s+cowgirl)\b/i,
+    
     // Sexual context patterns
     /\b(horny|aroused|turned\s+on)\b.*\b(watch|look|see|view)/i,
     /\b(watch|look|see|view)\b.*\b(horny|aroused|turned\s+on)\b/i,
