@@ -322,8 +322,8 @@ export async function GET(request: NextRequest) {
       // Recalculate percentiles for cached posts using cached scope totals
       const { calculatePercentile } = await import('@/lib/services/percentile')
       const postsWithFreshPercentile = cached.posts.map((post: any) => {
-        // Use scope-specific total if available
-        const scopeKey = `${post.scope}:${post.location_city || ''}:${post.location_state || ''}:${post.location_country || ''}`
+        // Use scope-specific total if available (INCLUDING input_type)
+        const scopeKey = `${post.scope}:${post.location_city || ''}:${post.location_state || ''}:${post.location_country || ''}:${post.input_type || 'action'}`
         const totalInScope = cached.scopeTotals?.[scopeKey] || cached.total
         
         const peopleWhoDidThis = post.match_count + 1
@@ -369,10 +369,10 @@ export async function GET(request: NextRequest) {
     const scopeTotals = new Map<string, number>()
     
     const postsWithPercentile = await Promise.all(posts.map(async (post) => {
-      // Create a unique key for this scope+location combo
-      const scopeKey = `${post.scope}:${post.location_city || ''}:${post.location_state || ''}:${post.location_country || ''}`
+      // Create a unique key for this scope+location+inputType combo
+      const scopeKey = `${post.scope}:${post.location_city || ''}:${post.location_state || ''}:${post.location_country || ''}:${post.input_type || 'action'}`
       
-      // Get or calculate the total for this scope
+      // Get or calculate the total for this scope (FILTERED BY INPUT TYPE)
       let totalInScope = scopeTotals.get(scopeKey)
       if (!totalInScope) {
         totalInScope = await getTotalPostsInGeoScope({
@@ -381,7 +381,8 @@ export async function GET(request: NextRequest) {
             city: post.location_city,
             state: post.location_state,
             country: post.location_country
-          }
+          },
+          inputType: post.input_type || 'action' // CRITICAL: Only count same type
         })
         scopeTotals.set(scopeKey, totalInScope)
       }

@@ -177,11 +177,12 @@ export default function FeedPage() {
     }
   }, [])
   
-  // Reset scope and reaction filters when switching to trending
+  // Reset scope, reaction, and input type filters when switching to trending
   useEffect(() => {
     if (filter === 'trending') {
       setScopeFilter('world')
       setReactionFilter('all')
+      setInputTypeFilter('all')
     }
   }, [filter])
   
@@ -983,6 +984,7 @@ export default function FeedPage() {
                 setFilter('all')
                 setScopeFilter('world')
                 setReactionFilter('all')
+                setInputTypeFilter('all')
                 setFilterSheetOpen(false)
               }}
               className="w-full bg-red-500/20 hover:bg-red-500/30 border border-red-400/50 text-white font-bold py-4 rounded-lg transition-colors backdrop-blur-sm"

@@ -267,9 +267,12 @@ export default function FilterBar({
               
               <button
                 onClick={() => toggleInputTypeFilter('action')}
+                disabled={isTrending}
                 className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-all flex items-center gap-1 ${
                   inputTypeFilter === 'action'
                     ? 'bg-indigo-500/30 text-white border border-indigo-400/50'
+                    : isTrending
+                    ? 'bg-white/5 text-white/30 border border-white/5 cursor-not-allowed'
                     : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
                 }`}
               >
@@ -286,9 +289,12 @@ export default function FilterBar({
               
               <button
                 onClick={() => toggleInputTypeFilter('day')}
+                disabled={isTrending}
                 className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-all flex items-center gap-1 ${
                   inputTypeFilter === 'day'
                     ? 'bg-indigo-500/30 text-white border border-indigo-400/50'
+                    : isTrending
+                    ? 'bg-white/5 text-white/30 border border-white/5 cursor-not-allowed'
                     : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
                 }`}
               >
