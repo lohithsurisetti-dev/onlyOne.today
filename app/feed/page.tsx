@@ -344,6 +344,7 @@ export default function FeedPage() {
         location_country: post.location_country,
         score: post.uniqueness_score,
         count: post.match_count + 1,
+          percentile: (post as any).percentile, // OnlyFans-style ranking
           funny_count: post.funny_count || 0,
           creative_count: post.creative_count || 0,
           must_try_count: post.must_try_count || 0,
