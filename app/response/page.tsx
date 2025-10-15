@@ -264,17 +264,17 @@ function ResponseContent() {
                       </defs>
                     </svg>
                     
-                    {/* Center content - REFINED DESIGN */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
+                    {/* Center content - COMPACT DESIGN */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center px-3">
                       {postResult?.percentile ? (
                         <>
-                          {/* Percentile Badge/Icon - Larger & Prominent */}
-                          <div className="text-5xl mb-2.5 drop-shadow-lg">
+                          {/* Percentile Badge/Icon */}
+                          <div className="text-3xl mb-1 drop-shadow-lg">
                             {postResult.percentile.badge}
                           </div>
                           
-                          {/* Percentile Display Text - Bolder */}
-                          <div className={`text-5xl font-black mb-2.5 leading-none transition-all duration-1000 drop-shadow-lg ${
+                          {/* Percentile Display Text */}
+                          <div className={`text-2xl font-black mb-1 leading-none transition-all duration-1000 drop-shadow-lg ${
                             shareType === 'uniqueness' 
                               ? 'bg-gradient-to-br from-purple-200 via-pink-200 to-purple-300 bg-clip-text text-transparent' 
                               : 'bg-gradient-to-br from-blue-200 via-cyan-200 to-blue-300 bg-clip-text text-transparent'
@@ -282,15 +282,15 @@ function ResponseContent() {
                             {postResult.percentile.displayText}
                           </div>
                           
-                          {/* Comparison Text - More Prominent */}
-                          <div className="px-3.5 py-1.5 bg-white/20 rounded-full backdrop-blur-md border border-white/30 transition-all duration-500 shadow-lg">
-                            <span className="text-xs font-bold text-white leading-none">
+                          {/* Comparison Text */}
+                          <div className="px-2 py-0.5 bg-white/20 rounded-full backdrop-blur-md border border-white/30 transition-all duration-500 shadow-lg">
+                            <span className="text-[9px] font-bold text-white leading-none">
                               {postResult.percentile.comparison}
                             </span>
                           </div>
                           
-                          {/* Tier Name - Badge Style */}
-                          <div className={`mt-2.5 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider transition-all duration-500 shadow-md ${
+                          {/* Tier Name */}
+                          <div className={`mt-1 px-2 py-0.5 rounded-full text-[8px] font-extrabold uppercase tracking-wider transition-all duration-500 shadow-md ${
                             shareType === 'uniqueness'
                               ? 'bg-gradient-to-r from-purple-500/40 to-pink-500/40 text-purple-100 border border-purple-300/40'
                               : 'bg-gradient-to-r from-blue-500/40 to-cyan-500/40 text-blue-100 border border-blue-300/40'
@@ -489,6 +489,7 @@ function ResponseContent() {
         scope={scope}
         inputType={inputType}
         vibe={vibe}
+        percentile={postResult?.percentile}
       />
     </div>
   )

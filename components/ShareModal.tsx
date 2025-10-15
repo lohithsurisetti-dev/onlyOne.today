@@ -18,6 +18,13 @@ interface ShareModalProps {
   inputType?: string
   vibe?: string
   isGhost?: boolean
+  percentile?: {
+    percentile: number
+    tier: string
+    displayText: string
+    badge: string
+    comparison: string
+  }
 }
 
 export default function ShareModal({
@@ -32,6 +39,7 @@ export default function ShareModal({
   inputType = 'action',
   vibe,
   isGhost = false,
+  percentile,
 }: ShareModalProps) {
   const [imageUrl, setImageUrl] = useState('')
   const [copied, setCopied] = useState(false)
@@ -40,7 +48,7 @@ export default function ShareModal({
   
   useEffect(() => {
     if (isOpen) {
-      // Generate the share card URL
+      // Generate the share card URL with percentile data
       const params = new URLSearchParams({
         content: content.substring(0, 100), // Allow longer content
         score: score.toString(),
@@ -49,6 +57,14 @@ export default function ShareModal({
         scope: scope,
         inputType: inputType,
       })
+      
+      // Add percentile data if available (NEW)
+      if (percentile) {
+        params.set('percentileText', percentile.displayText)
+        params.set('percentileBadge', percentile.badge)
+        params.set('percentileComparison', percentile.comparison)
+        params.set('percentileTier', percentile.tier)
+      }
       
       // Add vibe if provided
       if (vibe) {
@@ -62,7 +78,7 @@ export default function ShareModal({
       
       setImageUrl(`/api/share-preview?${params.toString()}`)
     }
-  }, [isOpen, content, score, type, message, rank, vibe, isGhost])
+  }, [isOpen, content, score, type, message, rank, vibe, isGhost, percentile])
   
   const handleDownload = async () => {
     setDownloading(true)

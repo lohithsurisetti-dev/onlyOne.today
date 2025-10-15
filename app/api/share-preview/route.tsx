@@ -29,6 +29,13 @@ export async function GET(request: NextRequest) {
   const vibeParam = searchParams.get('vibe')
   const isGhostPost = searchParams.get('isGhost') === 'true'
   
+  // NEW: Get percentile data if available
+  const percentileText = searchParams.get('percentileText')
+  const percentileBadge = searchParams.get('percentileBadge')
+  const percentileComparison = searchParams.get('percentileComparison')
+  const percentileTier = searchParams.get('percentileTier')
+  const hasPercentile = percentileText && percentileBadge
+  
   // Detect vibe if not provided
   const vibe = vibeParam || detectVibeSync(content)
   
@@ -249,8 +256,25 @@ export async function GET(request: NextRequest) {
       
       <div class="score-section">
         <div class="score-circle">
-          <div class="score-number">${isGhostPost ? (parseInt(score) / 1000000).toFixed(1) + 'M' : score + (type === 'commonality' ? '' : '%')}</div>
-          <div class="score-label">${isGhostPost ? 'People' : isUnique ? 'Unique' : 'Common'}</div>
+          ${hasPercentile ? `
+            <div class="percentile-badge" style="font-size: 2.5rem; margin-bottom: 0.5rem;">${percentileBadge}</div>
+            <div class="score-number" style="font-size: 2.5rem;">${percentileText}</div>
+            <div class="score-label" style="font-size: 0.7rem; margin-top: 0.3rem;">${percentileComparison}</div>
+            <div class="tier-badge" style="
+              margin-top: 0.5rem;
+              padding: 0.25rem 0.75rem;
+              background: ${isUnique ? 'linear-gradient(to right, rgba(168, 85, 247, 0.4), rgba(236, 72, 153, 0.4))' : 'linear-gradient(to right, rgba(59, 130, 246, 0.4), rgba(6, 182, 212, 0.4))'};
+              border-radius: 9999px;
+              font-size: 0.6rem;
+              font-weight: 800;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+              border: 1px solid ${isUnique ? 'rgba(168, 85, 247, 0.3)' : 'rgba(59, 130, 246, 0.3)'};
+            ">${percentileTier}</div>
+          ` : `
+            <div class="score-number">${isGhostPost ? (parseInt(score) / 1000000).toFixed(1) + 'M' : score + (type === 'commonality' ? '' : '%')}</div>
+            <div class="score-label">${isGhostPost ? 'People' : isUnique ? 'Unique' : 'Common'}</div>
+          `}
         </div>
       </div>
     </div>
