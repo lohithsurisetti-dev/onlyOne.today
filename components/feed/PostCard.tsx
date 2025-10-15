@@ -233,9 +233,9 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
       </button>
       
       {/* Content - Center Aligned */}
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center px-2">
         <div className={isGhost ? 'mt-4' : ''}>
-          <p className={`text-base md:text-sm leading-relaxed md:leading-snug text-center ${isGhost ? 'text-white/60 italic' : 'text-white/90'} group-hover:text-white`}>
+          <p className={`text-base md:text-sm leading-relaxed md:leading-snug text-center break-words ${isGhost ? 'text-white/60 italic' : 'text-white/90'} group-hover:text-white`}>
             {displayContent}
           </p>
           {needsTruncation && !expanded && (
@@ -253,51 +253,51 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
       <div className="space-y-2 mb-1.5">
         {/* Percentile Badge (Primary - OnlyFans Style) */}
         {post.percentile && !isGhost ? (
-          <div className="flex items-center justify-between px-2.5 py-1.5 bg-white/5 rounded-lg border border-white/10">
-            <div className="flex items-center gap-1.5">
+          <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-white/5 rounded-lg border border-white/10">
+            <div className="flex items-center gap-1.5 min-w-0 flex-shrink-0">
               {/* Premium Trophy Icon */}
-              <svg className="w-3.5 h-3.5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-3.5 h-3.5 md:w-3 md:h-3 text-yellow-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
               </svg>
-              <span className="font-bold text-xs text-white">
+              <span className="font-bold text-xs md:text-[10px] text-white whitespace-nowrap">
                 {post.percentile.displayText}
               </span>
             </div>
-            <span className="text-[10px] text-white/50 font-medium">
+            <span className="text-[10px] md:text-[9px] text-white/50 font-medium truncate">
               {post.percentile.comparison}
             </span>
           </div>
         ) : null}
         
         {/* Metadata Row - Scope (left) and Time (right) */}
-        <div className={`flex items-center ${isGhost ? 'justify-center' : 'justify-between'} text-xs text-white/50`}>
+        <div className={`flex items-center ${isGhost ? 'justify-center' : 'justify-between'} gap-2 text-xs md:text-[10px] text-white/50`}>
           {/* Scope Icon + Label */}
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-1 min-w-0">
             {scopeInfo.iconSvg}
-            <span className="font-medium">{scopeInfo.label}</span>
+            <span className="font-medium truncate">{scopeInfo.label}</span>
           </span>
           {/* Time - Right Aligned */}
-          {!isGhost && <span>{post.time}</span>}
+          {!isGhost && <span className="whitespace-nowrap flex-shrink-0">{post.time}</span>}
         </div>
       </div>
       
       {/* Reactions - Right Aligned, Hidden for ghost posts */}
       {!isGhost && (
         <div className="flex items-center justify-end">
-        <div className="flex gap-1.5 md:gap-1">
+        <div className="flex gap-2 md:gap-1">
           <button
             onClick={(e) => {
               e.stopPropagation()
               handleReaction('funny')
             }}
-            className={`flex items-center gap-1 px-2.5 py-1.5 md:px-1.5 md:py-0.5 rounded-full text-sm md:text-xs transition-all min-h-[44px] md:min-h-0 ${
+            className={`flex items-center gap-1 px-3 py-2 md:px-1.5 md:py-0.5 rounded-full transition-all min-h-[44px] md:min-h-0 ${
               userReactions?.has(`${post.id}-funny`)
                 ? 'bg-yellow-500/40 scale-105'
                 : 'bg-white/5 hover:bg-yellow-500/20 hover:scale-105'
             }`}
           >
-            <span className="text-base md:text-xs">😂</span>
-            {reactions.funny > 0 && <span className="text-white/80">{reactions.funny}</span>}
+            <span className="text-lg md:text-xs">😂</span>
+            {reactions.funny > 0 && <span className="text-white/80 text-sm md:text-xs font-medium">{reactions.funny}</span>}
           </button>
         
         <button
@@ -305,14 +305,14 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
             e.stopPropagation()
             handleReaction('creative')
           }}
-          className={`flex items-center gap-1 px-2.5 py-1.5 md:px-1.5 md:py-0.5 rounded-full text-sm md:text-xs transition-all min-h-[44px] md:min-h-0 ${
+          className={`flex items-center gap-1 px-3 py-2 md:px-1.5 md:py-0.5 rounded-full transition-all min-h-[44px] md:min-h-0 ${
             userReactions?.has(`${post.id}-creative`)
               ? 'bg-purple-500/40 scale-105'
               : 'bg-white/5 hover:bg-purple-500/20 hover:scale-105'
           }`}
         >
-          <span className="text-base md:text-xs">🎨</span>
-          {reactions.creative > 0 && <span className="text-white/80">{reactions.creative}</span>}
+          <span className="text-lg md:text-xs">🎨</span>
+          {reactions.creative > 0 && <span className="text-white/80 text-sm md:text-xs font-medium">{reactions.creative}</span>}
         </button>
         
         <button
@@ -320,14 +320,14 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
             e.stopPropagation()
             handleReaction('must_try')
           }}
-          className={`flex items-center gap-1 px-2.5 py-1.5 md:px-1.5 md:py-0.5 rounded-full text-sm md:text-xs transition-all min-h-[44px] md:min-h-0 ${
+          className={`flex items-center gap-1 px-3 py-2 md:px-1.5 md:py-0.5 rounded-full transition-all min-h-[44px] md:min-h-0 ${
             userReactions?.has(`${post.id}-must_try`)
               ? 'bg-green-500/40 scale-105'
               : 'bg-white/5 hover:bg-green-500/20 hover:scale-105'
           }`}
         >
-          <span className="text-base md:text-xs">🔥</span>
-          {reactions.must_try > 0 && <span className="text-white/80">{reactions.must_try}</span>}
+          <span className="text-lg md:text-xs">🔥</span>
+          {reactions.must_try > 0 && <span className="text-white/80 text-sm md:text-xs font-medium">{reactions.must_try}</span>}
         </button>
           </div>
         </div>
