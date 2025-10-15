@@ -50,10 +50,21 @@ export function calculateUniquenessScore(matchCount: number): number {
  * Get the start of today (midnight) in ISO format
  * Ensures consistent "today" definition across the app
  */
+/**
+ * Get the start of today in UTC
+ * This ensures consistent "today" filtering across the app
+ * Note: Uses UTC day boundary, not user's local timezone
+ */
 export function getTodayStart(): string {
   const now = new Date()
-  now.setHours(0, 0, 0, 0)
-  return now.toISOString()
+  // Use UTC methods to get UTC midnight (start of today in UTC)
+  const year = now.getUTCFullYear()
+  const month = now.getUTCMonth()
+  const date = now.getUTCDate()
+  const todayUTC = new Date(Date.UTC(year, month, date, 0, 0, 0, 0))
+  const isoString = todayUTC.toISOString()
+  console.log(`📅 getTodayStart() returning: ${isoString} (UTC midnight for ${year}-${month+1}-${date})`)
+  return isoString
 }
 
 /**
