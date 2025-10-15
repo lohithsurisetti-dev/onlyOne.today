@@ -86,8 +86,8 @@ export const RETRY_DELAY_MS = 1000 as const
 // CACHE & REFRESH
 // ============================================================================
 
-export const TRENDING_CACHE_DURATION_MS = 5 * 60 * 1000 as const // 5 minutes
-export const STATS_CACHE_DURATION_MS = 60 * 1000 as const // 1 minute
+export const TRENDING_CACHE_DURATION_MS = 300000 // 5 minutes (5 * 60 * 1000)
+export const STATS_CACHE_DURATION_MS = 60000 // 1 minute (60 * 1000)
 
 // ============================================================================
 // UI CONSTANTS
