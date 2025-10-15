@@ -25,7 +25,7 @@ import FilterBar, { FilterType, ScopeFilter, ReactionFilter, LocationData } from
 import PostGrid from '@/components/feed/PostGrid'
 import PaginationControls from '@/components/feed/PaginationControls'
 import { DisplayPost } from '@/components/feed/PostCard'
-import MobileAnalyticsDropdown from '@/components/feed/MobileAnalyticsDropdown'
+import ExclusiveDropdowns from '@/components/feed/ExclusiveDropdowns'
 
 // ============================================================================
 // TYPES
@@ -334,21 +334,21 @@ export default function FeedPage() {
       
       // Transform real posts
       const realPosts: DisplayPost[] = apiPosts.map(post => ({
-        id: post.id,
-        content: post.content,
+          id: post.id,
+          content: post.content,
         type: post.uniqueness_score >= 70 ? 'unique' : 'common',
-        time: formatTimeAgo(new Date(post.created_at)),
+          time: formatTimeAgo(new Date(post.created_at)),
         scope: post.scope,
         location_city: post.location_city,
         location_state: post.location_state,
         location_country: post.location_country,
         score: post.uniqueness_score,
         count: post.match_count + 1,
-        funny_count: post.funny_count || 0,
-        creative_count: post.creative_count || 0,
-        must_try_count: post.must_try_count || 0,
-        total_reactions: post.total_reactions || 0,
-        isGhost: false,
+          funny_count: post.funny_count || 0,
+          creative_count: post.creative_count || 0,
+          must_try_count: post.must_try_count || 0,
+          total_reactions: post.total_reactions || 0,
+          isGhost: false,
       }))
       
       let postsWithGhosts: DisplayPost[]
@@ -500,86 +500,79 @@ export default function FeedPage() {
             <div className="flex-1">
               {/* Mobile Analytics (lg:hidden) */}
               <div className="lg:hidden mb-4 space-y-3">
-                {filter === 'trending' ? (
-                  /* Trending Info Dropdown */
-                  <MobileAnalyticsDropdown
-                    type="trending-info"
-                    title="Trending Info"
-                    icon={
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                      </svg>
-                    }
-                  >
-                    <div className="pt-3 space-y-3">
-                      <p className="text-white/60 text-xs">
-                        Showing posts from Spotify, Reddit, YouTube, Sports & more
-                      </p>
-                      {currentPosts.length > 0 && (
-                        <div className="space-y-2">
-                          <p className="text-xs font-semibold text-orange-300 uppercase">Top 5</p>
-                          {currentPosts.slice(0, 5).map((post, idx) => (
-                            <div key={post.id} className="flex items-start gap-2 text-white/70 text-xs">
-                              <span className="text-orange-300 font-bold">#{idx + 1}</span>
-                              <p className="line-clamp-2">{post.content}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                {/* Row 1: Your Posts Button (Full Width) */}
+                <button
+                  onClick={() => router.push('/my-posts')}
+                  className="w-full bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-sm rounded-xl border border-purple-400/20 hover:border-purple-400/40 transition-all p-4 flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    <div>
+                      <div className="text-white font-medium text-sm">Your Posts</div>
+                      <div className="text-purple-300/60 text-xs">{myPostsCount} posts saved</div>
                     </div>
-                  </MobileAnalyticsDropdown>
-                ) : (
-                  /* Regular Analytics */}
-                  <>
-                    {/* Row 1: Your Posts Button + Analytics Dropdowns */}
-                    <div className="grid grid-cols-3 gap-2">
-                      {/* Your Posts - Simple Button */}
-                      <button
-                        onClick={() => router.push('/my-posts')}
-                        className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-sm rounded-xl border border-purple-400/20 hover:border-purple-400/40 transition-all p-3 flex flex-col items-center justify-center gap-1"
-                      >
-                        <svg className="w-5 h-5 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        <div className="text-center">
-                          <div className="text-white font-medium text-[11px] leading-tight">Your<br/>Posts</div>
-                          <div className="text-purple-300 text-xs font-bold mt-0.5">{myPostsCount}</div>
-                        </div>
-                      </button>
-                      
-                      {/* Global Pulse - Dropdown */}
-                      <MobileAnalyticsDropdown
-                        type="global-pulse"
-                        title="Pulse"
-                        icon={
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        }
-                      >
-                        <div className="pt-3">
-                          <GlobalPulseCard posts={filteredPosts} />
-                        </div>
-                      </MobileAnalyticsDropdown>
-                      
-                      {/* Top Performers - Dropdown */}
-                      <MobileAnalyticsDropdown
-                        type="top-performers"
-                        title="Rankings"
-                        icon={
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                          </svg>
-                        }
-                      >
-                        <div className="pt-3">
-                          <TopPerformersCard userLocation={userLocation || undefined} alwaysExpanded={true} />
-                        </div>
-                      </MobileAnalyticsDropdown>
-                    </div>
-                  </>
-                )}
+                  </div>
+                  <svg className="w-5 h-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+              </button>
+              
+                {/* Row 2: Exclusive Dropdowns (only one open at a time) */}
+                <ExclusiveDropdowns
+                  options={filter === 'trending' ? [
+                    {
+                      id: 'trending',
+                      title: 'Trending',
+                      icon: (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+                      ),
+                      content: (
+                        <div className="space-y-3">
+                          <p className="text-white/60 text-xs">
+                            Showing posts from Spotify, Reddit, YouTube, Sports & more
+                          </p>
+                          {currentPosts.length > 0 && (
+                            <div className="space-y-2">
+                              <p className="text-xs font-semibold text-orange-300 uppercase">Top 5</p>
+                              {currentPosts.slice(0, 5).map((post, idx) => (
+                                <div key={post.id} className="flex items-start gap-2 text-white/70 text-xs">
+                                  <span className="text-orange-300 font-bold">#{idx + 1}</span>
+                                  <p className="line-clamp-2">{post.content}</p>
+            </div>
+                              ))}
               </div>
+            )}
+          </div>
+                      ),
+                    }
+                  ] : [
+                    {
+                      id: 'pulse',
+                      title: 'Pulse',
+                      icon: (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      ),
+                      content: <GlobalPulseCard posts={filteredPosts} />,
+                    },
+                    {
+                      id: 'rankings',
+                      title: 'Rankings',
+                      icon: (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                        </svg>
+                      ),
+                      content: <TopPerformersCard userLocation={userLocation || undefined} alwaysExpanded={true} />,
+                    },
+                  ]}
+                />
+                </div>
               
               {error && (
                 <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-4 text-white mb-4">
@@ -591,17 +584,17 @@ export default function FeedPage() {
               <PostGrid
                 posts={currentPosts}
                 loading={postsLoading || apiLoading}
-                onReact={handleReaction}
-                onShare={handleShare}
-                userReactions={userReactions}
+                  onReact={handleReaction}
+                  onShare={handleShare}
+                  userReactions={userReactions}
                 emptyMessage={
                   filter === 'trending'
                     ? "No trending posts available right now. Check back soon!"
                     : "No posts yet. Be the first to share what you did today!"
                 }
-              />
-            </div>
-            
+                />
+              </div>
+              
             {/* Sidebar (Desktop Only) */}
             <aside className="hidden lg:block w-80">
               <div className="sticky top-24 space-y-4">
@@ -642,8 +635,8 @@ export default function FeedPage() {
                                 </div>
                               ))}
                             </div>
-                          </div>
-                        )}
+                </div>
+              )}
                         
                         <p className="text-white/40 text-xs italic text-center">
                           Powered by live data from Spotify, Reddit, YouTube, Sports & more
@@ -655,8 +648,8 @@ export default function FeedPage() {
                   <>
                     <GlobalPulseCard posts={filteredPosts} />
                     <TopPerformersCard userLocation={userLocation || undefined} />
-                  </>
-                )}
+            </>
+          )}
               </div>
             </aside>
           </div>
