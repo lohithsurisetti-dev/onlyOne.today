@@ -26,10 +26,11 @@ const POOL_SIZE = 100 // Cache large pool for rotation
  * - Serverless compatibility (no in-memory cache)
  */
 export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams
+  const forceRefresh = searchParams.get('force') === 'true'
+  const requestedCount = parseInt(searchParams.get('count') || '30')
+  
   try {
-    const searchParams = request.nextUrl.searchParams
-    const forceRefresh = searchParams.get('force') === 'true'
-    const requestedCount = parseInt(searchParams.get('count') || '30')
     
     // Force refresh bypasses cache
     if (forceRefresh) {
