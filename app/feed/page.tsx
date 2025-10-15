@@ -747,10 +747,12 @@ export default function FeedPage() {
           content={selectedPost.content}
           score={selectedPost.score || 0}
           type={selectedPost.type === 'unique' ? 'uniqueness' : 'commonality'}
-          message={getShareMessageForPost(selectedPost)}
-          rank={(selectedPost.score ?? 0) >= 95 ? '🏆 Legendary' : (selectedPost.score ?? 0) >= 70 ? '✨ Unique' : '👥 Common'}
+          message={selectedPost.percentile?.message || getShareMessageForPost(selectedPost)}
+          rank={selectedPost.percentile?.displayText || ((selectedPost.score ?? 0) >= 95 ? '🏆 Legendary' : (selectedPost.score ?? 0) >= 70 ? '✨ Unique' : '👥 Common')}
           vibe={detectVibeSync(selectedPost.content)}
           scope={selectedPost.scope}
+          inputType={selectedPost.input_type}
+          percentile={selectedPost.percentile}
         />
       )}
       

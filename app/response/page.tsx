@@ -148,10 +148,6 @@ function ResponseContent() {
   const similarCount = matchCount + 1 // Including the user
   const commonalityScore = 100 - uniquenessScore
   
-  // Determine if post is in Top 25% using percentile tiers
-  const isTopTier = postResult?.percentile?.tier && 
-    ['elite', 'rare', 'unique', 'notable'].includes(postResult.percentile.tier)
-  
   // Auto-set initial view to the dominant score
   // If user navigated from submit, respect their view param
   // Otherwise default to showing the more impressive metric
