@@ -45,14 +45,16 @@ function ResponseContent() {
       const result = JSON.parse(storedResult)
       setPostResult(result)
       
-      // Auto-set shareType based on view param or uniqueness score
+      // Auto-set shareType based on view param or percentile tier
       if (viewParam === 'common') {
         setShareType('commonality')
       } else if (viewParam === 'unique') {
         setShareType('uniqueness')
       } else {
-        // Fallback: auto-detect from score
-        setShareType(result.uniquenessScore >= 70 ? 'uniqueness' : 'commonality')
+        // Fallback: auto-detect from percentile tier (Top 25% threshold)
+        const isTopTier = result.percentile?.tier && 
+          ['elite', 'rare', 'unique', 'notable'].includes(result.percentile.tier)
+        setShareType(isTopTier ? 'uniqueness' : 'commonality')
       }
     }
   }, [viewParam])
@@ -154,7 +156,9 @@ function ResponseContent() {
   const similarCount = matchCount + 1 // Including the user
   const commonalityScore = 100 - uniquenessScore
   
-  const isUnique = uniquenessScore >= 70
+  // Determine if post is in Top 25% using percentile tiers
+  const isTopTier = postResult?.percentile?.tier && 
+    ['elite', 'rare', 'unique', 'notable'].includes(postResult.percentile.tier)
   
   // Auto-set initial view to the dominant score
   // If user navigated from submit, respect their view param
@@ -162,9 +166,9 @@ function ResponseContent() {
   useEffect(() => {
     if (postResult && !viewParam) {
       // No explicit view param - show dominant score
-      setShareType(isUnique ? 'uniqueness' : 'commonality')
+      setShareType(isTopTier ? 'uniqueness' : 'commonality')
     }
-  }, [postResult, viewParam, isUnique])
+  }, [postResult, viewParam, isTopTier])
   
   const handleShare = () => {
     setShowShareModal(true)

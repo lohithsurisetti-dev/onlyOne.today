@@ -32,6 +32,15 @@ export interface CreatePostResult {
   similarPosts: Post[]
   matchCount: number
   uniquenessScore: number
+  percentile?: {
+    percentile: number
+    tier: 'elite' | 'rare' | 'unique' | 'notable' | 'common' | 'popular'
+    displayText: string
+    badge: string
+    message: string
+    comparison: string
+  }
+  totalPosts?: number
 }
 
 /**
