@@ -59,7 +59,7 @@ const DaySummaryCard = React.memo(({ post, onShare, onReact, userReactions }: Da
           </svg>
         </div>
 
-        {/* Share Button - Top Right */}
+        {/* Share Button - Top Right (Visible on Mobile, Hover on Desktop) */}
         {onShare && (
           <button
             onClick={(e) => {
@@ -67,7 +67,8 @@ const DaySummaryCard = React.memo(({ post, onShare, onReact, userReactions }: Da
               e.stopPropagation()
               onShare(post)
             }}
-            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg bg-white/10 hover:bg-white/20"
+            className="absolute top-2 right-2 opacity-60 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 transition-opacity p-2 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-sm"
+            title="Share this day"
           >
             <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
