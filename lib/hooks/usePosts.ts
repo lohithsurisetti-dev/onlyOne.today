@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 
 export interface Post {
   id: string
@@ -102,6 +102,12 @@ export function useRecentPosts(
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Stabilize location object to prevent infinite re-renders
+  const locationKey = useMemo(() => 
+    JSON.stringify(location || {}), 
+    [location?.city, location?.state, location?.country]
+  )
+
   useEffect(() => {
     const fetchPosts = async () => {
       setLoading(true)
@@ -141,7 +147,8 @@ export function useRecentPosts(
     }
 
     fetchPosts()
-  }, [filter, limit, offset, refreshKey, scopeFilter, reactionFilter, location?.city, location?.state, location?.country])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter, limit, offset, refreshKey, scopeFilter, reactionFilter, locationKey])
 
   return { posts, total, loading, error }
 }

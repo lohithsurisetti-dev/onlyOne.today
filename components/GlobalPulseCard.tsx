@@ -1,35 +1,43 @@
 'use client'
 
-import React from 'react'
+import React, { useMemo } from 'react'
 
 interface Props {
   posts: any[]
 }
 
 export default function GlobalPulseCard({ posts }: Props) {
-  // Calculate stats from posts
-  const totalPosts = posts.length
-  const uniquePosts = posts.filter(p => !p.isGhost && (p.score || 0) >= 70).length
-  const commonPosts = posts.filter(p => !p.isGhost && (p.score || 0) < 70).length
-  const ghostPosts = posts.filter(p => p.isGhost).length
+  // Memoize expensive calculations to prevent re-computing on every render
+  const stats = useMemo(() => {
+    const totalPosts = posts.length
+    const uniquePosts = posts.filter(p => !p.isGhost && (p.score || 0) >= 70).length
+    const commonPosts = posts.filter(p => !p.isGhost && (p.score || 0) < 70).length
+    const ghostPosts = posts.filter(p => p.isGhost).length
+    
+    return { totalPosts, uniquePosts, commonPosts, ghostPosts }
+  }, [posts])
   
-  // Find most common cards
-  const cardCounts: Record<string, number> = {}
-  posts.forEach(post => {
-    if (!post.isGhost) {
-      const key = post.content || 'Unknown'
-      cardCounts[key] = (cardCounts[key] || 0) + 1
-    }
-  })
+  // Memoize card counting
+  const sortedCards = useMemo(() => {
+    const cardCounts: Record<string, number> = {}
+    posts.forEach(post => {
+      if (!post.isGhost) {
+        const key = post.content || 'Unknown'
+        cardCounts[key] = (cardCounts[key] || 0) + 1
+      }
+    })
+    
+    return Object.entries(cardCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+  }, [posts])
   
-  const sortedCards = Object.entries(cardCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-  
-  // Find most unique post (highest score)
-  const mostUniquePost = posts
-    .filter(p => !p.isGhost)
-    .sort((a, b) => (b.score || 0) - (a.score || 0))[0]
+  // Memoize most unique post
+  const mostUniquePost = useMemo(() => {
+    return posts
+      .filter(p => !p.isGhost)
+      .sort((a, b) => (b.score || 0) - (a.score || 0))[0]
+  }, [posts])
 
   return (
     <div className="bg-gradient-to-br from-space-mid/50 to-space-dark/50 backdrop-blur-sm rounded-2xl border border-white/10 shadow-xl overflow-hidden p-4">
@@ -42,29 +50,29 @@ export default function GlobalPulseCard({ posts }: Props) {
       
       <div className="space-y-3">
         {/* Stats Overview */}
-        <div className="grid grid-cols-4 gap-2 text-[10px]">
-          <div className="bg-white/5 rounded p-2 text-center border border-white/5">
-            <div className="text-white/40 mb-0.5">Total</div>
-            <div className="text-base font-bold text-white">{totalPosts}</div>
-          </div>
-          
-          <div className="bg-purple-500/10 rounded p-2 text-center border border-purple-400/20">
-            <div className="text-purple-300/60 mb-0.5">Unique</div>
-            <div className="text-base font-bold text-purple-300">{uniquePosts}</div>
-          </div>
-          
-          <div className="bg-blue-500/10 rounded p-2 text-center border border-blue-400/20">
-            <div className="text-blue-300/60 mb-0.5">Common</div>
-            <div className="text-base font-bold text-blue-300">{commonPosts}</div>
-          </div>
-          
-          {ghostPosts > 0 && (
-            <div className="bg-orange-500/10 rounded p-2 text-center border border-orange-400/20">
-              <div className="text-orange-300/60 mb-0.5">Trend</div>
-              <div className="text-base font-bold text-orange-300">{ghostPosts}</div>
+          <div className="grid grid-cols-4 gap-2 text-[10px]">
+            <div className="bg-white/5 rounded p-2 text-center border border-white/5">
+              <div className="text-white/40 mb-0.5">Total</div>
+              <div className="text-base font-bold text-white">{stats.totalPosts}</div>
             </div>
-          )}
-        </div>
+            
+            <div className="bg-purple-500/10 rounded p-2 text-center border border-purple-400/20">
+              <div className="text-purple-300/60 mb-0.5">Unique</div>
+              <div className="text-base font-bold text-purple-300">{stats.uniquePosts}</div>
+            </div>
+            
+            <div className="bg-blue-500/10 rounded p-2 text-center border border-blue-400/20">
+              <div className="text-blue-300/60 mb-0.5">Common</div>
+              <div className="text-base font-bold text-blue-300">{stats.commonPosts}</div>
+            </div>
+            
+            {stats.ghostPosts > 0 && (
+              <div className="bg-orange-500/10 rounded p-2 text-center border border-orange-400/20">
+                <div className="text-orange-300/60 mb-0.5">Trend</div>
+                <div className="text-base font-bold text-orange-300">{stats.ghostPosts}</div>
+              </div>
+            )}
+          </div>
         
         {/* Most Common Cards */}
         {sortedCards.length > 0 && (

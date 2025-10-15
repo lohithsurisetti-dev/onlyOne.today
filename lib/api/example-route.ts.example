@@ -1,0 +1,147 @@
+/**
+ * EXAMPLE: How to write API routes with new handler pattern
+ * 
+ * This file demonstrates best practices for API routes.
+ * Copy this pattern for new API routes.
+ */
+
+import { NextRequest } from 'next/server'
+import { apiHandler, APIError, parseBody, validateRequired, successResponse } from '@/lib/api/handler'
+import { logger } from '@/lib/utils/logger'
+import { rateLimit, getIP, RateLimitPresets } from '@/lib/utils/rate-limit'
+
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+interface RequestBody {
+  content: string
+  userId?: string
+}
+
+interface ResponseData {
+  id: string
+  message: string
+  timestamp: string
+}
+
+// ============================================================================
+// ROUTE HANDLERS
+// ============================================================================
+
+/**
+ * POST /api/example - Create example
+ * 
+ * @example
+ * POST /api/example
+ * Body: { "content": "test" }
+ * Response: { "id": "123", "message": "success", "timestamp": "..." }
+ */
+export const POST = apiHandler(async (request: NextRequest) => {
+  const startTime = performance.now()
+  const ip = getIP(request)
+
+  try {
+    // 1. Rate Limiting
+    const rateLimitResult = await rateLimit(ip, 'example', RateLimitPresets.POSTS)
+    if (!rateLimitResult.success) {
+      logger.warn('Rate limit exceeded', { ip, endpoint: '/api/example' })
+      throw new APIError(
+        'Too many requests. Please try again later.',
+        429,
+        'RATE_LIMIT_EXCEEDED'
+      )
+    }
+
+    // 2. Parse and validate body
+    const body = await parseBody<RequestBody>(request)
+    validateRequired(body, ['content'])
+
+    // 3. Additional validation
+    if (body.content.length < 3) {
+      throw new APIError(
+        'Content must be at least 3 characters',
+        400,
+        'VALIDATION_ERROR'
+      )
+    }
+
+    // 4. Business logic
+    const result: ResponseData = {
+      id: crypto.randomUUID(),
+      message: 'Created successfully',
+      timestamp: new Date().toISOString(),
+    }
+
+    // 5. Log success
+    logger.info('Example created', { id: result.id })
+    logger.perf('POST /api/example', startTime)
+
+    // 6. Return response
+    return successResponse(result, 201)
+
+  } catch (error) {
+    // Error is handled by apiHandler wrapper
+    logger.error('Failed to create example', error)
+    throw error
+  }
+})
+
+/**
+ * GET /api/example - Fetch examples
+ */
+export const GET = apiHandler(async (request: NextRequest) => {
+  const startTime = performance.now()
+
+  try {
+    // 1. Parse query params
+    const { searchParams } = new URL(request.url)
+    const limit = parseInt(searchParams.get('limit') || '10')
+    const offset = parseInt(searchParams.get('offset') || '0')
+
+    // 2. Validate params
+    if (limit > 100) {
+      throw new APIError('Limit cannot exceed 100', 400, 'INVALID_LIMIT')
+    }
+
+    // 3. Fetch data (example)
+    const data = {
+      items: [],
+      total: 0,
+      limit,
+      offset,
+    }
+
+    // 4. Log and return
+    logger.perf('GET /api/example', startTime)
+    return successResponse(data)
+
+  } catch (error) {
+    logger.error('Failed to fetch examples', error)
+    throw error
+  }
+})
+
+// ============================================================================
+// USAGE EXAMPLE
+// ============================================================================
+
+/**
+ * This pattern provides:
+ * 
+ * ✅ Centralized error handling
+ * ✅ Consistent logging
+ * ✅ Type safety
+ * ✅ Rate limiting
+ * ✅ Input validation
+ * ✅ Performance monitoring
+ * ✅ Clean code structure
+ * 
+ * Benefits:
+ * - No try-catch duplication
+ * - Consistent error responses
+ * - Easy to test
+ * - Easy to maintain
+ * - Production-ready
+ */
+
