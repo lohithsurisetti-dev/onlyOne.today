@@ -111,17 +111,18 @@ export function moderateContent(content: string): ModerationResult {
     }
   }
   
-  // 5b. Sexual activity patterns (catches euphemisms and creative phrasing)
+  // 5b. Sexual activity patterns (COMPREHENSIVE - catches euphemisms and creative phrasing)
   const adultContentPatterns = [
     // Sexual acts (explicit - no ambiguity)
-    /\b(cum|cumming|orgasm|climax|ejaculat)/i, // Removed word boundary at end for word variants
-    /\b(masturbat|jerk(ing|ed)?\s+off|jack(ing|ed)?\s+off|beat(ing)?\s+off)/i, // Catches masturbate, masturbated, masturbating
-    /\b(fuck|fucking|fucked)\b/i,
+    /\b(cum|cumming|orgasm|climax|ejaculat)/i,
+    /\b(masturbat|jerk(ing|ed)?\s+off|jack(ing|ed)?\s+off|beat(ing)?\s+off|whack(ing|ed)?\s+off)/i,
+    /\b(fuck|fucking|fucked|screw(ing|ed)?|bang(ing|ed)?|smash(ing|ed)?|pound(ing|ed)?|rail(ing|ed)?)\b/i,
     
-    // Sexual positions with partner context (doggy, missionary, etc.)
-    /\b(doggy|missionary|cowgirl|reverse\s+cowgirl|69|sixty\s*nine)\b.*\b(with|gf|bf|girlfriend|boyfriend|partner|bae)\b/i,
-    /\b(with|gf|bf|girlfriend|boyfriend|partner|bae)\b.*\b(doggy|missionary|cowgirl|reverse\s+cowgirl|69|sixty\s*nine)\b/i,
-    /\b(did|doing|tried|had)\s+(doggy|missionary|cowgirl|reverse\s+cowgirl)\b/i,
+    // Sexual positions (comprehensive list with context)
+    /\b(doggy|missionary|cowgirl|reverse\s+cowgirl|spooning|69|sixty\s*nine|prone\s+bone|anvil|butterfly|lotus|wheelbarrow|pretzel|standing|spreadeagle|spread\s+eagle)\b.*\b(with|gf|bf|girlfriend|boyfriend|wife|husband|partner|bae|spouse|lover|fwb|hookup)\b/i,
+    /\b(with|gf|bf|girlfriend|boyfriend|wife|husband|partner|bae|spouse|lover|fwb|hookup)\b.*\b(doggy|missionary|cowgirl|reverse\s+cowgirl|spooning|69|sixty\s*nine|prone\s+bone|anvil|butterfly|lotus)\b/i,
+    /\b(did|doing|tried|had|attempted)\s+(doggy|missionary|cowgirl|reverse\s+cowgirl|spooning|69|sixty\s*nine|prone\s+bone|standing\s+sex)\b/i,
+    /\b(doggy\s+style|cowgirl\s+position|missionary\s+position|reverse\s+cowgirl\s+position)\b/i,
     
     // Sexual context patterns
     /\b(horny|aroused|turned\s+on)\b.*\b(watch|look|see|view)/i,
@@ -147,10 +148,33 @@ export function moderateContent(content: string): ModerationResult {
     /\b(looking\s+at|watching|viewing)\b.*\b(getting\s+off|orgasm)/i,
     
     // Body parts in sexual context
-    /\b(dick|cock|penis|pussy|vagina|tits|boobs|breast)\b/i,
+    /\b(dick|cock|penis|pussy|vagina|clit|clitoris|tits|boobs|breast|nipple|anus|butthole|ass\s+hole)\b/i,
+    /\b(balls|testicle|shaft|head|tip)\b.*\b(lick|suck|touch|rub|stroke)/i,
     
-    // Sexual gratification phrases
-    /\b(getting\s+off|get\s+off|got\s+off)\b/i,
+    // Sexual acts and slang (common euphemisms)
+    /\b(blow\s*job|bj|oral\s+sex|handjob|hand\s*job|footjob|rimjob|rim\s*job|tit\s*job|boobjob)\b/i,
+    /\b(gave|giving|got|getting|received)\s+(head|oral|bj)\b(?!\s+(massage|start|ache|injury))/i, // "gave head" but not "gave my dog a head massage"
+    /\b(finger(ing|ed)?|fist(ing|ed)?|penetrat|thrust|pump|hump|mount)\b.*\b(gf|bf|partner|lover|wife|husband)\b/i,
+    /\b(suck(ing|ed)?|lick(ing|ed)?|eat(ing)?\s+out|go(ing)?\s+down|deepthroat)\b.*\b(dick|cock|pussy|clit)\b/i,
+    
+    // Sexual gratification and slang
+    /\b(getting\s+off|get\s+off|got\s+off|jizz|nut|bust\s+a\s+nut|cream|squirt)\b(?!\s+(bean|coffee))/i, // Exclude "squirt bottle", etc.
+    /\b(horny|hard|erection|boner|wet|moist|dripping)\b.*\b(gf|bf|partner|with|for\s+(her|him))\b/i,
+    
+    // Sexual activities with partner (more specific)
+    /\b(make\s+out|making\s+out)\b.*\b(with|gf|bf|girl|guy|crush|partner)\b(?!\s+(check|plan|list))/i, // "made out with" not "made out a check"
+    /\b(made\s+out)\b.*\b(with|gf|bf|girl|guy|crush|partner)\b/i,
+    /\b(hook\s+up|hooked\s+up|hooking\s+up)\b.*\b(with|gf|bf|someone|girl|guy)\b(?!\s+(speaker|cable|wire|device))/i, // Not "hooked up speakers"
+    /\b(sleep\s+with|slept\s+with|sleeping\s+with|one\s+night\s+stand)\b/i,
+    /\b(have\s+sex|had\s+sex|having\s+sex|lost\s+(my\s+)?virginity|took\s+(her|his)\s+virginity)\b/i,
+    /\b(foreplay|kinky|bdsm|bondage|domination|submission)\b/i,
+    
+    // Sexual slang and crude terms (context-required)
+    /\b(smash(ing|ed)?|hit\s+it|tap\s+that|pipe\s+down|clap\s+cheeks|plow(ing|ed)?)\b.*\b(gf|bf|girl|guy|chick|dude|her|him)\b/i,
+    /\b(nudes?|dick\s+pic|pussy\s+pic|send(ing)?\s+nudes|sext(ing|ed)?)\b/i,
+    
+    // Grinding with partner context
+    /\b(grind(ing|ed)?)\b.*\b(on|with|against)\b.*\b(gf|bf|partner|her|him|someone)\b/i,
   ]
   
   for (const pattern of adultContentPatterns) {
