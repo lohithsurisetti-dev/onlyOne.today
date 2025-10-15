@@ -1074,14 +1074,27 @@ export async function getRecentPosts(params: {
     baseQuery = baseQuery.lt('uniqueness_score', 70)
   }
   
-  // Apply scope filter (city/state/country/world)
+  // Apply scope filter (HIERARCHICAL)
+  // - City: Only city-scoped posts in that city
+  // - State: City + State scoped posts in that state
+  // - Country: City + State + Country scoped posts in that country
+  // - World: ALL posts (no filter)
   if (scopeFilter !== 'world' && scopeFilter !== 'all') {
     if (scopeFilter === 'city' && location?.city) {
-      baseQuery = baseQuery.eq('location_city', location.city)
+      // City: ONLY city-scoped posts in this exact city
+      baseQuery = baseQuery
+        .eq('location_city', location.city)
+        .eq('scope', 'city')
     } else if (scopeFilter === 'state' && location?.state) {
-      baseQuery = baseQuery.eq('location_state', location.state)
+      // State: City + State scoped posts in this state (hierarchical)
+      baseQuery = baseQuery
+        .eq('location_state', location.state)
+        .in('scope', ['city', 'state'])
     } else if (scopeFilter === 'country' && location?.country) {
-      baseQuery = baseQuery.eq('location_country', location.country)
+      // Country: City + State + Country scoped posts in this country (hierarchical)
+      baseQuery = baseQuery
+        .eq('location_country', location.country)
+        .in('scope', ['city', 'state', 'country'])
     }
   }
   
