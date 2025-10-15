@@ -1,15 +1,25 @@
 /**
- * Redis/KV Client Utility
+ * Redis Client Utility (Upstash)
  * 
  * Provides caching layer for:
- * - Trending posts
- * - Platform stats
- * - Feed results
- * - Rate limiting
- * - Rankings/leaderboards
+ * - Trending posts (5 min TTL)
+ * - Platform stats (1 min TTL)
+ * - Feed results (30 sec TTL)
+ * - Rate limiting (atomic counters)
+ * - Rankings/leaderboards (sorted sets)
+ * 
+ * Using Upstash Redis:
+ * - Free tier: 10,000 commands/day (3x more than Vercel KV)
+ * - Paid tier: $10/month for 100K/day (half the cost of Vercel)
  */
 
-import { kv } from '@vercel/kv'
+import { Redis } from '@upstash/redis'
+
+// Initialize Upstash Redis client
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL || '',
+  token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
+})
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CACHE KEY CONSTANTS
@@ -73,9 +83,8 @@ export function isRedisAvailable(): boolean {
   }
   
   return !!(
-    process.env.KV_URL &&
-    process.env.KV_REST_API_URL &&
-    process.env.KV_REST_API_TOKEN
+    process.env.UPSTASH_REDIS_REST_URL &&
+    process.env.UPSTASH_REDIS_REST_TOKEN
   )
 }
 
@@ -89,7 +98,7 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
   }
   
   try {
-    const cached = await kv.get<T>(key)
+    const cached = await redis.get<T>(key)
     if (cached) {
       console.log(`✅ Cache HIT: ${key}`)
       return cached
@@ -116,7 +125,7 @@ export async function cacheSet<T>(
   }
   
   try {
-    await kv.setex(key, ttl, value)
+    await redis.setex(key, ttl, value)
     console.log(`💾 Cache SET: ${key} (TTL: ${ttl}s)`)
   } catch (error) {
     console.error('Redis set error:', error)
@@ -134,10 +143,10 @@ export async function cacheDel(key: string | string[]): Promise<void> {
   
   try {
     if (Array.isArray(key)) {
-      await kv.del(...key)
+      await redis.del(...key)
       console.log(`🗑️ Cache DEL: ${key.join(', ')}`)
     } else {
-      await kv.del(key)
+      await redis.del(key)
       console.log(`🗑️ Cache DEL: ${key}`)
     }
   } catch (error) {
@@ -157,7 +166,7 @@ export async function invalidateFeedCache(): Promise<void> {
     // Pattern matching for all feed keys
     const keys = await kv.keys('feed:*')
     if (keys.length > 0) {
-      await kv.del(...keys)
+      await redis.del(...keys)
       console.log(`🗑️ Invalidated ${keys.length} feed cache entries`)
     }
   } catch (error) {
@@ -214,7 +223,7 @@ export async function checkRateLimit(
     
     // Set expiry on first request
     if (count === 1) {
-      await kv.expire(key, window)
+      await redis.expire(key, window)
     }
     
     // Get TTL for reset time
@@ -254,7 +263,7 @@ export async function resetRateLimit(
   
   try {
     const key = CacheKeys.rateLimit(identifier, action)
-    await kv.del(key)
+    await redis.del(key)
     console.log(`🔄 Rate limit reset: ${key}`)
   } catch (error) {
     console.error('Rate limit reset error:', error)
@@ -278,7 +287,7 @@ export async function addToLeaderboard(
   }
   
   try {
-    await kv.zadd(leaderboard, { score, member })
+    await redis.zadd(leaderboard, { score, member })
   } catch (error) {
     console.error('Leaderboard add error:', error)
   }
@@ -342,5 +351,5 @@ export async function getLeaderboardRank(
 // EXPORT REDIS CLIENT (for advanced use cases)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-export { kv as redis }
+export { redis }
 
