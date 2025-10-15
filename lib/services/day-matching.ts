@@ -5,8 +5,30 @@
  * Reuses existing similarity functions from action matching.
  */
 
-import { cosineSimilarity } from './composite-similarity'
 import { distance as levenshtein } from 'fastest-levenshtein'
+
+/**
+ * Calculate cosine similarity between two vectors
+ * Returns a value between 0 (completely different) and 1 (identical)
+ */
+function cosineSimilarity(vec1: number[], vec2: number[]): number {
+  if (vec1.length !== vec2.length) return 0
+  
+  let dotProduct = 0
+  let norm1 = 0
+  let norm2 = 0
+  
+  for (let i = 0; i < vec1.length; i++) {
+    dotProduct += vec1[i] * vec2[i]
+    norm1 += vec1[i] * vec1[i]
+    norm2 += vec2[i] * vec2[i]
+  }
+  
+  const denominator = Math.sqrt(norm1) * Math.sqrt(norm2)
+  if (denominator === 0) return 0
+  
+  return dotProduct / denominator
+}
 
 export interface DayMatchResult {
   postId: string
