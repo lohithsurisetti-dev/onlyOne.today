@@ -10,17 +10,17 @@ export default function GlobalPulseCard({ posts }: Props) {
   // Memoize expensive calculations to prevent re-computing on every render
   const stats = useMemo(() => {
     const totalPosts = posts.length
-    // Unique = Elite, Rare, or Unique tier (Top 10%)
+    // Unique = Elite, Rare, Unique, or Notable tier (Top 25%)
     const uniquePosts = posts.filter(p => 
       !p.isGhost && 
       p.percentile?.tier && 
-      ['elite', 'rare', 'unique'].includes(p.percentile.tier)
+      ['elite', 'rare', 'unique', 'notable'].includes(p.percentile.tier)
     ).length
-    // Common = Notable, Common, or Popular tier (>= Top 10%)
+    // Common = Common or Popular tier (>= Top 25%)
     const commonPosts = posts.filter(p => 
       !p.isGhost && 
       p.percentile?.tier && 
-      ['notable', 'common', 'popular'].includes(p.percentile.tier)
+      ['common', 'popular'].includes(p.percentile.tier)
     ).length
     const ghostPosts = posts.filter(p => p.isGhost).length
     
@@ -67,7 +67,7 @@ export default function GlobalPulseCard({ posts }: Props) {
             </div>
             
             <div className="bg-purple-500/10 rounded p-2 text-center border border-purple-400/20">
-              <div className="text-purple-300/60 mb-0.5">Unique</div>
+              <div className="text-purple-300/60 mb-0.5">Top 25%</div>
               <div className="text-base font-bold text-purple-300">{stats.uniquePosts}</div>
             </div>
             

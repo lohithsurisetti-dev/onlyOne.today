@@ -56,9 +56,10 @@ export default function GlobalPulse({ posts, className = '', currentFilter = 'al
     const eliteCount = realPosts.filter(p => p.percentile?.tier === 'elite').length
     const rareCount = realPosts.filter(p => p.percentile?.tier === 'rare').length
     const uniqueCount = realPosts.filter(p => p.percentile?.tier === 'unique').length
+    const notableCount = realPosts.filter(p => p.percentile?.tier === 'notable').length
     
-    // Elite percentage (most exclusive posts)
-    const avgUniqueness = Math.round((eliteCount + rareCount + uniqueCount) / realPosts.length * 100) || 0
+    // Top 25% percentage (rare/unique actions)
+    const avgUniqueness = Math.round((eliteCount + rareCount + uniqueCount + notableCount) / realPosts.length * 100) || 0
     
     // "Only you!" posts (< 0.1% percentile)
     const perfectUnique = realPosts.filter(p => 
@@ -150,9 +151,9 @@ export default function GlobalPulse({ posts, className = '', currentFilter = 'al
               <span className="text-white font-bold text-lg">{stats.totalPosts}</span>
             </div>
             
-            {/* Elite/Rare Actions (Top 10%) */}
+            {/* Elite/Rare Actions (Top 25%) */}
             <div className="flex items-center justify-between">
-              <span className="text-white/70 text-sm">Rare Actions (Top 10%)</span>
+              <span className="text-white/70 text-sm">Rare Actions (Top 25%)</span>
               <span className="text-purple-300 font-bold text-lg">{stats.avgUniqueness}%</span>
             </div>
             
