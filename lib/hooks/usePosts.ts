@@ -41,6 +41,10 @@ export interface CreatePostResult {
     comparison: string
   }
   totalPosts?: number
+  // Day summary specific fields
+  activities?: string[]
+  activityCount?: number
+  isDaySummary?: boolean
 }
 
 /**

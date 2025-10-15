@@ -330,11 +330,33 @@ function ResponseContent() {
                 {/* Content Title with Label */}
                 <div className="mb-3">
                   <div className="text-xs font-medium text-white/50 uppercase tracking-wider mb-1.5">
-                    Your Action
+                    {postResult?.isDaySummary ? 'Your Day Summary' : 'Your Action'}
                   </div>
                   <h2 className="text-xl font-bold text-white line-clamp-2">
                     "{content}"
           </h2>
+                  
+                  {/* Activity Breakdown for Day Summaries */}
+                  {postResult?.isDaySummary && postResult?.activities && postResult.activities.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      <div className="flex items-center gap-2 text-xs text-white/60">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                        </svg>
+                        <span className="font-medium">{postResult.activityCount} {postResult.activityCount === 1 ? 'Activity' : 'Activities'} Detected</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {postResult.activities.map((activity, idx) => (
+                          <span
+                            key={idx}
+                            className="px-2.5 py-1 bg-white/10 rounded-full text-xs text-white/80 border border-white/20 backdrop-blur-sm"
+                          >
+                            {activity}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* View Toggle - Minimal */}

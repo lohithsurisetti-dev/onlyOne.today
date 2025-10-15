@@ -233,6 +233,7 @@ export async function getTotalPostsInGeoScope(params: {
     state?: string
     country?: string
   }
+  inputType?: 'action' | 'day' // Optional: filter by input type
 }): Promise<number> {
   const supabase = createClient()
   
@@ -244,6 +245,11 @@ export async function getTotalPostsInGeoScope(params: {
     .from('posts')
     .select('id', { count: 'exact', head: true })
     .gte('created_at', startOfToday.toISOString())
+  
+  // Filter by input type if specified
+  if (params.inputType) {
+    query = query.eq('input_type', params.inputType)
+  }
   
   // Apply geographical scope filters (HIERARCHICAL)
   switch (params.scope) {
@@ -453,6 +459,47 @@ export async function createPost(data: {
   const adminClient = createAdminClient()
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // BRANCH: Day Summary vs Single Action
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const isDaySummary = data.inputType === 'day'
+  
+  // For day summaries, extract activities first
+  let extractedActivities: string[] = []
+  let activityEmbeddings: number[][] = []
+  
+  if (isDaySummary) {
+    try {
+      const { extractActivities, validateDaySummary } = await import('./activity-extractor')
+      
+      // Validate day summary
+      console.log(`📝 Validating day summary: "${data.content.substring(0, 50)}..."`)
+      const validation = validateDaySummary(data.content)
+      if (!validation.isValid) {
+        console.error(`❌ Day summary validation failed:`, validation.error)
+        throw new Error(validation.error)
+      }
+      
+      // Extract activities
+      extractedActivities = extractActivities(data.content)
+      console.log(`📋 Extracted ${extractedActivities.length} activities:`, extractedActivities)
+      
+      // Generate embedding for EACH activity
+      const { generateEmbedding } = await import('./embeddings')
+      console.log(`🔮 Generating embeddings for ${extractedActivities.length} activities...`)
+      activityEmbeddings = await Promise.all(
+        extractedActivities.map((activity, idx) => {
+          console.log(`  ${idx + 1}. Generating embedding for: "${activity}"`)
+          return generateEmbedding(activity)
+        })
+      )
+      console.log(`✅ Generated ${activityEmbeddings.length} activity embeddings`)
+    } catch (error) {
+      console.error(`❌ Error in day summary processing:`, error)
+      throw error
+    }
+  }
+  
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // ADVANCED TEXT NORMALIZATION (Phase 1 enhancements!)
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   const normalizationResult = normalizeText(data.content)
@@ -463,7 +510,7 @@ export async function createPost(data: {
     emojis
   } = normalizationResult
   
-  console.log(`🔤 Normalized: "${data.content}" → "${normalizedContent}"`)
+  console.log(`🔤 Normalized: "${data.content.substring(0, 50)}..." → "${normalizedContent.substring(0, 50)}..."`)
   if (hasNegation) console.log(`⛔ Negation detected`)
   if (timeExpressions.length > 0) console.log(`⏰ Time tags: ${timeExpressions.join(', ')}`)
   if (emojis.length > 0) console.log(`😀 Emojis: ${emojis.join(', ')}`)
@@ -471,25 +518,109 @@ export async function createPost(data: {
   // Generate content hash from NORMALIZED text
   const contentHash = generateContentHash(normalizedContent)
 
-  // Find similar posts with SCOPE-AWARE matching
-  const similarPosts = await findSimilarPostsGlobal({
-    contentHash,
-    content: normalizedContent, // Use normalized text for matching!
-    originalContent: data.content,
-    scope: data.scope,
-    hasNegation,
-    timeExpressions,
-    location: {
-      city: data.locationCity,
-      state: data.locationState,
-      country: data.locationCountry
-    }
-  })
-  
-  const matchCount = similarPosts.length // This is "others" who did it in scope
-  const uniquenessScore = calculateUniquenessScore(matchCount)
+  let matchCount = 0
+  let uniquenessScore = 100
+  let similarItems: any[] = [] // Unified: similarPosts (actions) or similarDays (days)
 
-  console.log(`📊 Creating post: "${data.content.substring(0, 30)}..." - ${matchCount} others in ${data.scope} did this, ${uniquenessScore}% unique`)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // MATCHING LOGIC: Day Summary vs Single Action
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  
+  if (isDaySummary) {
+    try {
+      // DAY SUMMARY MATCHING: Compare activity sets
+      console.log(`📅 Matching day summary with ${extractedActivities.length} activities...`)
+      
+      // Fetch candidate day summaries for comparison
+      console.log(`🔍 Fetching candidate day summaries from last 24 hours...`)
+      const { data: candidateDays, error: fetchError } = await supabase
+        .from('posts')
+        .select('id, content, activities, activity_embeddings, scope, location_city, location_state, location_country')
+        .eq('input_type', 'day')
+        .not('activities', 'is', null)
+        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()) // Last 24 hours
+        .limit(200)
+      
+      if (fetchError) {
+        console.error('❌ Error fetching candidate days:', fetchError)
+        throw new Error(`Failed to fetch candidate days: ${fetchError.message}`)
+      }
+    
+    if (!fetchError && candidateDays && candidateDays.length > 0) {
+      const { findSimilarDays, getDayScopeThreshold } = await import('./day-matching')
+      const threshold = getDayScopeThreshold(data.scope)
+      
+      console.log(`📊 Found ${candidateDays.length} candidate day summaries to compare`)
+      
+      // Find similar days
+      const matchResults = findSimilarDays(
+        extractedActivities,
+        activityEmbeddings,
+        candidateDays.map(d => {
+          // Parse activity_embeddings from JSONB format
+          let parsedEmbeddings: number[][] = []
+          if (d.activity_embeddings) {
+            try {
+              // JSONB is returned as a JavaScript array directly by Supabase
+              const rawEmbeddings = d.activity_embeddings as any
+              
+              if (Array.isArray(rawEmbeddings)) {
+                // Each element should already be a number array
+                parsedEmbeddings = rawEmbeddings as number[][]
+              }
+            } catch (e) {
+              console.warn(`Failed to parse embeddings for day ${d.id}:`, e)
+            }
+          }
+          
+          return {
+            ...d,
+            activities: d.activities as string[],
+            embeddings: parsedEmbeddings,
+          }
+        }).filter(d => d.embeddings.length > 0), // Only include days with valid embeddings
+        data.scope,
+        threshold
+      )
+      
+      // Convert to format compatible with post matches
+      similarItems = matchResults.map(result => ({
+        id: result.postId,
+        similarity_score: result.similarity,
+        scope: candidateDays.find(d => d.id === result.postId)?.scope
+      }))
+      
+      matchCount = similarItems.length
+      console.log(`📊 Found ${matchCount} similar days (threshold: ${(threshold * 100).toFixed(0)}%)`)
+    }
+    
+    uniquenessScore = calculateUniquenessScore(matchCount)
+    } catch (error) {
+      console.error(`❌ Error in day summary matching:`, error)
+      throw error
+    }
+  } else {
+    // SINGLE ACTION MATCHING: Use existing logic
+    const similarPosts = await findSimilarPostsGlobal({
+    contentHash,
+      content: normalizedContent, // Use normalized text for matching!
+      originalContent: data.content,
+    scope: data.scope,
+      hasNegation,
+      timeExpressions,
+      location: {
+        city: data.locationCity,
+        state: data.locationState,
+        country: data.locationCountry
+      }
+    })
+    
+    similarItems = similarPosts
+    matchCount = similarPosts.length
+    uniquenessScore = calculateUniquenessScore(matchCount)
+  }
+
+  console.log(`📊 Creating ${isDaySummary ? 'day summary' : 'action'}: "${data.content.substring(0, 30)}..." - ${matchCount} others in ${data.scope}, ${uniquenessScore}% unique`)
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // GENERATE EMBEDDING (Lazy: only if there are potential matches OR for quality)
@@ -509,7 +640,7 @@ export async function createPost(data: {
     // Continue without embedding - NLP fallback will work
   }
 
-  // Insert the new post with embedding + NLP enhancements
+  // Insert the new post with embedding + NLP enhancements + day summary data
   const insertData = {
     content: data.content, // Store original (for display)
     text_normalized: normalizedContent, // Store normalized (for analysis)
@@ -526,9 +657,25 @@ export async function createPost(data: {
     has_negation: hasNegation, // Negation flag for accurate matching
     time_tags: timeExpressions, // Time context
     emoji_tags: emojis, // Emoji context
+    // NEW: Day summary fields
+    activities: isDaySummary ? extractedActivities : null, // Array of activities (JSONB)
+    activity_count: isDaySummary ? extractedActivities.length : null, // Count
+    // Store activity embeddings as JSONB (more reliable than vector[])
+    activity_embeddings: isDaySummary && activityEmbeddings.length > 0
+      ? activityEmbeddings // Supabase will auto-convert to JSONB
+      : null,
   }
   
   console.log(`🔍 Inserting post with embedding: ${embedding ? 'YES' : 'NO'}`)
+  console.log(`📦 Insert data summary:`, {
+    content_length: insertData.content.length,
+    input_type: insertData.input_type,
+    scope: insertData.scope,
+    has_embedding: !!insertData.embedding,
+    has_activities: !!insertData.activities,
+    activity_count: insertData.activity_count,
+    has_activity_embeddings: !!insertData.activity_embeddings
+  })
   
   const { data: post, error } = await supabase
     .from('posts')
@@ -538,9 +685,10 @@ export async function createPost(data: {
 
   if (error) {
     console.error('❌ Error creating post:', error)
-    throw new Error('Failed to create post')
+    console.error('❌ Insert data that failed:', JSON.stringify(insertData, null, 2).substring(0, 500))
+    throw new Error(`Failed to create post: ${error.message}`)
   }
-  
+
   console.log(`✅ Post inserted with ID: ${post?.id}, embedding saved: ${post?.embedding ? 'YES' : 'NO'}`)
 
   // Update aggregate counts table (FAST - single query)
@@ -566,9 +714,9 @@ export async function createPost(data: {
   const finalMatchCount = matchCount  // This is from vector/hybrid matching
   const finalUniquenessScore = uniquenessScore
 
-  // Create post matches (if any similar posts found)
-  if (similarPosts.length > 0 && post) {
-    const matches = similarPosts.map((sp: any) => ({
+  // Create post matches (if any similar posts/days found)
+  if (similarItems.length > 0 && post) {
+    const matches = similarItems.map((sp: any) => ({
       post_id: post.id,
       matched_post_id: sp.id,
       similarity_score: sp.similarity_score,
@@ -598,7 +746,7 @@ export async function createPost(data: {
     // 3. Country: "went swimming" → 80% (2 others: city + state)
     //    BUT City stays 100%, State stays 90%
     
-    const postsToUpdate = similarPosts.filter((sp: any) => {
+    const postsToUpdate = similarItems.filter((sp: any) => {
       // Only update if EXACT same scope (prevents upper scopes from updating lower ones)
       return sp.scope === data.scope
     })
@@ -629,7 +777,8 @@ export async function createPost(data: {
       city: data.locationCity,
       state: data.locationState,
       country: data.locationCountry
-    }
+    },
+    inputType: data.inputType // Count only same type (day vs action)
   })
   
   const peopleWhoDidThis = finalMatchCount + 1 // Including yourself
@@ -639,11 +788,15 @@ export async function createPost(data: {
 
   return {
     post,
-    similarPosts,
+    similarPosts: similarItems, // Works for both actions and day summaries
     matchCount: finalMatchCount,    // Return LIVE count (others in scope)
     uniquenessScore: finalUniquenessScore, // Return LIVE score
     percentile: percentileRank, // NEW: OnlyFans-style ranking
     totalPosts: totalPostsInScope, // Total posts in scope for context
+    // Day summary specific data (will be used in response page)
+    activities: isDaySummary ? extractedActivities : undefined,
+    activityCount: isDaySummary ? extractedActivities.length : undefined,
+    isDaySummary,
   }
 }
 
