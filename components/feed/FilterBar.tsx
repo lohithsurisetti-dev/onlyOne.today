@@ -9,6 +9,7 @@ import React from 'react'
 export type FilterType = 'all' | 'unique' | 'common' | 'trending'
 export type ScopeFilter = 'all' | 'city' | 'state' | 'country' | 'world'
 export type ReactionFilter = 'all' | 'funny' | 'creative' | 'must_try'
+export type InputTypeFilter = 'all' | 'action' | 'day'
 
 export interface LocationData {
   city?: string
@@ -21,11 +22,13 @@ export interface FilterBarProps {
   filter: FilterType
   scopeFilter: ScopeFilter
   reactionFilter: ReactionFilter
+  inputTypeFilter?: InputTypeFilter
   
   // Filter setters
   onFilterChange: (filter: FilterType) => void
   onScopeFilterChange: (scope: ScopeFilter) => void
   onReactionFilterChange: (reaction: ReactionFilter) => void
+  onInputTypeFilterChange?: (inputType: InputTypeFilter) => void
   
   // Location data
   userLocation?: LocationData
@@ -50,9 +53,11 @@ export default function FilterBar({
   filter,
   scopeFilter,
   reactionFilter,
+  inputTypeFilter = 'all',
   onFilterChange,
   onScopeFilterChange,
   onReactionFilterChange,
+  onInputTypeFilterChange,
   userLocation,
   trendingLoading = false,
   trendingRetryAttempt = 0,
@@ -75,6 +80,13 @@ export default function FilterBar({
   // Toggle reaction filter (active becomes 'all')
   const toggleReactionFilter = (targetReaction: ReactionFilter) => {
     onReactionFilterChange(reactionFilter === targetReaction ? 'all' : targetReaction)
+  }
+  
+  // Toggle input type filter (active becomes 'all')
+  const toggleInputTypeFilter = (targetType: InputTypeFilter) => {
+    if (onInputTypeFilterChange) {
+      onInputTypeFilterChange(inputTypeFilter === targetType ? 'all' : targetType)
+    }
   }
   
   return (
@@ -245,6 +257,50 @@ export default function FilterBar({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 ) : null}
+              </button>
+              
+              {/* Separator */}
+              <div className="w-px h-4 bg-white/20 mx-1"></div>
+              
+              {/* Input Type Filters */}
+              <span className="text-xs text-white/60 font-medium">Type:</span>
+              
+              <button
+                onClick={() => toggleInputTypeFilter('action')}
+                className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-all flex items-center gap-1 ${
+                  inputTypeFilter === 'action'
+                    ? 'bg-indigo-500/30 text-white border border-indigo-400/50'
+                    : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                }`}
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span className="hidden sm:inline">Actions</span>
+                {inputTypeFilter === 'action' && (
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                )}
+              </button>
+              
+              <button
+                onClick={() => toggleInputTypeFilter('day')}
+                className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-all flex items-center gap-1 ${
+                  inputTypeFilter === 'day'
+                    ? 'bg-indigo-500/30 text-white border border-indigo-400/50'
+                    : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                }`}
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="hidden sm:inline">Days</span>
+                {inputTypeFilter === 'day' && (
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                )}
               </button>
               
               {/* Separator */}
