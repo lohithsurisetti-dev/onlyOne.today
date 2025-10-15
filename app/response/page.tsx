@@ -211,36 +211,43 @@ function ResponseContent() {
             </span>
           </div>
 
-                {/* Circular Progress - Compact */}
+                {/* Circular Progress - ENHANCED STYLING */}
                 <div className="flex justify-center mb-4">
-                  <div className="relative w-44 h-44">
-                    {/* Reduced glow ring */}
-                    <div className={`absolute inset-0 rounded-full blur-xl opacity-40 ${
-                      shareType === 'uniqueness' ? 'bg-purple-500/30' : 'bg-blue-500/30'
+                  <div className="relative w-52 h-52">
+                    {/* Multi-layer glow effect */}
+                    <div className={`absolute inset-0 rounded-full blur-2xl animate-pulse transition-all duration-1000 ${
+                      shareType === 'uniqueness' ? 'bg-gradient-to-br from-purple-500/40 via-pink-500/40 to-purple-600/40' : 'bg-gradient-to-br from-blue-500/40 via-cyan-500/40 to-blue-600/40'
+                    }`} />
+                    <div className={`absolute inset-3 rounded-full blur-lg transition-all duration-1000 ${
+                      shareType === 'uniqueness' ? 'bg-purple-500/20' : 'bg-blue-500/20'
                     }`} />
                     
                     <svg className="w-full h-full transform -rotate-90 relative">
+                      {/* Background circle */}
                       <circle
-                        cx="88"
-                        cy="88"
-                        r="78"
+                        cx="104"
+                        cy="104"
+                        r="88"
                         stroke="currentColor"
-                        strokeWidth="12"
+                        strokeWidth="10"
                         fill="none"
-                        className="text-white/10"
+                        className="text-white/5"
                       />
+                      {/* Progress circle with enhanced styling */}
                       <circle
-                        cx="88"
-                        cy="88"
-                        r="78"
+                        cx="104"
+                        cy="104"
+                        r="88"
                         stroke={shareType === 'uniqueness' ? 'url(#purpleGradient)' : 'url(#blueGradient)'}
-                        strokeWidth="12"
+                        strokeWidth="10"
                         fill="none"
-                        strokeDasharray={`${2 * Math.PI * 78}`}
-                        strokeDashoffset={`${2 * Math.PI * 78 * (1 - (shareType === 'uniqueness' ? uniquenessScore : commonalityScore) / 100)}`}
+                        strokeDasharray={`${2 * Math.PI * 88}`}
+                        strokeDashoffset={`${2 * Math.PI * 88 * (1 - (shareType === 'uniqueness' ? uniquenessScore : commonalityScore) / 100)}`}
                         strokeLinecap="round"
+                        className="drop-shadow-lg"
                         style={{ 
-                          transition: 'stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s ease'
+                          transition: 'stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s ease',
+                          filter: 'drop-shadow(0 0 6px currentColor)'
                         }}
                       />
                       <defs>
@@ -257,33 +264,37 @@ function ResponseContent() {
                       </defs>
                     </svg>
                     
-                    {/* Center content - NEW PERCENTILE DESIGN */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    {/* Center content - REFINED DESIGN */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
                       {postResult?.percentile ? (
                         <>
-                          {/* Percentile Badge/Icon */}
-                          <div className="text-3xl mb-2">
+                          {/* Percentile Badge/Icon - Larger & Prominent */}
+                          <div className="text-5xl mb-2.5 drop-shadow-lg">
                             {postResult.percentile.badge}
                           </div>
                           
-                          {/* Percentile Display Text */}
-                          <div className={`text-4xl font-black mb-1 transition-all duration-1000 ${
+                          {/* Percentile Display Text - Bolder */}
+                          <div className={`text-5xl font-black mb-2.5 leading-none transition-all duration-1000 drop-shadow-lg ${
                             shareType === 'uniqueness' 
-                              ? 'bg-gradient-to-br from-purple-300 via-pink-300 to-purple-400 bg-clip-text text-transparent' 
-                              : 'bg-gradient-to-br from-blue-300 via-cyan-300 to-blue-400 bg-clip-text text-transparent'
+                              ? 'bg-gradient-to-br from-purple-200 via-pink-200 to-purple-300 bg-clip-text text-transparent' 
+                              : 'bg-gradient-to-br from-blue-200 via-cyan-200 to-blue-300 bg-clip-text text-transparent'
                           }`}>
                             {postResult.percentile.displayText}
                           </div>
                           
-                          {/* Comparison Text */}
-                          <div className="px-3 py-1 bg-white/10 rounded-full backdrop-blur-sm transition-all duration-500">
-                            <span className="text-xs font-medium text-white/80">
+                          {/* Comparison Text - More Prominent */}
+                          <div className="px-3.5 py-1.5 bg-white/20 rounded-full backdrop-blur-md border border-white/30 transition-all duration-500 shadow-lg">
+                            <span className="text-xs font-bold text-white leading-none">
                               {postResult.percentile.comparison}
                             </span>
                           </div>
                           
-                          {/* Tier Name */}
-                          <div className="mt-2 text-xs font-semibold text-white/60 uppercase tracking-widest">
+                          {/* Tier Name - Badge Style */}
+                          <div className={`mt-2.5 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider transition-all duration-500 shadow-md ${
+                            shareType === 'uniqueness'
+                              ? 'bg-gradient-to-r from-purple-500/40 to-pink-500/40 text-purple-100 border border-purple-300/40'
+                              : 'bg-gradient-to-r from-blue-500/40 to-cyan-500/40 text-blue-100 border border-blue-300/40'
+                          }`}>
                             {postResult.percentile.tier}
                           </div>
                         </>
