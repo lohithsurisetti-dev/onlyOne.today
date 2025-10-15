@@ -30,12 +30,11 @@ const DaySummaryCard = React.memo(({ post, onShare }: DaySummaryCardProps) => {
             : 'bg-gradient-to-br from-blue-900/30 to-cyan-900/30 border-blue-400/30 hover:border-blue-400/60'
         }`}
       >
-        {/* Day Summary Badge - Top Left (Compact) */}
-        <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-indigo-500/30 to-purple-500/30 rounded-full border border-indigo-300/40 backdrop-blur-sm">
-          <svg className="w-3 h-3 text-indigo-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        {/* Day Summary Badge - Top Left (Icon Only) */}
+        <div className="absolute top-2 left-2 p-1.5 bg-gradient-to-r from-indigo-500/30 to-purple-500/30 rounded-full border border-indigo-300/40 backdrop-blur-sm">
+          <svg className="w-3.5 h-3.5 text-indigo-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
-          <span className="text-[10px] font-semibold text-indigo-100">{post.activityCount || 0}</span>
         </div>
 
         {/* Share Button - Top Right */}
@@ -71,26 +70,29 @@ const DaySummaryCard = React.memo(({ post, onShare }: DaySummaryCardProps) => {
           )}
         </div>
 
-        {/* Bottom Section - Compact */}
+        {/* Bottom Section - Compact (Like Action Card) */}
         <div className="space-y-2">
-          {/* Percentile Badge */}
+          {/* Percentile Badge - Left & Right Aligned */}
           {post.percentile && (
-            <div className={`flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg backdrop-blur-md border ${
+            <div className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg backdrop-blur-md border ${
               isTopTier
                 ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-300/30'
                 : 'bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border-blue-300/30'
             }`}>
-              <span className="text-base">{post.percentile.badge}</span>
-              <div className="flex flex-col">
+              {/* Left: Badge + Display Text */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-base">{post.percentile.badge}</span>
                 <span className={`text-xs font-bold ${
                   isTopTier ? 'text-purple-200' : 'text-blue-200'
                 }`}>
                   {post.percentile.displayText}
                 </span>
-                <span className="text-[10px] text-white/60">
-                  {post.percentile.comparison}
-                </span>
               </div>
+              
+              {/* Right: Comparison */}
+              <span className="text-[10px] text-white/60">
+                {post.percentile.comparison}
+              </span>
             </div>
           )}
 
