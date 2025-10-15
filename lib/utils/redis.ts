@@ -164,7 +164,7 @@ export async function invalidateFeedCache(): Promise<void> {
   
   try {
     // Pattern matching for all feed keys
-    const keys = await kv.keys('feed:*')
+    const keys = await redis.keys('feed:*')
     if (keys.length > 0) {
       await redis.del(...keys)
       console.log(`🗑️ Invalidated ${keys.length} feed cache entries`)
@@ -219,7 +219,7 @@ export async function checkRateLimit(
     const key = CacheKeys.rateLimit(identifier, action)
     
     // Atomic increment
-    const count = await kv.incr(key)
+    const count = await redis.incr(key)
     
     // Set expiry on first request
     if (count === 1) {
@@ -227,7 +227,7 @@ export async function checkRateLimit(
     }
     
     // Get TTL for reset time
-    const ttl = await kv.ttl(key)
+    const ttl = await redis.ttl(key)
     
     const remaining = Math.max(0, limit - count)
     const success = count <= limit
@@ -306,7 +306,7 @@ export async function getTopFromLeaderboard(
   
   try {
     // Get top N with scores (highest first)
-    const results = await kv.zrange(leaderboard, 0, count - 1, {
+    const results = await redis.zrange(leaderboard, 0, count - 1, {
       rev: true,
       withScores: true,
     })
@@ -339,7 +339,7 @@ export async function getLeaderboardRank(
   }
   
   try {
-    const rank = await kv.zrevrank(leaderboard, member)
+    const rank = await redis.zrevrank(leaderboard, member)
     return rank !== null ? rank + 1 : null // 1-indexed
   } catch (error) {
     console.error('Leaderboard rank error:', error)
