@@ -300,7 +300,7 @@ export default function FeedPage() {
           return newSet
         })
         
-        setTimeout(() => setRefreshKey(prev => prev + 1), 500)
+        // No refresh needed - optimistic updates handle UI changes
       } else if (response.status === 429) {
         const data = await response.json()
         alert(data.message || 'Too many reactions. Please slow down.')

@@ -85,6 +85,8 @@ export default function PostGrid({
               key={post.id}
               post={post as DaySummaryPost}
               onShare={onShare}
+              onReact={onReact}
+              userReactions={userReactions}
             />
           )
         }
