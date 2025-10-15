@@ -334,21 +334,21 @@ export default function FeedPage() {
       
       // Transform real posts
       const realPosts: DisplayPost[] = apiPosts.map(post => ({
-          id: post.id,
-          content: post.content,
+        id: post.id,
+        content: post.content,
         type: post.uniqueness_score >= 70 ? 'unique' : 'common',
-          time: formatTimeAgo(new Date(post.created_at)),
+        time: formatTimeAgo(new Date(post.created_at)),
         scope: post.scope,
         location_city: post.location_city,
         location_state: post.location_state,
         location_country: post.location_country,
         score: post.uniqueness_score,
         count: post.match_count + 1,
-          funny_count: post.funny_count || 0,
-          creative_count: post.creative_count || 0,
-          must_try_count: post.must_try_count || 0,
-          total_reactions: post.total_reactions || 0,
-          isGhost: false,
+        funny_count: post.funny_count || 0,
+        creative_count: post.creative_count || 0,
+        must_try_count: post.must_try_count || 0,
+        total_reactions: post.total_reactions || 0,
+        isGhost: false,
       }))
       
       let postsWithGhosts: DisplayPost[]
@@ -591,17 +591,17 @@ export default function FeedPage() {
               <PostGrid
                 posts={currentPosts}
                 loading={postsLoading || apiLoading}
-                  onReact={handleReaction}
-                  onShare={handleShare}
-                  userReactions={userReactions}
+                onReact={handleReaction}
+                onShare={handleShare}
+                userReactions={userReactions}
                 emptyMessage={
                   filter === 'trending'
                     ? "No trending posts available right now. Check back soon!"
                     : "No posts yet. Be the first to share what you did today!"
                 }
-                />
-              </div>
-              
+              />
+            </div>
+            
             {/* Sidebar (Desktop Only) */}
             <aside className="hidden lg:block w-80">
               <div className="sticky top-24 space-y-4">
@@ -642,8 +642,8 @@ export default function FeedPage() {
                                 </div>
                               ))}
                             </div>
-                </div>
-              )}
+                          </div>
+                        )}
                         
                         <p className="text-white/40 text-xs italic text-center">
                           Powered by live data from Spotify, Reddit, YouTube, Sports & more
@@ -655,8 +655,8 @@ export default function FeedPage() {
                   <>
                     <GlobalPulseCard posts={filteredPosts} />
                     <TopPerformersCard userLocation={userLocation || undefined} />
-            </>
-          )}
+                  </>
+                )}
               </div>
             </aside>
           </div>
