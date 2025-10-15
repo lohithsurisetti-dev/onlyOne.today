@@ -399,47 +399,17 @@ function ResponseContent() {
                   </div>
                   
                   <div className="grid grid-cols-2 gap-2.5 mb-3">
-                    {formatTemporalStats(temporal).map((stat: any, idx: number) => {
-                      // Determine color scheme based on tier
-                      const tierColors = {
-                        elite: 'border-yellow-400/40 bg-gradient-to-br from-yellow-500/10 to-orange-500/10',
-                        rare: 'border-purple-400/40 bg-gradient-to-br from-purple-500/10 to-pink-500/10',
-                        unique: 'border-purple-400/30 bg-gradient-to-br from-purple-500/8 to-pink-500/8',
-                        notable: 'border-blue-400/30 bg-gradient-to-br from-blue-500/8 to-cyan-500/8',
-                        common: 'border-blue-400/20 bg-white/5',
-                        popular: 'border-green-400/20 bg-white/5',
-                      }
-                      
+                    {formatTemporalStats(temporal).map((stat: { label: string; icon: string; uniqueness: number; comparison: string; matches: number; total: number }, idx: number) => {
                       return (
-                        <div key={idx} className={`rounded-lg p-3 border transition-all hover:scale-[1.02] ${tierColors[stat.tier as keyof typeof tierColors]}`}>
-                          {/* Header: Icon + Label + Badge */}
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-1.5">
-                              {getTemporalIconSVG(stat.icon)}
-                              <span className="text-xs font-semibold text-white/80">{stat.label}</span>
-                            </div>
-                            <span className="text-xl">{stat.badge}</span>
+                        <div key={idx} className="bg-white/5 rounded-lg p-2.5 border border-white/10">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            {getTemporalIconSVG(stat.icon)}
+                            <span className="text-xs font-medium text-white/60">{stat.label}</span>
                           </div>
-                          
-                          {/* Main Stats */}
-                          <div className="space-y-1">
-                            {/* Percentile Rank */}
-                            <div className="text-lg font-black text-white leading-tight">
-                              {stat.percentileText}
-                            </div>
-                            
-                            {/* Comparison */}
-                            <div className="text-xs text-white/70 leading-tight">
-                              {stat.comparison} people
-                            </div>
-                            
-                            {/* Trend Indicator */}
-                            {stat.trendIndicator && (
-                              <div className="flex items-center gap-1 pt-1 border-t border-white/10 mt-1.5">
-                                <span className="text-sm">{stat.trendIndicator}</span>
-                                <span className="text-[10px] font-medium text-white/60">{stat.trendText}</span>
-                              </div>
-                            )}
+                          {/* Show "X of Y people" format */}
+                          <div className="text-base font-bold text-white leading-tight">{stat.comparison}</div>
+                          <div className="text-[10px] text-white/50 mt-0.5">
+                            {stat.matches === 0 ? 'Only you!' : `${stat.matches} others matched`}
                           </div>
                         </div>
                       )

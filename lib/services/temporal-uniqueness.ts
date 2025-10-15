@@ -249,100 +249,39 @@ export function getTemporalEmoji(temporal: TemporalUniqueness): string {
  * Format temporal stats for display
  */
 export function formatTemporalStats(temporal: TemporalUniqueness) {
-  const periods = [
+  return [
     {
       label: 'Today',
-      data: temporal.today,
+      uniqueness: temporal.today.uniqueness,
+      matches: temporal.today.matchCount,
+      total: temporal.today.totalPosts,
+      comparison: `${temporal.today.matchCount + 1} of ${temporal.today.totalPosts}`,
       icon: '📅',
     },
     {
       label: 'This Week',
-      data: temporal.thisWeek,
+      uniqueness: temporal.thisWeek.uniqueness,
+      matches: temporal.thisWeek.matchCount,
+      total: temporal.thisWeek.totalPosts,
+      comparison: `${temporal.thisWeek.matchCount + 1} of ${temporal.thisWeek.totalPosts}`,
       icon: '📆',
     },
     {
       label: 'This Month',
-      data: temporal.thisMonth,
+      uniqueness: temporal.thisMonth.uniqueness,
+      matches: temporal.thisMonth.matchCount,
+      total: temporal.thisMonth.totalPosts,
+      comparison: `${temporal.thisMonth.matchCount + 1} of ${temporal.thisMonth.totalPosts}`,
       icon: '🗓️',
     },
     {
       label: 'All Time',
-      data: temporal.allTime,
+      uniqueness: temporal.allTime.uniqueness,
+      matches: temporal.allTime.matchCount,
+      total: temporal.allTime.totalPosts,
+      comparison: `${temporal.allTime.matchCount + 1} of ${temporal.allTime.totalPosts}`,
       icon: '♾️',
     },
   ]
-  
-  return periods.map((period, idx) => {
-    const peopleWhoDidThis = period.data.matchCount + 1
-    const total = period.data.totalPosts
-    const percentile = total > 0 ? (peopleWhoDidThis / total) * 100 : 0
-    
-    // Determine tier based on percentile
-    let tier: 'elite' | 'rare' | 'unique' | 'notable' | 'common' | 'popular'
-    let badge: string
-    let percentileText: string
-    
-    if (percentile < 1) {
-      tier = 'elite'
-      badge = '🏆'
-      percentileText = percentile < 0.1 ? 'Only you!' : `Top ${percentile.toFixed(1)}%`
-    } else if (percentile < 5) {
-      tier = 'rare'
-      badge = '🌟'
-      percentileText = `Top ${Math.round(percentile)}%`
-    } else if (percentile < 10) {
-      tier = 'unique'
-      badge = '⭐'
-      percentileText = `Top ${Math.round(percentile)}%`
-    } else if (percentile < 25) {
-      tier = 'notable'
-      badge = '✨'
-      percentileText = `Top ${Math.round(percentile)}%`
-    } else if (percentile < 50) {
-      tier = 'common'
-      badge = '✅'
-      percentileText = `Top ${Math.round(percentile)}%`
-    } else {
-      tier = 'popular'
-      badge = '👥'
-      percentileText = `${peopleWhoDidThis} of ${total}`
-    }
-    
-    // Calculate trend (compare with previous period if possible)
-    let trendIndicator = ''
-    let trendText = ''
-    if (idx > 0) {
-      const prevPeriod = periods[idx - 1]
-      const prevPercentile = prevPeriod.data.totalPosts > 0 
-        ? ((prevPeriod.data.matchCount + 1) / prevPeriod.data.totalPosts) * 100 
-        : 0
-      
-      if (percentile < prevPercentile * 0.8) {
-        trendIndicator = '↗️'
-        trendText = 'Getting rarer'
-      } else if (percentile > prevPercentile * 1.2) {
-        trendIndicator = '↘️'
-        trendText = 'Getting popular'
-      } else {
-        trendIndicator = '→'
-        trendText = 'Steady'
-      }
-    }
-    
-    return {
-      label: period.label,
-      uniqueness: period.data.uniqueness,
-      matches: period.data.matchCount,
-      total,
-      comparison: `${peopleWhoDidThis} of ${total}`,
-      percentile,
-      percentileText,
-      tier,
-      badge,
-      trendIndicator,
-      trendText,
-      icon: period.icon,
-    }
-  })
 }
 

@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-    
+
     // 6. Check for XSS patterns
     if (detectXSS(content)) {
       console.log(`🚫 XSS attempt detected from IP: ${ip}`)
