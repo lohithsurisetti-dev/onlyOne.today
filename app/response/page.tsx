@@ -81,7 +81,8 @@ function ResponseContent() {
               city: postResult.post.location_city || undefined,
               state: postResult.post.location_state || undefined,
               country: postResult.post.location_country || undefined,
-            }
+            },
+            postResult.post.input_type || 'action' // Pass input type for accurate temporal comparison
           )
           setTemporal(result)
         } catch (error) {

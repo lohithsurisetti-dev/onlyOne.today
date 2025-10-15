@@ -49,7 +49,8 @@ export async function calculateTemporalUniqueness(
     city?: string
     state?: string
     country?: string
-  }
+  },
+  inputType?: 'action' | 'day' // NEW: Filter by input type
 ): Promise<TemporalUniqueness> {
   const supabase = createClient()
   const now = new Date()
@@ -76,37 +77,34 @@ export async function calculateTemporalUniqueness(
   // Without this, temporal calculation might run before post is visible
   await new Promise(resolve => setTimeout(resolve, 500))
   
-  // Fetch posts for each time window (with scope filtering)
+  // Fetch posts for each time window (with scope + input type filtering)
   const [todayResult, weekResult, monthResult, allTimeResult] = await Promise.all([
     // Today
     applyScopeFilter(
-      supabase
-        .from('posts')
-        .select('id, content_hash')
-        .gte('created_at', oneDayAgo.toISOString())
+      inputType
+        ? supabase.from('posts').select('id, content_hash').eq('input_type', inputType).gte('created_at', oneDayAgo.toISOString())
+        : supabase.from('posts').select('id, content_hash').gte('created_at', oneDayAgo.toISOString())
     ),
     
     // This Week
     applyScopeFilter(
-      supabase
-        .from('posts')
-        .select('id, content_hash')
-        .gte('created_at', oneWeekAgo.toISOString())
+      inputType
+        ? supabase.from('posts').select('id, content_hash').eq('input_type', inputType).gte('created_at', oneWeekAgo.toISOString())
+        : supabase.from('posts').select('id, content_hash').gte('created_at', oneWeekAgo.toISOString())
     ),
     
     // This Month
     applyScopeFilter(
-      supabase
-        .from('posts')
-        .select('id, content_hash')
-        .gte('created_at', oneMonthAgo.toISOString())
+      inputType
+        ? supabase.from('posts').select('id, content_hash').eq('input_type', inputType).gte('created_at', oneMonthAgo.toISOString())
+        : supabase.from('posts').select('id, content_hash').gte('created_at', oneMonthAgo.toISOString())
     ),
     
     // All Time
     applyScopeFilter(
-      supabase
-        .from('posts')
-        .select('id, content_hash')
+      inputType
+        ? supabase.from('posts').select('id, content_hash').eq('input_type', inputType)
+        : supabase.from('posts').select('id, content_hash')
     ),
   ])
   
