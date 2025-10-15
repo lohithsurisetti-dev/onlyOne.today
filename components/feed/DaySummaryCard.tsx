@@ -78,23 +78,17 @@ const DaySummaryCard = React.memo(({ post, onShare, onReact, userReactions }: Da
 
         {/* Main Content - Compact & Centered */}
         <div className="flex-1 flex flex-col justify-center items-center">
-          {/* Show only 1 line on mobile, 2 on desktop */}
+          {/* Mobile: Show less (1 line), Desktop: Show more (2 lines) */}
           <p className="text-white/90 text-xs sm:text-sm leading-relaxed text-center line-clamp-1 sm:line-clamp-2 mb-2 px-1">
-            {post.content.length > 50 
-              ? post.content.substring(0, 50) + '...' 
-              : post.content
-            }
+            {post.content}
           </p>
           
-          {/* Activity count + Hint */}
-          <div className="flex flex-col items-center gap-0.5">
-            <div className="flex items-center gap-1 text-[10px] text-white/50">
-              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-              </svg>
-              <span className="font-medium">{post.activityCount} activities</span>
-            </div>
-            <span className="text-[9px] text-white/30">Tap to view</span>
+          {/* Hint: Tap to view & react */}
+          <div className="flex items-center gap-1 text-[10px] text-white/40 mt-1">
+            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+            </svg>
+            <span className="font-medium">Tap to view & react</span>
           </div>
         </div>
 
