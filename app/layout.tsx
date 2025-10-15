@@ -11,24 +11,27 @@ const inter = Inter({
   display: 'swap',
 })
 
+// Get site URL from environment or fallback
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://onlyonetoday.com'
+
 export const metadata: Metadata = {
-  title: 'OnlyOne.today - Discover How Unique You Are',
+  title: 'OnlyOne.Today - Discover How Unique You Are',
   description: 'Share what you did today and discover your uniqueness! Join thousands exploring daily actions across city, state, country, and world. Anonymous, fun, and instant.',
   keywords: ['uniqueness', 'daily actions', 'social discovery', 'anonymous', 'trending', 'community', 'authentic', 'rare actions'],
-  authors: [{ name: 'OnlyOne.today' }],
-  creator: 'OnlyOne.today',
-  publisher: 'OnlyOne.today',
+  authors: [{ name: 'OnlyOne.Today' }],
+  creator: 'OnlyOne.Today',
+  publisher: 'OnlyOne.Today',
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
-  metadataBase: new URL('https://onlyone-today.vercel.app'),
+  metadataBase: new URL(SITE_URL),
   openGraph: {
-    title: 'OnlyOne.today - Discover How Unique You Are',
+    title: 'OnlyOne.Today - Discover How Unique You Are',
     description: 'Share what you did today and discover your uniqueness! Anonymous, fun, and instant.',
-    url: 'https://onlyone-today.vercel.app',
-    siteName: 'OnlyOne.today',
+    url: SITE_URL,
+    siteName: 'OnlyOne.Today',
     locale: 'en_US',
     type: 'website',
     images: [
@@ -36,13 +39,13 @@ export const metadata: Metadata = {
         url: '/api/og-image', // Dynamic OG image
         width: 1200,
         height: 630,
-        alt: 'OnlyOne.today - Discover Your Uniqueness',
+        alt: 'OnlyOne.Today - Discover Your Uniqueness',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'OnlyOne.today - Discover How Unique You Are',
+    title: 'OnlyOne.Today - Discover How Unique You Are',
     description: 'Share what you did today and discover your uniqueness!',
     images: ['/api/og-image'],
   },

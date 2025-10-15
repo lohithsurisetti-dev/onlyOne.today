@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { X, Download, Share2, Link as LinkIcon, Check, Instagram, MessageCircle } from 'lucide-react'
 import { toJpeg } from 'html-to-image'
 import Button from './ui/Button'
+import { getSiteUrl } from '@/lib/config/site'
 
 interface ShareModalProps {
   isOpen: boolean
@@ -119,11 +120,7 @@ export default function ShareModal({
   }
   
   const getHomepageUrl = () => {
-    // Use the actual deployed domain
-    if (typeof window !== 'undefined') {
-      return window.location.origin
-    }
-    return 'https://onlyone.today'
+    return getSiteUrl()
   }
   
   const getShareText = () => {

@@ -13,5 +13,5 @@ Disallow: /api/moderation
 Disallow: /api/location
 
 # Sitemap
-Sitemap: https://onlyone-today.vercel.app/sitemap.xml
+Sitemap: https://onlyonetoday.com/sitemap.xml
 

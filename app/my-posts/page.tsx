@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import StarsBackground from '@/components/StarsBackground'
 import Footer from '@/components/Footer'
 import { getMyPosts, getTodaysPosts, getMyPostsStats, clearMyPosts, refreshAllReactions } from '@/lib/utils/my-posts'
+import { getSiteUrl } from '@/lib/config/site'
 import type { MyPost } from '@/lib/utils/my-posts'
 
 export default function MyPostsPage() {
@@ -179,7 +180,7 @@ export default function MyPostsPage() {
                       onClick={(e) => {
                         e.preventDefault()
                         e.stopPropagation()
-                        const shareUrl = `${window.location.origin}${post.viewUrl}`
+                        const shareUrl = `${getSiteUrl()}${post.viewUrl}`
                         if (navigator.share) {
                           navigator.share({
                             title: 'OnlyOne.Today',

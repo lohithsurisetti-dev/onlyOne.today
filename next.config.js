@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['localhost'],
+    domains: ['localhost', 'onlyonetoday.com'],
   },
   webpack: (config, { isServer }) => {
     // Handle Transformers.js model files
