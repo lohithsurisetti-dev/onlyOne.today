@@ -136,6 +136,10 @@ export default function Home() {
           must_try_count: 0,
           total_reactions: 0,
         },
+        // New percentile data
+        percentile: result.percentile,
+        totalPosts: result.totalPosts,
+        inputType: data.inputType,
       })
 
       // Navigate to unified response page

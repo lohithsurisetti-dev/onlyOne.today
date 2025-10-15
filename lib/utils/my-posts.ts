@@ -17,6 +17,17 @@ export interface MyPost {
     must_try_count: number
     total_reactions: number
   }
+  // New percentile data
+  percentile?: {
+    percentile: number
+    tier: 'elite' | 'rare' | 'unique' | 'notable' | 'common' | 'popular'
+    displayText: string
+    badge: string
+    message: string
+    comparison: string
+  }
+  totalPosts?: number
+  inputType?: 'action' | 'day'
 }
 
 const STORAGE_KEY = 'onlyone_my_posts'
