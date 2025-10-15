@@ -714,7 +714,7 @@ export default function FeedPage() {
                   <button
                     key={f}
                     onClick={() => handleFilterChange(f)}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 relative ${
                       filter === f
                         ? 'bg-purple-500 text-white shadow-lg'
                         : 'bg-white/10 text-white/70 hover:bg-white/20'
@@ -722,9 +722,11 @@ export default function FeedPage() {
                   >
                     {f.charAt(0).toUpperCase() + f.slice(1)}
                     {filter === f && (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      <span className="ml-1 w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">
+                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </span>
                     )}
                   </button>
                 ))}
@@ -752,9 +754,11 @@ export default function FeedPage() {
                   >
                     {userLocation?.city || 'City'}
                     {scopeFilter === 'city' && (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      <span className="ml-1 w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">
+                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </span>
                     )}
                   </button>
                   <button
@@ -773,9 +777,11 @@ export default function FeedPage() {
                   >
                     {userLocation?.state || 'State'}
                     {scopeFilter === 'state' && (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      <span className="ml-1 w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">
+                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </span>
                     )}
                   </button>
                   <button
@@ -794,9 +800,11 @@ export default function FeedPage() {
                   >
                     {userLocation?.country || 'Country'}
                     {scopeFilter === 'country' && (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      <span className="ml-1 w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">
+                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </span>
                     )}
                   </button>
                   <button
@@ -809,9 +817,11 @@ export default function FeedPage() {
                   >
                     World
                     {scopeFilter === 'world' && (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      <span className="ml-1 w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">
+                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </span>
                     )}
                   </button>
                 </div>
@@ -833,9 +843,11 @@ export default function FeedPage() {
                   >
                     All
                     {reactionFilter === 'all' && (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      <span className="ml-1 w-4 h-4 rounded-full bg-white/30 flex items-center justify-center">
+                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </span>
                     )}
                   </button>
                   <button
@@ -848,9 +860,11 @@ export default function FeedPage() {
                   >
                     Funny
                     {reactionFilter === 'funny' && (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      <span className="ml-1 w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">
+                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </span>
                     )}
                   </button>
                   <button
@@ -863,9 +877,11 @@ export default function FeedPage() {
                   >
                     Creative
                     {reactionFilter === 'creative' && (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      <span className="ml-1 w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">
+                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </span>
                     )}
                   </button>
                   <button
@@ -878,9 +894,11 @@ export default function FeedPage() {
                   >
                     Must Try
                     {reactionFilter === 'must_try' && (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      <span className="ml-1 w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">
+                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </span>
                     )}
                   </button>
                 </div>
