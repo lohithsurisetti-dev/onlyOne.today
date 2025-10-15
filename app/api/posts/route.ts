@@ -318,7 +318,20 @@ export async function GET(request: NextRequest) {
     const cached = await cacheGet<{ posts: any[]; total: number }>(cacheKey)
     if (cached) {
       console.log(`✅ Feed cache HIT for ${filter}:${scopeFilter}:${offset}`)
-      return NextResponse.json(cached, {
+      
+      // Recalculate percentiles for cached posts (in case total changed)
+      const { calculatePercentile } = await import('@/lib/services/percentile')
+      const postsWithFreshPercentile = cached.posts.map((post: any) => {
+        const peopleWhoDidThis = post.match_count + 1
+        const percentileRank = calculatePercentile(peopleWhoDidThis, cached.total)
+        
+        return {
+          ...post,
+          percentile: percentileRank
+        }
+      })
+      
+      return NextResponse.json({ posts: postsWithFreshPercentile, total: cached.total }, {
         status: 200,
         headers: {
           'Cache-Control': 'public, max-age=10',
@@ -344,8 +357,20 @@ export async function GET(request: NextRequest) {
       timezoneOffset // Pass user's timezone offset
     })
 
-    // Cache the result
-    const result = { posts, total }
+    // 4. Calculate percentile for each post (OnlyFans-style ranking)
+    const { calculatePercentile } = await import('@/lib/services/percentile')
+    const postsWithPercentile = posts.map(post => {
+      const peopleWhoDidThis = post.match_count + 1 // Including the poster
+      const percentileRank = calculatePercentile(peopleWhoDidThis, total)
+      
+      return {
+        ...post,
+        percentile: percentileRank
+      }
+    })
+
+    // Cache the result with percentile
+    const result = { posts: postsWithPercentile, total }
     await cacheSet(cacheKey, result, CacheTTL.FEED_RESULTS)
 
     return NextResponse.json(result, {

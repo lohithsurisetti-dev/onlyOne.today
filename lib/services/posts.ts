@@ -536,11 +536,29 @@ export async function createPost(data: {
     }
   }
 
+  // Calculate percentile ranking
+  const { calculatePercentile } = await import('./percentile')
+  const totalPostsInScope = await getTotalPostsCount({
+    scope: data.scope,
+    location: {
+      city: data.locationCity,
+      state: data.locationState,
+      country: data.locationCountry
+    }
+  })
+  
+  const peopleWhoDidThis = finalMatchCount + 1 // Including yourself
+  const percentileRank = calculatePercentile(peopleWhoDidThis, totalPostsInScope)
+  
+  console.log(`📊 Percentile: ${percentileRank.displayText} (${peopleWhoDidThis} of ${totalPostsInScope} in ${data.scope})`)
+
   return {
     post,
     similarPosts,
     matchCount: finalMatchCount,    // Return LIVE count (others in scope)
     uniquenessScore: finalUniquenessScore, // Return LIVE score
+    percentile: percentileRank, // NEW: OnlyFans-style ranking
+    totalPosts: totalPostsInScope, // Total posts in scope for context
   }
 }
 

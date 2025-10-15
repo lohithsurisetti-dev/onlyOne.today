@@ -17,6 +17,14 @@ export interface DisplayPost {
   location_country?: string | null
   score?: number
   count?: number
+  percentile?: {
+    percentile: number
+    tier: 'elite' | 'rare' | 'unique' | 'notable' | 'common' | 'popular'
+    displayText: string
+    badge: string
+    message: string
+    comparison: string
+  }
   source?: 'reddit' | 'spotify' | 'google' | 'github' | 'google-trends' | 'youtube' | 'twitter' | 'curated' | 'sports'
   funny_count?: number
   creative_count?: number
@@ -238,24 +246,42 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
         </div>
       </div>
       
-      {/* Footer - Show Both Metrics (Bottom Aligned) */}
-      <div className={`flex items-center text-xs mb-1.5 ${isGhost ? 'justify-center' : 'justify-between'}`}>
-        <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1 text-purple-300/80">
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-            </svg>
-            <span className="font-medium">{uniquenessScore}%</span>
-          </span>
-          <span className="text-white/30">·</span>
-          <span className="flex items-center gap-1 text-blue-300/80">
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            <span className="font-medium">{isGhost ? matchCount.toLocaleString() : matchCount}</span>
-          </span>
+      {/* Footer - Dual Display: Percentile + Original Metrics */}
+      <div className="space-y-1.5 mb-1.5">
+        {/* Row 1: Percentile Ranking (Primary - OnlyFans Style) */}
+        {post.percentile && !isGhost && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="text-base">{post.percentile.badge}</span>
+              <span className="font-bold text-sm text-white/90">
+                {post.percentile.displayText}
+              </span>
+            </div>
+            <span className="text-xs text-white/40">
+              {post.percentile.comparison}
+            </span>
+          </div>
+        )}
+        
+        {/* Row 2: Original Metrics (Secondary - for transparency) */}
+        <div className={`flex items-center text-xs ${isGhost ? 'justify-center' : 'justify-between'}`}>
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1 text-purple-300/80">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+              </svg>
+              <span className="font-medium">{uniquenessScore}%</span>
+            </span>
+            <span className="text-white/30">·</span>
+            <span className="flex items-center gap-1 text-blue-300/80">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <span className="font-medium">{isGhost ? matchCount.toLocaleString() : matchCount}</span>
+            </span>
+          </div>
+          {!isGhost && <span className="text-white/50">{post.time}</span>}
         </div>
-        {!isGhost && <span className="text-white/50">{post.time}</span>}
       </div>
       
       {/* Reactions - Hidden for ghost posts */}
