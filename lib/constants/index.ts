@@ -18,7 +18,7 @@ export const MAX_SCORE = 100 as const
 export const SCOPE_TYPES = ['city', 'state', 'country', 'world'] as const
 export type ScopeType = typeof SCOPE_TYPES[number]
 
-export const SCOPE_LABELS: Record<ScopeType, string> = {
+export const SCOPE_LABELS = {
   city: 'City',
   state: 'State',
   country: 'Country',
@@ -32,13 +32,13 @@ export const SCOPE_LABELS: Record<ScopeType, string> = {
 export const REACTION_TYPES = ['funny', 'creative', 'must_try'] as const
 export type ReactionType = typeof REACTION_TYPES[number]
 
-export const REACTION_LABELS: Record<ReactionType, string> = {
+export const REACTION_LABELS = {
   funny: 'Funny',
   creative: 'Creative',
   must_try: 'Must Try',
 } as const
 
-export const REACTION_EMOJIS: Record<ReactionType, string> = {
+export const REACTION_EMOJIS = {
   funny: '😂',
   creative: '🎨',
   must_try: '🔥',
