@@ -10,8 +10,10 @@ import MyPostsCard from '@/components/MyPostsCard'
 import Footer from '@/components/Footer'
 import FilterSheet from '@/components/FilterSheet'
 import TimezonePills from '@/components/TimezonePills'
+import PullToRefreshIndicator from '@/components/PullToRefreshIndicator'
 import { useRecentPosts } from '@/lib/hooks/usePosts'
 import { usePlatformStats } from '@/lib/hooks/useStats'
+import { usePullToRefresh } from '@/lib/hooks/usePullToRefresh'
 import { getShareMessage } from '@/lib/services/witty-messages'
 import { detectVibeSync } from '@/lib/services/vibe-detector'
 import { formatGhostPost, isGhostPost } from '@/lib/services/ghost-posts'
@@ -114,6 +116,21 @@ export default function FeedPage() {
   
   // My Posts count
   const [myPostsCount, setMyPostsCount] = useState(0)
+  
+  // Pull-to-refresh functionality
+  const handleRefresh = async () => {
+    if (filter === 'trending') {
+      setTrendingRefreshKey(prev => prev + 1)
+    } else {
+      setRefreshKey(prev => prev + 1)
+    }
+  }
+  
+  const { pullDistance, isRefreshing, progress, isOverThreshold } = usePullToRefresh({
+    onRefresh: handleRefresh,
+    threshold: 80,
+    enabled: true,
+  })
   
   // Popular timezones for quick switching
   const popularTimezones = [
@@ -484,6 +501,14 @@ export default function FeedPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-space-dark via-space-darker to-space-darkest relative overflow-hidden">
       <StarsBackground />
+      
+      {/* Pull to Refresh Indicator */}
+      <PullToRefreshIndicator
+        pullDistance={pullDistance}
+        isRefreshing={isRefreshing}
+        progress={progress}
+        isOverThreshold={isOverThreshold}
+      />
       
       {/* Floating Plus Button */}
       <button
