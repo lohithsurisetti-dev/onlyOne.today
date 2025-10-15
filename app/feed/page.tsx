@@ -356,7 +356,7 @@ export default function FeedPage() {
           total_reactions: post.total_reactions || 0,
           isGhost: false,
         }
-      }))
+      })
       
       let postsWithGhosts: DisplayPost[]
       
