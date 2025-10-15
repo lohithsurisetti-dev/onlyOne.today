@@ -347,7 +347,7 @@ export default function ShareModal({
               onClick={() => {
                 if (navigator.share) {
                   navigator.share({
-                    title: 'OnlyOne.today',
+                    title: 'OnlyOne Today',
                     text: content,
                     url: window.location.href,
                   })

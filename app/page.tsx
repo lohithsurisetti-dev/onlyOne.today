@@ -180,7 +180,7 @@ export default function Home() {
         {/* Header */}
         <header className="text-center pt-12 pb-6 sm:pb-8 px-4 relative">
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-3">
-            OnlyOne.today
+            OnlyOne Today
           </h1>
           <p className="text-white/70 text-base sm:text-lg md:text-xl max-w-2xl mx-auto">
             While the world follows the trend, you did something no one else did.

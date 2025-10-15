@@ -6,9 +6,9 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
           {/* Brand */}
-          <p className="text-white/50 text-sm">
-            © {new Date().getFullYear()} <span className="text-white font-medium">OnlyOne.Today</span>
-          </p>
+                <p className="text-white/50 text-sm">
+                  © {new Date().getFullYear()} <span className="text-white font-medium">OnlyOne Today</span>
+                </p>
           
           {/* Links */}
           <div className="flex items-center gap-6 text-sm">

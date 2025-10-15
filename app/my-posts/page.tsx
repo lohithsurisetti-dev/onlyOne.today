@@ -183,7 +183,7 @@ export default function MyPostsPage() {
                         const shareUrl = `${getSiteUrl()}${post.viewUrl}`
                         if (navigator.share) {
                           navigator.share({
-                            title: 'OnlyOne.Today',
+                            title: 'OnlyOne Today',
                             text: `Check out: "${post.content}"`,
                             url: shareUrl,
                           }).catch(() => {})

@@ -15,12 +15,12 @@ const inter = Inter({
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://onlyonetoday.com'
 
 export const metadata: Metadata = {
-  title: 'OnlyOne.Today - Discover How Unique You Are',
+  title: 'OnlyOne Today - Discover How Unique You Are',
   description: 'Share what you did today and discover your uniqueness! Join thousands exploring daily actions across city, state, country, and world. Anonymous, fun, and instant.',
   keywords: ['uniqueness', 'daily actions', 'social discovery', 'anonymous', 'trending', 'community', 'authentic', 'rare actions'],
-  authors: [{ name: 'OnlyOne.Today' }],
-  creator: 'OnlyOne.Today',
-  publisher: 'OnlyOne.Today',
+  authors: [{ name: 'OnlyOne Today' }],
+  creator: 'OnlyOne Today',
+  publisher: 'OnlyOne Today',
   formatDetection: {
     email: false,
     address: false,
@@ -28,10 +28,10 @@ export const metadata: Metadata = {
   },
   metadataBase: new URL(SITE_URL),
   openGraph: {
-    title: 'OnlyOne.Today - Discover How Unique You Are',
+    title: 'OnlyOne Today - Discover How Unique You Are',
     description: 'Share what you did today and discover your uniqueness! Anonymous, fun, and instant.',
     url: SITE_URL,
-    siteName: 'OnlyOne.Today',
+    siteName: 'OnlyOne Today',
     locale: 'en_US',
     type: 'website',
     images: [
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'OnlyOne.Today - Discover How Unique You Are',
+    title: 'OnlyOne Today - Discover How Unique You Are',
     description: 'Share what you did today and discover your uniqueness!',
     images: ['/api/og-image'],
   },

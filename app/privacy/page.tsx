@@ -1,7 +1,7 @@
 import Link from 'next/link'
 
 export const metadata = {
-  title: 'Privacy Policy - OnlyOne.Today',
+  title: 'Privacy Policy - OnlyOne Today',
   description: 'Our commitment to your privacy and data protection',
 }
 
@@ -29,7 +29,7 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-xl font-bold text-white mb-3">🌟 Our Commitment</h2>
               <p>
-                OnlyOne.Today is built on the principle of <strong>anonymity and privacy</strong>. We believe your actions should be yours to share, without revealing who you are.
+                OnlyOne Today is built on the principle of <strong>anonymity and privacy</strong>. We believe your actions should be yours to share, without revealing who you are.
               </p>
             </section>
 
@@ -109,7 +109,7 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-xl font-bold text-white mb-3">👶 Children's Privacy</h2>
               <p>
-                OnlyOne.Today is designed for users aged 13 and older. We do not knowingly collect data from children under 13.
+                OnlyOne Today is designed for users aged 13 and older. We do not knowingly collect data from children under 13.
               </p>
             </section>
 

@@ -1,8 +1,8 @@
 import Link from 'next/link'
 
 export const metadata = {
-  title: 'Terms of Service - OnlyOne.Today',
-  description: 'Terms and conditions for using OnlyOne.Today',
+  title: 'Terms of Service - OnlyOne Today',
+  description: 'Terms and conditions for using OnlyOne Today',
 }
 
 export default function TermsPage() {
@@ -29,7 +29,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-xl font-bold text-white mb-3">👋 Welcome!</h2>
               <p>
-                By using OnlyOne.Today, you agree to these terms. We keep it simple: be cool, be respectful, and have fun discovering your uniqueness!
+                By using OnlyOne Today, you agree to these terms. We keep it simple: be cool, be respectful, and have fun discovering your uniqueness!
               </p>
             </section>
 
@@ -69,7 +69,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-xl font-bold text-white mb-3">📊 Your Content</h2>
               <p>
-                You retain ownership of what you post, but by sharing on OnlyOne.Today, you grant us the right to:
+                You retain ownership of what you post, but by sharing on OnlyOne Today, you grant us the right to:
               </p>
               <ul className="space-y-2 list-disc list-inside mt-2">
                 <li>Display your posts in the public feed</li>
@@ -84,7 +84,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-xl font-bold text-white mb-3">⚖️ Disclaimer</h2>
               <p>
-                OnlyOne.Today is provided "as is" for entertainment and self-discovery. We make no guarantees about:
+                OnlyOne Today is provided "as is" for entertainment and self-discovery. We make no guarantees about:
               </p>
               <ul className="space-y-2 list-disc list-inside mt-2">
                 <li>100% uptime or availability</li>
