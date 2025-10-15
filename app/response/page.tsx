@@ -99,7 +99,8 @@ function ResponseContent() {
       const uniquenessScore = postResult.uniquenessScore ?? 94
       const matchCount = postResult.matchCount ?? 0
       
-      const newMessage = getWittyResponse({
+      // Use percentile message if available, otherwise fallback to old witty messages
+      const newMessage = postResult.percentile?.message || getWittyResponse({
         uniquenessScore,
         matchCount,
         vibe,
@@ -107,7 +108,8 @@ function ResponseContent() {
       })
       setMessage(newMessage)
       
-      const newRank = getWittyRank(uniquenessScore, scope)
+      // Use percentile display text as rank if available
+      const newRank = postResult.percentile?.displayText || getWittyRank(uniquenessScore, scope)
       setRank(newRank)
       
       const newVibeCelebration = vibe ? getVibeCelebration(vibe) : ''
@@ -255,28 +257,61 @@ function ResponseContent() {
                       </defs>
                     </svg>
                     
-                    {/* Center content */}
+                    {/* Center content - NEW PERCENTILE DESIGN */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <div className="text-xs font-semibold text-white/60 uppercase tracking-widest mb-1">
-                        {shareType === 'uniqueness' ? 'Unique' : 'Common'}
-                      </div>
-                      <div className={`text-4xl font-black mb-1 transition-all duration-1000 ${
-                        shareType === 'uniqueness' 
-                          ? 'bg-gradient-to-br from-purple-300 via-pink-300 to-purple-400 bg-clip-text text-transparent' 
-                          : 'bg-gradient-to-br from-blue-300 via-cyan-300 to-blue-400 bg-clip-text text-transparent'
-                      }`}>
-                        {shareType === 'uniqueness' ? uniquenessScore : commonalityScore}%
-                      </div>
-                      <div className="px-3 py-1 bg-white/10 rounded-full backdrop-blur-sm transition-all duration-500">
-                        <span className="text-xs font-medium text-white/80">
-                          {shareType === 'uniqueness' 
-                            ? matchCount === 0
-                              ? `Only you in ${scope}!`
-                              : `${similarCount} people in ${scope}`
-                            : `${similarCount} people in ${scope}`
-                          }
-                        </span>
-                      </div>
+                      {postResult?.percentile ? (
+                        <>
+                          {/* Percentile Badge/Icon */}
+                          <div className="text-3xl mb-2">
+                            {postResult.percentile.badge}
+                          </div>
+                          
+                          {/* Percentile Display Text */}
+                          <div className={`text-4xl font-black mb-1 transition-all duration-1000 ${
+                            shareType === 'uniqueness' 
+                              ? 'bg-gradient-to-br from-purple-300 via-pink-300 to-purple-400 bg-clip-text text-transparent' 
+                              : 'bg-gradient-to-br from-blue-300 via-cyan-300 to-blue-400 bg-clip-text text-transparent'
+                          }`}>
+                            {postResult.percentile.displayText}
+                          </div>
+                          
+                          {/* Comparison Text */}
+                          <div className="px-3 py-1 bg-white/10 rounded-full backdrop-blur-sm transition-all duration-500">
+                            <span className="text-xs font-medium text-white/80">
+                              {postResult.percentile.comparison}
+                            </span>
+                          </div>
+                          
+                          {/* Tier Name */}
+                          <div className="mt-2 text-xs font-semibold text-white/60 uppercase tracking-widest">
+                            {postResult.percentile.tier}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          {/* Fallback to old design if no percentile data */}
+                          <div className="text-xs font-semibold text-white/60 uppercase tracking-widest mb-1">
+                            {shareType === 'uniqueness' ? 'Unique' : 'Common'}
+                          </div>
+                          <div className={`text-4xl font-black mb-1 transition-all duration-1000 ${
+                            shareType === 'uniqueness' 
+                              ? 'bg-gradient-to-br from-purple-300 via-pink-300 to-purple-400 bg-clip-text text-transparent' 
+                              : 'bg-gradient-to-br from-blue-300 via-cyan-300 to-blue-400 bg-clip-text text-transparent'
+                          }`}>
+                            {shareType === 'uniqueness' ? uniquenessScore : commonalityScore}%
+                          </div>
+                          <div className="px-3 py-1 bg-white/10 rounded-full backdrop-blur-sm transition-all duration-500">
+                            <span className="text-xs font-medium text-white/80">
+                              {shareType === 'uniqueness' 
+                                ? matchCount === 0
+                                  ? `Only you in ${scope}!`
+                                  : `${similarCount} people in ${scope}`
+                                : `${similarCount} people in ${scope}`
+                              }
+                            </span>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
