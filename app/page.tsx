@@ -183,7 +183,7 @@ export default function Home() {
             OnlyOne Today
           </h1>
           <p className="text-white/70 text-base sm:text-lg md:text-xl max-w-2xl mx-auto">
-            While the world follows the trend, you did something no one else did.
+            Unique or common. Either way, you're counted.
           </p>
           
           {/* Live Post Counter - Mobile: Below subtitle, Desktop: Top right */}
