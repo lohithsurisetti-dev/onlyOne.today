@@ -6,15 +6,26 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   
   const content = searchParams.get('content') || 'My unique moment'
-  const score = searchParams.get('score') || '100'
-  const type = searchParams.get('type') || 'uniqueness'
+  const percentileText = searchParams.get('percentileText') || 'Top 10%'
+  const percentileBadge = searchParams.get('percentileBadge') || '🏆'
+  const percentileComparison = searchParams.get('percentileComparison') || '1 of 10 people'
+  const percentileTier = searchParams.get('percentileTier') || 'elite'
   const scope = searchParams.get('scope') || 'world'
-  const vibe = searchParams.get('vibe') || '✨ Free Spirit'
+  const inputType = searchParams.get('inputType') || 'action'
   
-  const isUnique = type === 'uniqueness'
-  const gradientColors = isUnique
-    ? { from: '#a855f7', to: '#ec4899' } // Purple to pink (unique)
-    : { from: '#3b82f6', to: '#8b5cf6' } // Blue to purple (common)
+  // Determine colors based on tier and input type
+  const isTopTier = ['elite', 'rare', 'unique', 'notable'].includes(percentileTier)
+  
+  let colors
+  if (inputType === 'day') {
+    colors = isTopTier
+      ? { gradient: ['#fb923c', '#fbbf24'], text: '#ea580c', bg: '#fff7ed', accent: '#fed7aa' }
+      : { gradient: ['#14b8a6', '#10b981'], text: '#0f766e', bg: '#f0fdfa', accent: '#99f6e4' }
+  } else {
+    colors = isTopTier
+      ? { gradient: ['#a855f7', '#ec4899'], text: '#9333ea', bg: '#faf5ff', accent: '#e9d5ff' }
+      : { gradient: ['#3b82f6', '#06b6d4'], text: '#2563eb', bg: '#eff6ff', accent: '#bfdbfe' }
+  }
 
   return new ImageResponse(
     (
@@ -23,99 +34,153 @@ export async function GET(request: Request) {
           height: '100%',
           width: '100%',
           display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'linear-gradient(135deg, #1a0b2e 0%, #16213e 100%)',
-          padding: '60px',
+          background: '#ffffff',
+          position: 'relative',
         }}
       >
-        {/* Card */}
+        {/* Gradient Background Accent */}
         <div
           style={{
-            background: `linear-gradient(135deg, ${gradientColors.from} 0%, ${gradientColors.to} 100%)`,
-            borderRadius: 30,
-            padding: '50px',
-            width: '1000px',
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: '60%',
+            height: '100%',
+            background: `linear-gradient(135deg, ${colors.bg} 0%, ${colors.accent}40 100%)`,
+            opacity: 0.6,
+          }}
+        />
+        
+        {/* Content Container */}
+        <div
+          style={{
+            position: 'relative',
+            width: '100%',
+            height: '100%',
             display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+            padding: '80px',
+            gap: '60px',
           }}
         >
-          {/* Score */}
-          <div
-            style={{
-              fontSize: 120,
-              fontWeight: 900,
-              color: 'white',
-              marginBottom: 20,
-            }}
-          >
-            {score}%
-          </div>
-          
-          {/* Type */}
-          <div
-            style={{
-              fontSize: 40,
-              color: 'rgba(255, 255, 255, 0.9)',
-              marginBottom: 40,
-              textTransform: 'uppercase',
-              letterSpacing: 4,
-            }}
-          >
-            {isUnique ? 'UNIQUE' : 'COMMON'}
-          </div>
-          
-          {/* Content */}
-          <div
-            style={{
-              fontSize: 36,
-              color: 'white',
-              marginBottom: 30,
-              textAlign: 'center',
-              maxWidth: 800,
-              lineHeight: 1.4,
-            }}
-          >
-            "{content}"
-          </div>
-          
-          {/* Metadata */}
+          {/* Left Side - Badge */}
           <div
             style={{
               display: 'flex',
-              gap: 20,
-              fontSize: 24,
-              color: 'rgba(255, 255, 255, 0.7)',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            <span>{vibe}</span>
-            <span>•</span>
-            <span style={{ textTransform: 'capitalize' }}>{scope}</span>
+            <div
+              style={{
+                width: '280px',
+                height: '280px',
+                borderRadius: '50%',
+                background: `linear-gradient(135deg, ${colors.gradient[0]} 0%, ${colors.gradient[1]} 100%)`,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15)',
+              }}
+            >
+              <div style={{ fontSize: 64, marginBottom: 8 }}>{percentileBadge}</div>
+              <div
+                style={{
+                  fontSize: 48,
+                  fontWeight: 900,
+                  color: 'white',
+                  letterSpacing: '-1px',
+                }}
+              >
+                {percentileText}
+              </div>
+              <div
+                style={{
+                  fontSize: 16,
+                  color: 'rgba(255, 255, 255, 0.9)',
+                  marginTop: 8,
+                  fontWeight: 600,
+                }}
+              >
+                {percentileComparison}
+              </div>
+            </div>
           </div>
-        </div>
-        
-        {/* Branding */}
-        <div
-          style={{
-            marginTop: 40,
-            fontSize: 32,
-            color: 'rgba(255, 255, 255, 0.8)',
-            fontWeight: 700,
-          }}
-        >
-          OnlyOne Today
-        </div>
-        <div
-          style={{
-            fontSize: 20,
-            color: 'rgba(255, 255, 255, 0.5)',
-            marginTop: 10,
-          }}
-        >
-          Discover your uniqueness
+          
+          {/* Right Side - Content */}
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              gap: '24px',
+            }}
+          >
+            {/* Quote */}
+            <div
+              style={{
+                fontSize: 48,
+                fontWeight: 700,
+                color: '#1f2937',
+                lineHeight: 1.3,
+                letterSpacing: '-0.5px',
+              }}
+            >
+              "{content.substring(0, 80)}{content.length > 80 ? '...' : ''}"
+            </div>
+            
+            {/* Metadata */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                fontSize: 20,
+                color: '#6b7280',
+              }}
+            >
+              <span style={{ fontSize: 28 }}>🌍</span>
+              <span style={{ textTransform: 'capitalize', fontWeight: 600, color: '#9ca3af' }}>{scope}</span>
+            </div>
+            
+            {/* Separator */}
+            <div
+              style={{
+                width: '100%',
+                height: '2px',
+                background: `linear-gradient(90deg, ${colors.gradient[0]}40 0%, transparent 100%)`,
+                marginTop: '20px',
+                marginBottom: '20px',
+              }}
+            />
+            
+            {/* Branding */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div
+                style={{
+                  fontSize: 32,
+                  fontWeight: 800,
+                  background: `linear-gradient(135deg, ${colors.gradient[0]} 0%, ${colors.gradient[1]} 100%)`,
+                  backgroundClip: 'text',
+                  color: 'transparent',
+                  letterSpacing: '-0.5px',
+                }}
+              >
+                OnlyOne Today
+              </div>
+              <div
+                style={{
+                  fontSize: 18,
+                  color: '#9ca3af',
+                  fontWeight: 500,
+                }}
+              >
+                Discover your uniqueness
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     ),
@@ -125,4 +190,3 @@ export async function GET(request: Request) {
     }
   )
 }
-
