@@ -241,14 +241,17 @@ export async function GET(request: NextRequest) {
       }
       
       // IMPORTANT: Recalculate LIVE scores with SCOPE-AWARE matching (same as feed does)
-      const { getTodayStart, applyScopeFilter } = await import('@/lib/services/posts')
+      const { getTodayStartWithOffset, applyScopeFilter } = await import('@/lib/services/posts')
+      
+      // Parse timezone offset (user's calendar day)
+      const timezoneOffset = parseInt(timezoneOffsetParam) || 0
       
       // Build scope-aware count query
       let countQuery = supabase
         .from('posts')
         .select('id', { count: 'exact', head: true })
         .eq('content_hash', post.content_hash)
-        .gte('created_at', getTodayStart())
+        .gte('created_at', getTodayStartWithOffset(timezoneOffset))
       
       // Apply scope filter based on THIS post's scope
       countQuery = applyScopeFilter(countQuery, post.scope as any, {
