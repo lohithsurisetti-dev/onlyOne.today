@@ -208,8 +208,8 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
   
   return (
     <div
-      className={`group relative rounded-2xl p-4 md:p-3 backdrop-blur-md border transition-all duration-300 hover:scale-105 hover:shadow-xl flex flex-col justify-between ${getCardStyle()}`}
-      style={{ minHeight: '160px' }}
+      className={`group relative rounded-xl md:rounded-2xl p-3 md:p-3 backdrop-blur-md border transition-all duration-300 hover:scale-105 hover:shadow-xl flex flex-col ${getCardStyle()}`}
+      style={{ minHeight: '140px' }}
     >
       {/* Source Icon for Ghost Posts - Top Center (Fixed Position) */}
       {isGhost && post.source && (
@@ -224,24 +224,24 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
           e.stopPropagation()
           onShare?.(post)
         }}
-        className="absolute top-2 right-2 opacity-70 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 transition-opacity p-3 md:p-2 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-sm min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 flex items-center justify-center"
+        className="absolute top-2 right-2 opacity-60 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 transition-opacity p-2 md:p-2 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-sm"
         title="Share this post"
       >
-        <svg className="w-5 h-5 md:w-4 md:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 md:w-4 md:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
         </svg>
       </button>
       
-      {/* Content - Center Aligned */}
-      <div className="flex-1 flex items-center justify-center px-2">
+      {/* Content - Center Aligned with more space */}
+      <div className="flex-1 flex items-center justify-center px-2 py-2">
         <div className={isGhost ? 'mt-4' : ''}>
-          <p className={`text-base md:text-sm leading-relaxed md:leading-snug text-center break-words ${isGhost ? 'text-white/60 italic' : 'text-white/90'} group-hover:text-white`}>
+          <p className={`text-base md:text-[15px] leading-snug text-center break-words ${isGhost ? 'text-white/60 italic' : 'text-white/90'} group-hover:text-white`}>
             {displayContent}
           </p>
           {needsTruncation && !expanded && (
             <button
               onClick={() => setExpanded(true)}
-              className="text-sm md:text-xs text-purple-300/70 hover:text-purple-300 mt-1 block mx-auto"
+              className="text-xs text-purple-300/70 hover:text-purple-300 mt-1 block mx-auto"
             >
               Read more
             </button>
@@ -249,89 +249,146 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
         </div>
       </div>
       
-      {/* Footer - Premium Clean Design */}
-      <div className="space-y-2 mb-1.5">
-        {/* Percentile Badge (Primary - OnlyFans Style) */}
-        {post.percentile && !isGhost ? (
-          <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-white/5 rounded-lg border border-white/10">
-            <div className="flex items-center gap-1.5 min-w-0 flex-shrink-0">
-              {/* Premium Trophy Icon */}
-              <svg className="w-3.5 h-3.5 md:w-3 md:h-3 text-yellow-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+      {/* Footer - Separate Rows for Desktop */}
+      <div className="space-y-1.5">
+        {/* Percentile Badge */}
+        {post.percentile && !isGhost && (
+          <div className="flex items-center justify-between px-2.5 py-2 md:px-2 md:py-1.5 bg-white/5 rounded-lg border border-white/10">
+            <div className="flex items-center gap-1.5 md:gap-1">
+              <svg className="w-4 h-4 md:w-3 md:h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
               </svg>
-              <span className="font-bold text-xs md:text-[10px] text-white whitespace-nowrap">
-                {post.percentile.displayText}
-              </span>
+              <span className="font-bold text-xs md:text-[10px] text-white">{post.percentile.displayText}</span>
             </div>
-            <span className="text-[10px] md:text-[9px] text-white/50 font-medium truncate">
-              {post.percentile.comparison}
-            </span>
+            <span className="text-[10px] md:text-[9px] text-white/50 font-medium">{post.percentile.comparison}</span>
           </div>
-        ) : null}
+        )}
         
-        {/* Metadata Row - Scope (left) and Time (right) */}
-        <div className={`flex items-center ${isGhost ? 'justify-center' : 'justify-between'} gap-2 text-xs md:text-[10px] text-white/50`}>
-          {/* Scope Icon + Label */}
-          <span className="flex items-center gap-1 min-w-0">
-            {scopeInfo.iconSvg}
-            <span className="font-medium truncate">{scopeInfo.label}</span>
-          </span>
-          {/* Time - Right Aligned */}
-          {!isGhost && <span className="whitespace-nowrap flex-shrink-0">{post.time}</span>}
+        {/* Mobile: Single row, Desktop: Two rows */}
+        <div className="md:space-y-1">
+          {/* Metadata Row */}
+          <div className={`flex items-center ${isGhost ? 'justify-center' : 'justify-between'} text-[10px] text-white/50`}>
+            {/* Left: Scope + Time (mobile only) */}
+            <div className="flex items-center gap-1.5">
+              <span className="flex items-center gap-0.5">
+                {scopeInfo.iconSvg}
+                <span className="font-medium">{scopeInfo.label}</span>
+              </span>
+              {!isGhost && (
+                <>
+                  <span className="text-white/30 md:hidden">•</span>
+                  <span className="whitespace-nowrap md:hidden">{post.time}</span>
+                </>
+              )}
+            </div>
+            
+            {/* Desktop: Time right-aligned */}
+            {!isGhost && (
+              <span className="hidden md:block whitespace-nowrap">{post.time}</span>
+            )}
+            
+            {/* Reactions on mobile (inline) */}
+            {!isGhost && (
+              <div className="flex gap-1 md:hidden">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleReaction('funny')
+                  }}
+                  className={`flex items-center gap-0.5 px-1.5 py-1 rounded-full transition-all ${
+                    userReactions?.has(`${post.id}-funny`)
+                      ? 'bg-yellow-500/40'
+                      : 'bg-white/5 hover:bg-yellow-500/20'
+                  }`}
+                >
+                  <span className="text-xs">😂</span>
+                  {reactions.funny > 0 && <span className="text-white/80 text-[9px]">{reactions.funny}</span>}
+                </button>
+                
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleReaction('creative')
+                  }}
+                  className={`flex items-center gap-0.5 px-1.5 py-1 rounded-full transition-all ${
+                    userReactions?.has(`${post.id}-creative`)
+                      ? 'bg-purple-500/40'
+                      : 'bg-white/5 hover:bg-purple-500/20'
+                  }`}
+                >
+                  <span className="text-xs">🎨</span>
+                  {reactions.creative > 0 && <span className="text-white/80 text-[9px]">{reactions.creative}</span>}
+                </button>
+                
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleReaction('must_try')
+                  }}
+                  className={`flex items-center gap-0.5 px-1.5 py-1 rounded-full transition-all ${
+                    userReactions?.has(`${post.id}-must_try`)
+                      ? 'bg-green-500/40'
+                      : 'bg-white/5 hover:bg-green-500/20'
+                  }`}
+                >
+                  <span className="text-xs">🔥</span>
+                  {reactions.must_try > 0 && <span className="text-white/80 text-[9px]">{reactions.must_try}</span>}
+                </button>
+              </div>
+            )}
+          </div>
+          
+          {/* Reactions on desktop (separate row, right-aligned) */}
+          {!isGhost && (
+            <div className="hidden md:flex gap-1 justify-end">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleReaction('funny')
+                }}
+                className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full transition-all ${
+                  userReactions?.has(`${post.id}-funny`)
+                    ? 'bg-yellow-500/40'
+                    : 'bg-white/5 hover:bg-yellow-500/20'
+                }`}
+              >
+                <span className="text-xs">😂</span>
+                {reactions.funny > 0 && <span className="text-white/80 text-[9px]">{reactions.funny}</span>}
+              </button>
+              
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleReaction('creative')
+                }}
+                className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full transition-all ${
+                  userReactions?.has(`${post.id}-creative`)
+                    ? 'bg-purple-500/40'
+                    : 'bg-white/5 hover:bg-purple-500/20'
+                }`}
+              >
+                <span className="text-xs">🎨</span>
+                {reactions.creative > 0 && <span className="text-white/80 text-[9px]">{reactions.creative}</span>}
+              </button>
+              
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleReaction('must_try')
+                }}
+                className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full transition-all ${
+                  userReactions?.has(`${post.id}-must_try`)
+                    ? 'bg-green-500/40'
+                    : 'bg-white/5 hover:bg-green-500/20'
+                }`}
+              >
+                <span className="text-xs">🔥</span>
+                {reactions.must_try > 0 && <span className="text-white/80 text-[9px]">{reactions.must_try}</span>}
+              </button>
+            </div>
+          )}
         </div>
       </div>
-      
-      {/* Reactions - Right Aligned, Hidden for ghost posts */}
-      {!isGhost && (
-        <div className="flex items-center justify-end">
-        <div className="flex gap-2 md:gap-1">
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              handleReaction('funny')
-            }}
-            className={`flex items-center gap-1 px-3 py-2 md:px-1.5 md:py-0.5 rounded-full transition-all min-h-[44px] md:min-h-0 ${
-              userReactions?.has(`${post.id}-funny`)
-                ? 'bg-yellow-500/40 scale-105'
-                : 'bg-white/5 hover:bg-yellow-500/20 hover:scale-105'
-            }`}
-          >
-            <span className="text-lg md:text-xs">😂</span>
-            {reactions.funny > 0 && <span className="text-white/80 text-sm md:text-xs font-medium">{reactions.funny}</span>}
-          </button>
-        
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            handleReaction('creative')
-          }}
-          className={`flex items-center gap-1 px-3 py-2 md:px-1.5 md:py-0.5 rounded-full transition-all min-h-[44px] md:min-h-0 ${
-            userReactions?.has(`${post.id}-creative`)
-              ? 'bg-purple-500/40 scale-105'
-              : 'bg-white/5 hover:bg-purple-500/20 hover:scale-105'
-          }`}
-        >
-          <span className="text-lg md:text-xs">🎨</span>
-          {reactions.creative > 0 && <span className="text-white/80 text-sm md:text-xs font-medium">{reactions.creative}</span>}
-        </button>
-        
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            handleReaction('must_try')
-          }}
-          className={`flex items-center gap-1 px-3 py-2 md:px-1.5 md:py-0.5 rounded-full transition-all min-h-[44px] md:min-h-0 ${
-            userReactions?.has(`${post.id}-must_try`)
-              ? 'bg-green-500/40 scale-105'
-              : 'bg-white/5 hover:bg-green-500/20 hover:scale-105'
-          }`}
-        >
-          <span className="text-lg md:text-xs">🔥</span>
-          {reactions.must_try > 0 && <span className="text-white/80 text-sm md:text-xs font-medium">{reactions.must_try}</span>}
-        </button>
-          </div>
-        </div>
-      )}
       
     </div>
   )

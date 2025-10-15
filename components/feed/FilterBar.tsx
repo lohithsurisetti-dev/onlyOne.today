@@ -81,47 +81,86 @@ export default function FilterBar({
     <header className="sticky top-0 z-30 backdrop-blur-xl bg-space-dark/80 border-b border-white/10">
       <div className="max-w-7xl mx-auto px-4 py-3">
         {/* MOBILE HEADER */}
-        <div className="flex items-center gap-3 md:hidden">
-          {/* Back Button */}
-          {onBackClick && (
-            <button
-              onClick={onBackClick}
-              className="text-white/60 hover:text-white transition-colors shrink-0"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-          )}
-          
-          {/* Title / Active Filter Indicator */}
-          <div className="flex-1">
-            <h1 className="text-white font-bold text-lg">
-              {filter === 'all' ? 'All Posts' :
-               filter === 'unique' ? 'Unique Posts' :
-               filter === 'common' ? 'Common Posts' :
-               'Trending'}
-            </h1>
-            {trendingLoading && (
-              <p className="text-orange-300 text-xs flex items-center gap-1">
-                <svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        <div className="md:hidden">
+          <div className="flex items-center gap-2">
+            {/* Back Button */}
+            {onBackClick && (
+              <button
+                onClick={onBackClick}
+                className="text-white/60 hover:text-white transition-colors shrink-0"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
-                <span>Loading...</span>
-              </p>
+              </button>
             )}
+            
+            {/* Title - Compact */}
+            <div className="shrink-0">
+              <h1 className="text-white font-bold text-sm">OnlyOne Today</h1>
+            </div>
+            
+            {/* Active Filters Pills - Inline */}
+            <div className="flex-1 flex items-center justify-end gap-1.5 overflow-x-auto hide-scrollbar">
+              {filter !== 'all' && (
+                <button
+                  onClick={() => onFilterChange('all')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium backdrop-blur-sm border transition-all ${
+                    filter === 'trending' 
+                      ? 'bg-orange-500/20 border-orange-400/40 text-orange-200'
+                      : filter === 'unique'
+                      ? 'bg-purple-500/20 border-purple-400/40 text-purple-200'
+                      : 'bg-blue-500/20 border-blue-400/40 text-blue-200'
+                  }`}
+                >
+                  <span>{filter === 'trending' ? 'Trending' : filter === 'unique' ? 'Unique' : 'Common'}</span>
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+              
+              {scopeFilter !== 'world' && (
+                <button
+                  onClick={() => onScopeFilterChange('world')}
+                  className="flex items-center gap-1.5 px-2.5 py-1 bg-cyan-500/20 border border-cyan-400/40 rounded-full text-xs font-medium text-cyan-200 backdrop-blur-sm transition-all"
+                >
+                  <span>{scopeFilter === 'city' ? userLocation?.city : scopeFilter === 'state' ? userLocation?.state : userLocation?.country}</span>
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+              
+              {reactionFilter !== 'all' && (
+                <button
+                  onClick={() => onReactionFilterChange('all')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium backdrop-blur-sm border transition-all ${
+                    reactionFilter === 'funny' 
+                      ? 'bg-yellow-500/20 border-yellow-400/40 text-yellow-200'
+                      : reactionFilter === 'creative'
+                      ? 'bg-purple-500/20 border-purple-400/40 text-purple-200'
+                      : 'bg-green-500/20 border-green-400/40 text-green-200'
+                  }`}
+                >
+                  <span>{reactionFilter === 'funny' ? 'Funny' : reactionFilter === 'creative' ? 'Creative' : 'Must Try'}</span>
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+              
+              {/* Filter Icon Button - At the end */}
+              <button
+                onClick={() => onFilterSheetToggle?.(true)}
+                className="p-2 bg-white/10 hover:bg-white/15 border border-white/20 rounded-lg transition-all shrink-0 ml-1"
+              >
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                </svg>
+              </button>
+            </div>
           </div>
-          
-          {/* Filters Button - Right Side */}
-          <button
-            onClick={() => onFilterSheetToggle?.(true)}
-            className="px-4 py-2 bg-white/10 hover:bg-white/15 border border-white/20 rounded-lg transition-all flex items-center gap-2 shrink-0"
-          >
-            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-            </svg>
-            <span className="text-white text-sm font-medium">Filters</span>
-          </button>
         </div>
         
         {/* DESKTOP FILTERS */}

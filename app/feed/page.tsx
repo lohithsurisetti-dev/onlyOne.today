@@ -45,23 +45,24 @@ interface UserLocation {
 function formatTimeAgo(date: Date): string {
   const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000)
   
-  const intervals = {
-    year: 31536000,
-    month: 2592000,
-    week: 604800,
-    day: 86400,
-    hour: 3600,
-    minute: 60
-  }
+  const intervals = [
+    { name: 'yr', plural: 'yrs', seconds: 31536000 },
+    { name: 'mo', plural: 'mos', seconds: 2592000 },
+    { name: 'wk', plural: 'wks', seconds: 604800 },
+    { name: 'day', plural: 'days', seconds: 86400 },
+    { name: 'hr', plural: 'hrs', seconds: 3600 },
+    { name: 'min', plural: 'mins', seconds: 60 }
+  ]
   
-  for (const [unit, secondsInUnit] of Object.entries(intervals)) {
-    const interval = Math.floor(seconds / secondsInUnit)
-    if (interval >= 1) {
-      return interval === 1 ? `1 ${unit} ago` : `${interval} ${unit}s ago`
+  for (const interval of intervals) {
+    const count = Math.floor(seconds / interval.seconds)
+    if (count >= 1) {
+      const unit = count === 1 ? interval.name : interval.plural
+      return `${count} ${unit} ago`
     }
   }
   
-  return 'just now'
+  return 'now'
 }
 
 // ============================================================================

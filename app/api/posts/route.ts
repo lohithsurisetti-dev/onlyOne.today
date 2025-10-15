@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-    
+
     // 5. Check for SQL injection patterns (defense in depth)
     if (detectSQLInjection(content)) {
       console.log(`🚫 SQL injection attempt detected from IP: ${ip}`)
