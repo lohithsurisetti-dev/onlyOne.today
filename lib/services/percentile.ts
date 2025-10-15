@@ -25,13 +25,33 @@ export function calculatePercentile(
   peopleWhoDidThis: number,
   totalPostsInScope: number
 ): PercentileResult {
-  // Edge case: Not enough data for meaningful percentile
+  // Edge case: Small dataset (< 10 posts) - still calculate tier based on percentile
   if (totalPostsInScope < 10) {
+    const percentile = (peopleWhoDidThis / totalPostsInScope) * 100
+    
+    // Determine tier even for small datasets
+    let tier: PercentileResult['tier'] = 'common'
+    let badge = '✅'
+    
+    if (percentile <= 20) {
+      tier = 'unique'
+      badge = '⭐'
+    } else if (percentile <= 40) {
+      tier = 'notable'
+      badge = '✨'
+    } else if (percentile <= 60) {
+      tier = 'common'
+      badge = '✅'
+    } else {
+      tier = 'popular'
+      badge = '👥'
+    }
+    
     return {
-      percentile: 100,
-      tier: 'common',
+      percentile,
+      tier,
       displayText: `${peopleWhoDidThis} of ${totalPostsInScope}`,
-      badge: '✅',
+      badge,
       message: `You're one of ${peopleWhoDidThis} people who did this!`,
       comparison: `${peopleWhoDidThis} of ${totalPostsInScope} people`
     }
