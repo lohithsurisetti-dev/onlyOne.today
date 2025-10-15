@@ -23,14 +23,15 @@ interface RankingData {
 
 interface Props {
   userLocation?: { city?: string; state?: string; country?: string } | null
+  alwaysExpanded?: boolean // If true, always show content (for mobile dropdowns)
 }
 
-export default function TopPerformersCard({ userLocation }: Props) {
+export default function TopPerformersCard({ userLocation, alwaysExpanded = false }: Props) {
   const [rankings, setRankings] = useState<RankingData | null>(null)
   const [loading, setLoading] = useState(false)
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
   const [refreshing, setRefreshing] = useState(false)
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(alwaysExpanded)
 
   const fetchRankings = async () => {
     try {
@@ -61,12 +62,12 @@ export default function TopPerformersCard({ userLocation }: Props) {
     }
   }
 
-  // Only fetch when expanded
+  // Auto-fetch when expanded or alwaysExpanded
   useEffect(() => {
-    if (expanded && !rankings) {
+    if ((expanded || alwaysExpanded) && !rankings) {
       fetchRankings()
     }
-  }, [expanded, userLocation])
+  }, [expanded, alwaysExpanded, userLocation])
 
   const getRankDisplay = (rank: number) => {
     return `#${rank}`
@@ -107,35 +108,37 @@ export default function TopPerformersCard({ userLocation }: Props) {
   )
 
   return (
-    <div className="bg-gradient-to-br from-space-mid/50 to-space-dark/50 backdrop-blur-sm rounded-2xl border border-white/10 shadow-xl overflow-hidden">
-      {/* Collapsible Header */}
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors"
-      >
-        <div className="flex items-center gap-2">
-          <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-          <div className="text-left">
-            <h3 className="text-sm font-bold text-white">Today's Top Performers</h3>
-            <p className="text-[10px] text-white/40">Tap to {expanded ? 'hide' : 'view'}</p>
-          </div>
-        </div>
-        
-        <svg 
-          className={`w-5 h-5 text-white/60 transition-transform ${expanded ? 'rotate-180' : ''}`}
-          fill="none" 
-          stroke="currentColor" 
-          viewBox="0 0 24 24"
+    <div className={alwaysExpanded ? '' : 'bg-gradient-to-br from-space-mid/50 to-space-dark/50 backdrop-blur-sm rounded-2xl border border-white/10 shadow-xl overflow-hidden'}>
+      {/* Collapsible Header (hide if alwaysExpanded) */}
+      {!alwaysExpanded && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            <div className="text-left">
+              <h3 className="text-sm font-bold text-white">Today's Top Performers</h3>
+              <p className="text-[10px] text-white/40">Tap to {expanded ? 'hide' : 'view'}</p>
+            </div>
+          </div>
+          
+          <svg 
+            className={`w-5 h-5 text-white/60 transition-transform ${expanded ? 'rotate-180' : ''}`}
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      )}
 
-      {/* Expanded Content */}
-      {expanded && (
-        <div className="border-t border-white/10 p-4 max-h-[500px] overflow-y-auto">
+      {/* Content (always show if alwaysExpanded, otherwise only when expanded) */}
+      {(expanded || alwaysExpanded) && (
+        <div className={alwaysExpanded ? '' : 'border-t border-white/10 p-4 max-h-[500px] overflow-y-auto'}>
           <div className="mb-4">
             <div className="flex items-center justify-between mb-3">
               <div className="text-[10px] text-white/40">

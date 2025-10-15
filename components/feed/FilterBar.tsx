@@ -105,10 +105,10 @@ export default function FilterBar({
                 'bg-gradient-to-r from-orange-500/30 to-red-500/30 text-white border border-orange-400/50'
               }`}
             >
-              {filter === 'all' ? '📋 All' :
-               filter === 'unique' ? '✨ Unique' :
-               filter === 'common' ? '👥 Common' :
-               '🔥 Trending'}
+              {filter === 'all' ? 'All' :
+               filter === 'unique' ? 'Unique' :
+               filter === 'common' ? 'Common' :
+               'Trending'}
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
@@ -175,20 +175,11 @@ export default function FilterBar({
                     : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
                 }`}
               >
-                {filter === 'unique' ? (
-                  <>
-                    <span className="hidden sm:inline">Unique</span>
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                    </svg>
-                    <span className="hidden sm:inline">Unique</span>
-                  </>
+                <span className="hidden sm:inline">Unique</span>
+                {filter === 'unique' && (
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 )}
               </button>
               
@@ -200,20 +191,11 @@ export default function FilterBar({
                     : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
                 }`}
               >
-                {filter === 'common' ? (
-                  <>
-                    <span className="hidden sm:inline">Common</span>
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    <span className="hidden sm:inline">Common</span>
-                  </>
+                <span className="hidden sm:inline">Common</span>
+                {filter === 'common' && (
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 )}
               </button>
               
@@ -225,27 +207,16 @@ export default function FilterBar({
                     : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
                 }`}
               >
-                {filter === 'trending' ? (
-                  <>
-                    <span className="hidden sm:inline">Trending</span>
-                    {trendingLoading ? (
-                      <svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                    ) : (
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                    </svg>
-                    <span className="hidden sm:inline">Trending</span>
-                  </>
-                )}
+                <span className="hidden sm:inline">Trending</span>
+                {filter === 'trending' && trendingLoading ? (
+                  <svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                ) : filter === 'trending' ? (
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                ) : null}
               </button>
               
               {/* Separator */}
@@ -265,20 +236,11 @@ export default function FilterBar({
                     : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
                 }`}
               >
-                {scopeFilter === 'city' ? (
-                  <>
-                    <span className="hidden sm:inline">{userLocation?.city || 'City'}</span>
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 11.5A2.5 2.5 0 019.5 9 2.5 2.5 0 0112 6.5 2.5 2.5 0 0114.5 9a2.5 2.5 0 01-2.5 2.5M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7z"/>
-                    </svg>
-                    <span className="hidden sm:inline">{userLocation?.city || 'City'}</span>
-                  </>
+                <span className="hidden sm:inline">{userLocation?.city || 'City'}</span>
+                {scopeFilter === 'city' && (
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 )}
               </button>
               

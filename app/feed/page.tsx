@@ -25,6 +25,7 @@ import FilterBar, { FilterType, ScopeFilter, ReactionFilter, LocationData } from
 import PostGrid from '@/components/feed/PostGrid'
 import PaginationControls from '@/components/feed/PaginationControls'
 import { DisplayPost } from '@/components/feed/PostCard'
+import MobileAnalyticsDropdown from '@/components/feed/MobileAnalyticsDropdown'
 
 // ============================================================================
 // TYPES
@@ -110,6 +111,9 @@ export default function FeedPage() {
   const [allPosts, setAllPosts] = useState<DisplayPost[]>([])
   const [postsLoading, setPostsLoading] = useState(true)
   
+  // My Posts count
+  const [myPostsCount, setMyPostsCount] = useState(0)
+  
   // Popular timezones for quick switching
   const popularTimezones = [
     { name: 'auto', label: 'My Time', emoji: '📍' },
@@ -165,6 +169,25 @@ export default function FeedPage() {
   useEffect(() => {
     setCurrentPage(1)
   }, [filter, scopeFilter, reactionFilter])
+  
+  // Update "My Posts" count from localStorage
+  useEffect(() => {
+    const updateMyPostsCount = () => {
+      if (typeof window !== 'undefined') {
+        try {
+          const stored = localStorage.getItem('onlyone_my_posts')
+          const posts = stored ? JSON.parse(stored) : []
+          setMyPostsCount(posts.length)
+        } catch {
+          setMyPostsCount(0)
+        }
+      }
+    }
+    
+    updateMyPostsCount()
+    window.addEventListener('focus', updateMyPostsCount)
+    return () => window.removeEventListener('focus', updateMyPostsCount)
+  }, [])
   
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // LOCATION DETECTION
@@ -475,6 +498,89 @@ export default function FeedPage() {
           <div className="flex gap-6">
             {/* Posts Grid */}
             <div className="flex-1">
+              {/* Mobile Analytics (lg:hidden) */}
+              <div className="lg:hidden mb-4 space-y-3">
+                {filter === 'trending' ? (
+                  /* Trending Info Dropdown */
+                  <MobileAnalyticsDropdown
+                    type="trending-info"
+                    title="Trending Info"
+                    icon={
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                      </svg>
+                    }
+                  >
+                    <div className="pt-3 space-y-3">
+                      <p className="text-white/60 text-xs">
+                        Showing posts from Spotify, Reddit, YouTube, Sports & more
+                      </p>
+                      {currentPosts.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-xs font-semibold text-orange-300 uppercase">Top 5</p>
+                          {currentPosts.slice(0, 5).map((post, idx) => (
+                            <div key={post.id} className="flex items-start gap-2 text-white/70 text-xs">
+                              <span className="text-orange-300 font-bold">#{idx + 1}</span>
+                              <p className="line-clamp-2">{post.content}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </MobileAnalyticsDropdown>
+                ) : (
+                  /* Regular Analytics */}
+                  <>
+                    {/* Row 1: Your Posts Button + Analytics Dropdowns */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {/* Your Posts - Simple Button */}
+                      <button
+                        onClick={() => router.push('/my-posts')}
+                        className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-sm rounded-xl border border-purple-400/20 hover:border-purple-400/40 transition-all p-3 flex flex-col items-center justify-center gap-1"
+                      >
+                        <svg className="w-5 h-5 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <div className="text-center">
+                          <div className="text-white font-medium text-[11px] leading-tight">Your<br/>Posts</div>
+                          <div className="text-purple-300 text-xs font-bold mt-0.5">{myPostsCount}</div>
+                        </div>
+                      </button>
+                      
+                      {/* Global Pulse - Dropdown */}
+                      <MobileAnalyticsDropdown
+                        type="global-pulse"
+                        title="Pulse"
+                        icon={
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        }
+                      >
+                        <div className="pt-3">
+                          <GlobalPulseCard posts={filteredPosts} />
+                        </div>
+                      </MobileAnalyticsDropdown>
+                      
+                      {/* Top Performers - Dropdown */}
+                      <MobileAnalyticsDropdown
+                        type="top-performers"
+                        title="Rankings"
+                        icon={
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                          </svg>
+                        }
+                      >
+                        <div className="pt-3">
+                          <TopPerformersCard userLocation={userLocation || undefined} alwaysExpanded={true} />
+                        </div>
+                      </MobileAnalyticsDropdown>
+                    </div>
+                  </>
+                )}
+              </div>
+              
               {error && (
                 <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-4 text-white mb-4">
                   <p className="font-semibold">❌ Error loading posts</p>
@@ -485,17 +591,17 @@ export default function FeedPage() {
               <PostGrid
                 posts={currentPosts}
                 loading={postsLoading || apiLoading}
-                onReact={handleReaction}
-                onShare={handleShare}
-                userReactions={userReactions}
+                  onReact={handleReaction}
+                  onShare={handleShare}
+                  userReactions={userReactions}
                 emptyMessage={
                   filter === 'trending'
                     ? "No trending posts available right now. Check back soon!"
                     : "No posts yet. Be the first to share what you did today!"
                 }
-              />
-            </div>
-            
+                />
+              </div>
+              
             {/* Sidebar (Desktop Only) */}
             <aside className="hidden lg:block w-80">
               <div className="sticky top-24 space-y-4">
@@ -536,8 +642,8 @@ export default function FeedPage() {
                                 </div>
                               ))}
                             </div>
-                          </div>
-                        )}
+                </div>
+              )}
                         
                         <p className="text-white/40 text-xs italic text-center">
                           Powered by live data from Spotify, Reddit, YouTube, Sports & more
@@ -549,8 +655,8 @@ export default function FeedPage() {
                   <>
                     <GlobalPulseCard posts={filteredPosts} />
                     <TopPerformersCard userLocation={userLocation || undefined} />
-                  </>
-                )}
+            </>
+          )}
               </div>
             </aside>
           </div>
@@ -615,16 +721,18 @@ export default function FeedPage() {
                   <button
                     key={f}
                     onClick={() => handleFilterChange(f)}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                       filter === f
                         ? 'bg-purple-500 text-white shadow-lg'
                         : 'bg-white/10 text-white/70 hover:bg-white/20'
                     }`}
                   >
-                    {f === 'all' ? '📋 All' :
-                     f === 'unique' ? '✨ Unique' :
-                     f === 'common' ? '👥 Common' :
-                     '🔥 Trending'}
+                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                    {filter === f && (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    )}
                   </button>
                 ))}
               </div>
@@ -635,13 +743,13 @@ export default function FeedPage() {
               <div>
                 <label className="text-sm font-medium text-white/80 block mb-3">Location Scope</label>
                 <div className="grid grid-cols-2 gap-2">
-                <button
+                  <button
                     onClick={async () => {
                       if (!userLocation) await detectUserLocation()
                       handleScopeFilterChange('city')
                     }}
                     disabled={!userLocation?.city}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                       scopeFilter === 'city'
                         ? 'bg-cyan-500 text-white shadow-lg'
                         : !userLocation?.city
@@ -649,15 +757,20 @@ export default function FeedPage() {
                         : 'bg-white/10 text-white/70 hover:bg-white/20'
                     }`}
                   >
-                    📍 {userLocation?.city || 'City'}
-                </button>
-              <button
+                    {userLocation?.city || 'City'}
+                    {scopeFilter === 'city' && (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
                     onClick={async () => {
                       if (!userLocation) await detectUserLocation()
                       handleScopeFilterChange('state')
                     }}
                     disabled={!userLocation?.state}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                       scopeFilter === 'state'
                         ? 'bg-cyan-500 text-white shadow-lg'
                         : !userLocation?.state
@@ -665,15 +778,20 @@ export default function FeedPage() {
                         : 'bg-white/10 text-white/70 hover:bg-white/20'
                     }`}
                   >
-                    🗺️ {userLocation?.state || 'State'}
-              </button>
-              <button
+                    {userLocation?.state || 'State'}
+                    {scopeFilter === 'state' && (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
                     onClick={async () => {
                       if (!userLocation) await detectUserLocation()
                       handleScopeFilterChange('country')
                     }}
                     disabled={!userLocation?.country}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                       scopeFilter === 'country'
                         ? 'bg-cyan-500 text-white shadow-lg'
                         : !userLocation?.country
@@ -681,18 +799,28 @@ export default function FeedPage() {
                         : 'bg-white/10 text-white/70 hover:bg-white/20'
                     }`}
                   >
-                    🏳️ {userLocation?.country || 'Country'}
-              </button>
-              <button
+                    {userLocation?.country || 'Country'}
+                    {scopeFilter === 'country' && (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
                     onClick={() => handleScopeFilterChange('world')}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                       scopeFilter === 'world'
                         ? 'bg-cyan-500 text-white shadow-lg'
                         : 'bg-white/10 text-white/70 hover:bg-white/20'
                     }`}
                   >
-                    🌍 World
-              </button>
+                    World
+                    {scopeFilter === 'world' && (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    )}
+                  </button>
                 </div>
               </div>
             )}
@@ -704,87 +832,67 @@ export default function FeedPage() {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => setReactionFilter('all')}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                       reactionFilter === 'all'
                         ? 'bg-white/20 text-white shadow-lg'
                         : 'bg-white/10 text-white/70 hover:bg-white/20'
                     }`}
                   >
-                    All Posts
+                    All
+                    {reactionFilter === 'all' && (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    )}
                   </button>
-              <button
-                    onClick={() => setReactionFilter('funny')}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                  reactionFilter === 'funny'
+                  <button
+                    onClick={() => setReactionFilter(reactionFilter === 'funny' ? 'all' : 'funny')}
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                      reactionFilter === 'funny'
                         ? 'bg-yellow-500 text-white shadow-lg'
                         : 'bg-white/10 text-white/70 hover:bg-white/20'
-                }`}
-              >
-                😂 Funny
-              </button>
-              <button
-                    onClick={() => setReactionFilter('creative')}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                  reactionFilter === 'creative'
+                    }`}
+                  >
+                    Funny
+                    {reactionFilter === 'funny' && (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setReactionFilter(reactionFilter === 'creative' ? 'all' : 'creative')}
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                      reactionFilter === 'creative'
                         ? 'bg-purple-500 text-white shadow-lg'
                         : 'bg-white/10 text-white/70 hover:bg-white/20'
-                }`}
-              >
-                🎨 Creative
-              </button>
-              <button
-                    onClick={() => setReactionFilter('must_try')}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                  reactionFilter === 'must_try'
+                    }`}
+                  >
+                    Creative
+                    {reactionFilter === 'creative' && (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setReactionFilter(reactionFilter === 'must_try' ? 'all' : 'must_try')}
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                      reactionFilter === 'must_try'
                         ? 'bg-green-500 text-white shadow-lg'
                         : 'bg-white/10 text-white/70 hover:bg-white/20'
-                }`}
-              >
-                🔥 Must Try
-              </button>
-              </div>
+                    }`}
+                  >
+                    Must Try
+                    {reactionFilter === 'must_try' && (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </div>
             )}
-            
-            {/* ANALYTICS SECTION */}
-            <div className="border-t border-white/10 pt-6">
-              <label className="text-sm font-medium text-white/80 block mb-3">Quick Stats</label>
-              <div className="bg-white/5 rounded-xl p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-white/70 text-sm">Total Posts Today</span>
-                  <span className="text-white font-bold">{stats?.today?.totalPosts || 0}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-white/70 text-sm">Unique Posts</span>
-                  <span className="text-purple-300 font-bold">{stats?.today?.uniquePosts || 0}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-white/70 text-sm">All Time</span>
-                  <span className="text-white/50 font-bold">{stats?.allTime?.totalPosts || 0}</span>
-                </div>
-              </div>
-              
-              {/* My Posts Link */}
-                  <button
-                onClick={() => {
-                  setFilterSheetOpen(false)
-                  router.push('/my-posts')
-                }}
-                className="w-full mt-3 bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 border border-purple-400/30 rounded-lg p-4 transition-all"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-5 h-5 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    <span className="text-white font-medium">Your Posts</span>
-                  </div>
-                  <svg className="w-5 h-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </button>
-            </div>
             
             {/* APPLY BUTTON */}
             <button
