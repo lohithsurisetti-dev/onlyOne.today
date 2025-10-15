@@ -157,6 +157,7 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
   const commonalityScore = 100 - uniquenessScore
   const matchCount = post.count || 0
   const isGhost = post.isGhost || false
+  const scopeInfo = getScopeInfo(post.scope, post)
   const [expanded, setExpanded] = useState(false)
   
   const [reactions, setReactions] = useState({
