@@ -94,45 +94,34 @@ export default function FilterBar({
             </button>
           )}
           
-          {/* Active Filter Chip */}
-          <div className="flex-1 flex items-center gap-2 overflow-x-auto hide-scrollbar justify-between">
-            <button
-              onClick={() => onFilterSheetToggle?.(true)}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all flex items-center gap-2 ${
-                filter === 'all' ? 'bg-white/20 text-white border border-white/30' :
-                filter === 'unique' ? 'bg-purple-500/30 text-white border border-purple-400/50' :
-                filter === 'common' ? 'bg-blue-500/30 text-white border border-blue-400/50' :
-                'bg-gradient-to-r from-orange-500/30 to-red-500/30 text-white border border-orange-400/50'
-              }`}
-            >
-              {filter === 'all' ? 'All' :
-               filter === 'unique' ? 'Unique' :
-               filter === 'common' ? 'Common' :
+          {/* Title / Active Filter Indicator */}
+          <div className="flex-1">
+            <h1 className="text-white font-bold text-lg">
+              {filter === 'all' ? 'All Posts' :
+               filter === 'unique' ? 'Unique Posts' :
+               filter === 'common' ? 'Common Posts' :
                'Trending'}
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            
-            {/* Location Chip */}
-            {userLocation && !isTrending && scopeFilter !== 'world' && (
-              <span className="px-3 py-1.5 rounded-full text-xs bg-cyan-500/20 text-cyan-200 border border-cyan-400/30 whitespace-nowrap">
-                📍 {scopeFilter === 'city' ? userLocation.city :
-                    scopeFilter === 'state' ? userLocation.state :
-                    userLocation.country}
-              </span>
-            )}
-            
-            {/* Trending Loading Indicator */}
+            </h1>
             {trendingLoading && (
-              <span className="px-3 py-1.5 rounded-full text-xs bg-orange-500/20 text-orange-200 border border-orange-400/30 whitespace-nowrap flex items-center gap-1.5">
+              <p className="text-orange-300 text-xs flex items-center gap-1">
                 <svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                Loading...
-              </span>
+                <span>Loading...</span>
+              </p>
             )}
           </div>
+          
+          {/* Filters Button - Right Side */}
+          <button
+            onClick={() => onFilterSheetToggle?.(true)}
+            className="px-4 py-2 bg-white/10 hover:bg-white/15 border border-white/20 rounded-lg transition-all flex items-center gap-2 shrink-0"
+          >
+            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
+            <span className="text-white text-sm font-medium">Filters</span>
+          </button>
         </div>
         
         {/* DESKTOP FILTERS */}
