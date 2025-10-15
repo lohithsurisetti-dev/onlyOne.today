@@ -25,7 +25,7 @@ export function usePlatformStats(timezone?: string) {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [userTimezone, setUserTimezone] = useState<string>('UTC')
+  const [userTimezone, setUserTimezone] = useState<string | null>(null) // Start as null, detect on mount
   const [timezoneOffset, setTimezoneOffset] = useState<number>(0)
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
 
@@ -33,7 +33,7 @@ export function usePlatformStats(timezone?: string) {
     // Detect user's timezone on client-side
     if (typeof window !== 'undefined') {
       const detectedTZ = Intl.DateTimeFormat().resolvedOptions().timeZone
-      const offset = new Date().getTimezoneOffset() // Minutes offset from UTC (negative for ahead)
+      const offset = new Date().getTimezoneOffset()
       setUserTimezone(detectedTZ)
       setTimezoneOffset(offset)
       console.log(`🌍 Detected timezone: ${detectedTZ} (UTC${offset > 0 ? '-' : '+'}${Math.abs(offset / 60)})`)
@@ -43,8 +43,8 @@ export function usePlatformStats(timezone?: string) {
   const fetchStats = async () => {
     try {
       setRefreshing(true)
-      // Use provided timezone or detected timezone
-      const tz = timezone || userTimezone
+      // Use provided timezone or detected timezone (must be detected first!)
+      const tz = timezone || userTimezone || 'UTC'
       
       // Build query with timezone info
       const params = new URLSearchParams({
