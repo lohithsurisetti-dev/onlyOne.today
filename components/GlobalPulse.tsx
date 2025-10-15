@@ -52,12 +52,18 @@ export default function GlobalPulse({ posts, className = '', currentFilter = 'al
     // Filter out ghost posts for regular stats
     const realPosts = posts.filter(p => !p.isGhost)
     
-    // Average uniqueness
-    const totalUniqueness = realPosts.reduce((sum, p) => sum + (p.score || 0), 0)
-    const avgUniqueness = Math.round(totalUniqueness / realPosts.length)
+    // Calculate tier distribution (more meaningful than average)
+    const eliteCount = realPosts.filter(p => p.percentile?.tier === 'elite').length
+    const rareCount = realPosts.filter(p => p.percentile?.tier === 'rare').length
+    const uniqueCount = realPosts.filter(p => p.percentile?.tier === 'unique').length
     
-    // Perfect unique count (100%)
-    const perfectUnique = realPosts.filter(p => (p.score || 0) === 100).length
+    // Elite percentage (most exclusive posts)
+    const avgUniqueness = Math.round((eliteCount + rareCount + uniqueCount) / realPosts.length * 100) || 0
+    
+    // "Only you!" posts (< 0.1% percentile)
+    const perfectUnique = realPosts.filter(p => 
+      p.percentile?.tier === 'elite' && p.percentile?.percentile < 0.1
+    ).length
     
     // Most common (lowest uniqueness or highest count)
     const sortedByCommon = [...realPosts].sort((a, b) => (b.count || 0) - (a.count || 0))
@@ -144,16 +150,16 @@ export default function GlobalPulse({ posts, className = '', currentFilter = 'al
               <span className="text-white font-bold text-lg">{stats.totalPosts}</span>
             </div>
             
-            {/* Average Uniqueness */}
+            {/* Elite/Rare Actions (Top 10%) */}
             <div className="flex items-center justify-between">
-              <span className="text-white/70 text-sm">Average Uniqueness</span>
+              <span className="text-white/70 text-sm">Rare Actions (Top 10%)</span>
               <span className="text-purple-300 font-bold text-lg">{stats.avgUniqueness}%</span>
             </div>
             
-            {/* Perfect Unique */}
+            {/* Only You Actions */}
             <div className="flex items-center justify-between">
-              <span className="text-white/70 text-sm">Totally Unique (100%)</span>
-              <span className="text-pink-300 font-bold text-lg">{stats.perfectUnique} people</span>
+              <span className="text-white/70 text-sm">"Only You!" Actions</span>
+              <span className="text-pink-300 font-bold text-lg">{stats.perfectUnique} {stats.perfectUnique === 1 ? 'person' : 'people'}</span>
             </div>
             
             {/* Divider */}

@@ -267,28 +267,21 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
           </div>
         ) : null}
         
-        {/* Metadata Row - Compact & Clean */}
+        {/* Metadata Row - Scope (left) and Time (right) */}
         <div className={`flex items-center ${isGhost ? 'justify-center' : 'justify-between'} text-xs text-white/50`}>
-          <div className="flex items-center gap-2">
-            {/* Scope Icon + Label */}
-            <span className="flex items-center gap-1">
-              {scopeInfo.iconSvg}
-              <span className="font-medium">{scopeInfo.label}</span>
-            </span>
-            {/* Time */}
-            {!isGhost && (
-              <>
-                <span className="text-white/30">•</span>
-                <span>{post.time}</span>
-              </>
-            )}
-          </div>
+          {/* Scope Icon + Label */}
+          <span className="flex items-center gap-1">
+            {scopeInfo.iconSvg}
+            <span className="font-medium">{scopeInfo.label}</span>
+          </span>
+          {/* Time - Right Aligned */}
+          {!isGhost && <span>{post.time}</span>}
         </div>
       </div>
       
-      {/* Reactions - Hidden for ghost posts */}
+      {/* Reactions - Right Aligned, Hidden for ghost posts */}
       {!isGhost && (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-end">
         <div className="flex gap-1.5 md:gap-1">
           <button
             onClick={(e) => {

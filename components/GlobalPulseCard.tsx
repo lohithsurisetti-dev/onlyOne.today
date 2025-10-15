@@ -10,8 +10,18 @@ export default function GlobalPulseCard({ posts }: Props) {
   // Memoize expensive calculations to prevent re-computing on every render
   const stats = useMemo(() => {
     const totalPosts = posts.length
-    const uniquePosts = posts.filter(p => !p.isGhost && (p.score || 0) >= 70).length
-    const commonPosts = posts.filter(p => !p.isGhost && (p.score || 0) < 70).length
+    // Unique = Elite, Rare, or Unique tier (Top 10%)
+    const uniquePosts = posts.filter(p => 
+      !p.isGhost && 
+      p.percentile?.tier && 
+      ['elite', 'rare', 'unique'].includes(p.percentile.tier)
+    ).length
+    // Common = Notable, Common, or Popular tier (>= Top 10%)
+    const commonPosts = posts.filter(p => 
+      !p.isGhost && 
+      p.percentile?.tier && 
+      ['notable', 'common', 'popular'].includes(p.percentile.tier)
+    ).length
     const ghostPosts = posts.filter(p => p.isGhost).length
     
     return { totalPosts, uniquePosts, commonPosts, ghostPosts }
@@ -32,11 +42,11 @@ export default function GlobalPulseCard({ posts }: Props) {
       .slice(0, 3)
   }, [posts])
   
-  // Memoize most unique post
+  // Memoize most unique post (lowest percentile = rarest)
   const mostUniquePost = useMemo(() => {
     return posts
-      .filter(p => !p.isGhost)
-      .sort((a, b) => (b.score || 0) - (a.score || 0))[0]
+      .filter(p => !p.isGhost && p.percentile)
+      .sort((a, b) => (a.percentile?.percentile || 100) - (b.percentile?.percentile || 100))[0]
   }, [posts])
 
   return (
@@ -92,13 +102,13 @@ export default function GlobalPulseCard({ posts }: Props) {
           </div>
         )}
         
-        {/* Most Unique Card */}
-        {mostUniquePost && (
+        {/* Most Rare/Unique Card */}
+        {mostUniquePost && mostUniquePost.percentile && (
           <div className="bg-purple-500/10 rounded-lg p-3 border border-purple-400/20">
-            <div className="text-[10px] font-semibold text-purple-300/70 uppercase mb-2">Most Unique</div>
+            <div className="text-[10px] font-semibold text-purple-300/70 uppercase mb-2">Rarest Action</div>
             <div className="flex items-center justify-between text-[11px]">
-              <span className="text-purple-200 truncate flex-1">✨ {mostUniquePost.content}</span>
-              <span className="text-purple-300 font-bold ml-2">{Math.round(mostUniquePost.score || 0)}%</span>
+              <span className="text-purple-200 truncate flex-1">{mostUniquePost.percentile.badge} {mostUniquePost.content}</span>
+              <span className="text-purple-300 font-bold ml-2">{mostUniquePost.percentile.displayText}</span>
             </div>
           </div>
         )}
