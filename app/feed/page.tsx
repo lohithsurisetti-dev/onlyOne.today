@@ -333,23 +333,29 @@ export default function FeedPage() {
       setPostsLoading(true)
       
       // Transform real posts
-      const realPosts: DisplayPost[] = apiPosts.map(post => ({
+      const realPosts: DisplayPost[] = apiPosts.map(post => {
+        const percentile = (post as any).percentile
+        // Determine type based on percentile tier (Top 25% threshold)
+        const isTopTier = percentile?.tier && ['elite', 'rare', 'unique', 'notable'].includes(percentile.tier)
+        
+        return {
           id: post.id,
           content: post.content,
-        type: post.uniqueness_score >= 70 ? 'unique' : 'common',
+          type: isTopTier ? 'unique' : 'common',
           time: formatTimeAgo(new Date(post.created_at)),
-        scope: post.scope,
-        location_city: post.location_city,
-        location_state: post.location_state,
-        location_country: post.location_country,
-        score: post.uniqueness_score,
-        count: post.match_count + 1,
-          percentile: (post as any).percentile, // OnlyFans-style ranking
+          scope: post.scope,
+          location_city: post.location_city,
+          location_state: post.location_state,
+          location_country: post.location_country,
+          score: post.uniqueness_score,
+          count: post.match_count + 1,
+          percentile, // OnlyFans-style ranking
           funny_count: post.funny_count || 0,
           creative_count: post.creative_count || 0,
           must_try_count: post.must_try_count || 0,
           total_reactions: post.total_reactions || 0,
           isGhost: false,
+        }
       }))
       
       let postsWithGhosts: DisplayPost[]
@@ -439,9 +445,27 @@ export default function FeedPage() {
   const filteredPosts = React.useMemo(() => {
     if (filter === 'trending') {
       return allPosts.filter(post => post.isGhost)
-    } else {
-      return allPosts.filter(post => !post.isGhost)
     }
+    
+    // Filter out ghost posts first
+    let posts = allPosts.filter(post => !post.isGhost)
+    
+    // Apply unique/common filter based on percentile tiers (Top 25% threshold)
+    if (filter === 'unique') {
+      // Top 25% = elite, rare, unique, notable tiers
+      posts = posts.filter(post => 
+        post.percentile?.tier && 
+        ['elite', 'rare', 'unique', 'notable'].includes(post.percentile.tier)
+      )
+    } else if (filter === 'common') {
+      // Common = common, popular tiers (>= Top 25%)
+      posts = posts.filter(post => 
+        post.percentile?.tier && 
+        ['common', 'popular'].includes(post.percentile.tier)
+      )
+    }
+    
+    return posts
   }, [allPosts, filter])
   
   const totalPages = filter === 'trending' 

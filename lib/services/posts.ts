@@ -1067,12 +1067,9 @@ export async function getRecentPosts(params: {
     .select('id, content, input_type, scope, location_city, location_state, location_country, uniqueness_score, match_count, funny_count, creative_count, must_try_count, total_reactions, created_at, content_hash', { count: 'exact' })
     .gte('created_at', getTodayStartWithOffset(timezoneOffset)) // TODAY ONLY (user's calendar day)
   
-  // Apply type filter (unique/common/all)
-  if (filter === 'unique') {
-    baseQuery = baseQuery.gte('uniqueness_score', 70)
-  } else if (filter === 'common') {
-    baseQuery = baseQuery.lt('uniqueness_score', 70)
-  }
+  // Note: Type filter (unique/common) is now applied CLIENT-SIDE after percentiles are calculated
+  // We don't filter by uniqueness_score at the database level anymore since we use percentile tiers
+  // The filter parameter is still accepted for backward compatibility but filtering happens in the UI
   
   // Apply scope filter (HIERARCHICAL)
   // - City: Only city-scoped posts in that city

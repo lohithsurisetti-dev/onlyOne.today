@@ -187,18 +187,20 @@ const PostCard = React.memo(({ post, onReact, onShare, onGhostClick, userReactio
     }
   }
   
-  // Determine gradient based on dominant trait
+  // Determine gradient based on percentile tier
   const getCardStyle = () => {
     // Special styling for ghost posts
     if (isGhost) {
       return 'bg-gradient-to-br from-orange-900/20 to-red-900/20 border-orange-400/40 hover:border-orange-400/70 shadow-orange-500/10'
     }
     
-    // Unique posts (70%+)
-    if (uniquenessScore >= 70) {
+    // Top 25% posts (elite, rare, unique, notable tiers)
+    const isTopTier = post.percentile?.tier && ['elite', 'rare', 'unique', 'notable'].includes(post.percentile.tier)
+    
+    if (isTopTier) {
       return 'bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-purple-400/30 hover:border-purple-400/60'
     } 
-    // Common posts (< 70%)
+    // Common posts (common, popular tiers or >= Top 25%)
     else {
       return 'bg-gradient-to-br from-blue-900/30 to-cyan-900/30 border-blue-400/30 hover:border-blue-400/60'
     }
