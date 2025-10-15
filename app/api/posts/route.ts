@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-    
+
     console.log(`✅ Content quality check passed (${qualityCheck.score}/100)`)
 
     // 9. Hybrid Content Moderation - Static + AI (AFTER quality checks)
@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-    
+
     // 12. Validate and sanitize location data
     const locationValidation = validateLocation({
       city: locationCity,
@@ -315,15 +315,19 @@ export async function GET(request: NextRequest) {
     )
 
     // Try Redis cache first
-    const cached = await cacheGet<{ posts: any[]; total: number }>(cacheKey)
+    const cached = await cacheGet<{ posts: any[]; total: number; scopeTotals?: Record<string, number> }>(cacheKey)
     if (cached) {
       console.log(`✅ Feed cache HIT for ${filter}:${scopeFilter}:${offset}`)
       
-      // Recalculate percentiles for cached posts (in case total changed)
+      // Recalculate percentiles for cached posts using cached scope totals
       const { calculatePercentile } = await import('@/lib/services/percentile')
       const postsWithFreshPercentile = cached.posts.map((post: any) => {
+        // Use scope-specific total if available
+        const scopeKey = `${post.scope}:${post.location_city || ''}:${post.location_state || ''}:${post.location_country || ''}`
+        const totalInScope = cached.scopeTotals?.[scopeKey] || cached.total
+        
         const peopleWhoDidThis = post.match_count + 1
-        const percentileRank = calculatePercentile(peopleWhoDidThis, cached.total)
+        const percentileRank = calculatePercentile(peopleWhoDidThis, totalInScope)
         
         return {
           ...post,
@@ -357,20 +361,46 @@ export async function GET(request: NextRequest) {
       timezoneOffset // Pass user's timezone offset
     })
 
-    // 4. Calculate percentile for each post (OnlyFans-style ranking)
+    // 4. Calculate percentile for each post (SCOPE-AWARE)
     const { calculatePercentile } = await import('@/lib/services/percentile')
-    const postsWithPercentile = posts.map(post => {
+    const { getTotalPostsInGeoScope } = await import('@/lib/services/posts')
+    
+    // Pre-calculate totals for each unique scope to avoid redundant queries
+    const scopeTotals = new Map<string, number>()
+    
+    const postsWithPercentile = await Promise.all(posts.map(async (post) => {
+      // Create a unique key for this scope+location combo
+      const scopeKey = `${post.scope}:${post.location_city || ''}:${post.location_state || ''}:${post.location_country || ''}`
+      
+      // Get or calculate the total for this scope
+      let totalInScope = scopeTotals.get(scopeKey)
+      if (!totalInScope) {
+        totalInScope = await getTotalPostsInGeoScope({
+          scope: post.scope,
+          location: {
+            city: post.location_city,
+            state: post.location_state,
+            country: post.location_country
+          }
+        })
+        scopeTotals.set(scopeKey, totalInScope)
+      }
+      
       const peopleWhoDidThis = post.match_count + 1 // Including the poster
-      const percentileRank = calculatePercentile(peopleWhoDidThis, total)
+      const percentileRank = calculatePercentile(peopleWhoDidThis, totalInScope)
       
       return {
         ...post,
         percentile: percentileRank
       }
-    })
+    }))
 
-    // Cache the result with percentile
-    const result = { posts: postsWithPercentile, total }
+    // Cache the result with percentile (and scope totals for recalculation)
+    const result = { 
+      posts: postsWithPercentile, 
+      total, 
+      scopeTotals: Object.fromEntries(scopeTotals) // Cache the scope totals too
+    }
     await cacheSet(cacheKey, result, CacheTTL.FEED_RESULTS)
 
     return NextResponse.json(result, {

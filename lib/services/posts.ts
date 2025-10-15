@@ -214,6 +214,91 @@ export async function getTotalPostsCount(
 }
 
 /**
+ * Get total posts count in a GEOGRAPHICAL scope (for percentile calculation)
+ * 
+ * HIERARCHY (for counting - INCLUSIVE):
+ * - City: Only count City-scoped posts in that EXACT city
+ * - State: Count City + State scoped posts in that state
+ * - Country: Count City + State + Country scoped posts in that country
+ * - World: Count ALL posts globally (City + State + Country + World)
+ * 
+ * @param geoScope - The geographical scope ('city' | 'state' | 'country' | 'world')
+ * @param location - The specific location details
+ * @returns Total number of posts TODAY in that geographical scope
+ */
+export async function getTotalPostsInGeoScope(params: {
+  scope: 'city' | 'state' | 'country' | 'world'
+  location: {
+    city?: string
+    state?: string
+    country?: string
+  }
+}): Promise<number> {
+  const supabase = createClient()
+  
+  // Always filter to TODAY only
+  const startOfToday = new Date()
+  startOfToday.setHours(0, 0, 0, 0)
+  
+  let query = supabase
+    .from('posts')
+    .select('id', { count: 'exact', head: true })
+    .gte('created_at', startOfToday.toISOString())
+  
+  // Apply geographical scope filters (HIERARCHICAL)
+  switch (params.scope) {
+    case 'city':
+      // City: ONLY city-scoped posts in this exact city
+      if (!params.location.city) {
+        console.warn('⚠️ City scope but no city provided')
+        return 1
+      }
+      query = query
+        .eq('location_city', params.location.city)
+        .eq('scope', 'city') // ONLY city-scoped posts
+      break
+      
+    case 'state':
+      // State: City + State scoped posts in this state (hierarchical)
+      if (!params.location.state) {
+        console.warn('⚠️ State scope but no state provided')
+        return 1
+      }
+      query = query
+        .eq('location_state', params.location.state)
+        .in('scope', ['city', 'state']) // City OR State scoped
+      break
+      
+    case 'country':
+      // Country: City + State + Country scoped posts in this country (hierarchical)
+      if (!params.location.country) {
+        console.warn('⚠️ Country scope but no country provided')
+        return 1
+      }
+      query = query
+        .eq('location_country', params.location.country)
+        .in('scope', ['city', 'state', 'country']) // City OR State OR Country
+      break
+      
+    case 'world':
+      // World: ALL posts globally (no location or scope filter)
+      // Already filtered to today, include all scopes: city, state, country, world
+      break
+  }
+  
+  const { count, error } = await query
+  
+  if (error) {
+    console.error('❌ Error fetching total posts in geo scope:', error)
+    return 1 // Default to 1 to avoid division by zero
+  }
+  
+  const total = count || 1
+  console.log(`📊 Total posts TODAY in ${params.scope} scope: ${total}`)
+  return total
+}
+
+/**
  * Get counts for all location levels efficiently
  */
 export async function getLocationCounts(
@@ -536,9 +621,9 @@ export async function createPost(data: {
     }
   }
 
-  // Calculate percentile ranking
+  // Calculate percentile ranking (SCOPE-AWARE)
   const { calculatePercentile } = await import('./percentile')
-  const totalPostsInScope = await getTotalPostsCount({
+  const totalPostsInScope = await getTotalPostsInGeoScope({
     scope: data.scope,
     location: {
       city: data.locationCity,
