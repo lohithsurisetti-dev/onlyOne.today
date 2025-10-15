@@ -262,9 +262,12 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({
           className="w-full py-4 sm:py-3 text-base sm:text-sm font-medium min-h-[50px]"
         >
           {isLoading ? (
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-5 w-5 sm:h-4 sm:w-4 border-b-2 border-white mr-2"></div>
-              Analyzing...
+            <div className="flex flex-col items-center justify-center gap-1">
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-5 w-5 sm:h-4 sm:w-4 border-b-2 border-white mr-2"></div>
+                <span className="text-sm">Creating your moment...</span>
+              </div>
+              <span className="text-xs text-white/60 animate-pulse">This usually takes 1-2 seconds</span>
             </div>
           ) : cooldownRemaining > 0 ? (
             <div className="flex items-center justify-center">
