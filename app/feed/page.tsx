@@ -311,21 +311,21 @@ export default function FeedPage() {
       
       // Transform real posts
       const realPosts: DisplayPost[] = apiPosts.map(post => ({
-        id: post.id,
-        content: post.content,
+          id: post.id,
+          content: post.content,
         type: post.uniqueness_score >= 70 ? 'unique' : 'common',
-        time: formatTimeAgo(new Date(post.created_at)),
+          time: formatTimeAgo(new Date(post.created_at)),
         scope: post.scope,
         location_city: post.location_city,
         location_state: post.location_state,
         location_country: post.location_country,
         score: post.uniqueness_score,
         count: post.match_count + 1,
-        funny_count: post.funny_count || 0,
-        creative_count: post.creative_count || 0,
-        must_try_count: post.must_try_count || 0,
-        total_reactions: post.total_reactions || 0,
-        isGhost: false,
+          funny_count: post.funny_count || 0,
+          creative_count: post.creative_count || 0,
+          must_try_count: post.must_try_count || 0,
+          total_reactions: post.total_reactions || 0,
+          isGhost: false,
       }))
       
       let postsWithGhosts: DisplayPost[]
@@ -449,7 +449,7 @@ export default function FeedPage() {
           
           <svg className="w-7 h-7 text-white relative z-10 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
+        </svg>
         </div>
       </button>
       
@@ -588,39 +588,211 @@ export default function FeedPage() {
         />
       )}
       
-      {/* Mobile Filter Sheet */}
+      {/* Mobile Filter Sheet - Comprehensive */}
       {filterSheetOpen && (
         <FilterSheet
           isOpen={filterSheetOpen}
           onClose={() => setFilterSheetOpen(false)}
         >
-          <div className="p-6 space-y-6">
-            <h2 className="text-xl font-bold text-white mb-4">Filters</h2>
+          <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-white">Filters & View</h2>
+              <button
+                onClick={() => setFilterSheetOpen(false)}
+                className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
             
-            {/* Filter controls will go here - simplified for now */}
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm text-white/60 block mb-2">Type</label>
-                <div className="flex flex-wrap gap-2">
-                  {(['all', 'unique', 'common', 'trending'] as FilterType[]).map((f) => (
-                    <button
-                      key={f}
-                      onClick={() => {
-                        handleFilterChange(f)
-                        setFilterSheetOpen(false)
-                      }}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                        filter === f
-                          ? 'bg-purple-500 text-white'
-                          : 'bg-white/10 text-white/70 hover:bg-white/20'
-                      }`}
-                    >
-                      {f.charAt(0).toUpperCase() + f.slice(1)}
-                    </button>
-                  ))}
-                </div>
+            {/* TYPE FILTERS */}
+            <div>
+              <label className="text-sm font-medium text-white/80 block mb-3">Post Type</label>
+              <div className="grid grid-cols-2 gap-2">
+                {(['all', 'unique', 'common', 'trending'] as FilterType[]).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => handleFilterChange(f)}
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                      filter === f
+                        ? 'bg-purple-500 text-white shadow-lg'
+                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                    }`}
+                  >
+                    {f === 'all' ? '📋 All' :
+                     f === 'unique' ? '✨ Unique' :
+                     f === 'common' ? '👥 Common' :
+                     '🔥 Trending'}
+                  </button>
+                ))}
               </div>
             </div>
+            
+            {/* SCOPE FILTERS */}
+            {filter !== 'trending' && (
+              <div>
+                <label className="text-sm font-medium text-white/80 block mb-3">Location Scope</label>
+                <div className="grid grid-cols-2 gap-2">
+                <button
+                    onClick={async () => {
+                      if (!userLocation) await detectUserLocation()
+                      handleScopeFilterChange('city')
+                    }}
+                    disabled={!userLocation?.city}
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                      scopeFilter === 'city'
+                        ? 'bg-cyan-500 text-white shadow-lg'
+                        : !userLocation?.city
+                        ? 'bg-white/5 text-white/30 cursor-not-allowed'
+                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                    }`}
+                  >
+                    📍 {userLocation?.city || 'City'}
+                </button>
+              <button
+                    onClick={async () => {
+                      if (!userLocation) await detectUserLocation()
+                      handleScopeFilterChange('state')
+                    }}
+                    disabled={!userLocation?.state}
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                      scopeFilter === 'state'
+                        ? 'bg-cyan-500 text-white shadow-lg'
+                        : !userLocation?.state
+                        ? 'bg-white/5 text-white/30 cursor-not-allowed'
+                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                    }`}
+                  >
+                    🗺️ {userLocation?.state || 'State'}
+              </button>
+              <button
+                    onClick={async () => {
+                      if (!userLocation) await detectUserLocation()
+                      handleScopeFilterChange('country')
+                    }}
+                    disabled={!userLocation?.country}
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                      scopeFilter === 'country'
+                        ? 'bg-cyan-500 text-white shadow-lg'
+                        : !userLocation?.country
+                        ? 'bg-white/5 text-white/30 cursor-not-allowed'
+                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                    }`}
+                  >
+                    🏳️ {userLocation?.country || 'Country'}
+              </button>
+              <button
+                    onClick={() => handleScopeFilterChange('world')}
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                      scopeFilter === 'world'
+                        ? 'bg-cyan-500 text-white shadow-lg'
+                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                    }`}
+                  >
+                    🌍 World
+              </button>
+                </div>
+              </div>
+            )}
+            
+            {/* REACTION FILTERS */}
+            {filter !== 'trending' && (
+              <div>
+                <label className="text-sm font-medium text-white/80 block mb-3">Filter by Reactions</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setReactionFilter('all')}
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                      reactionFilter === 'all'
+                        ? 'bg-white/20 text-white shadow-lg'
+                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                    }`}
+                  >
+                    All Posts
+                  </button>
+              <button
+                    onClick={() => setReactionFilter('funny')}
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                  reactionFilter === 'funny'
+                        ? 'bg-yellow-500 text-white shadow-lg'
+                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                }`}
+              >
+                😂 Funny
+              </button>
+              <button
+                    onClick={() => setReactionFilter('creative')}
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                  reactionFilter === 'creative'
+                        ? 'bg-purple-500 text-white shadow-lg'
+                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                }`}
+              >
+                🎨 Creative
+              </button>
+              <button
+                    onClick={() => setReactionFilter('must_try')}
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                  reactionFilter === 'must_try'
+                        ? 'bg-green-500 text-white shadow-lg'
+                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                }`}
+              >
+                🔥 Must Try
+              </button>
+              </div>
+              </div>
+            )}
+            
+            {/* ANALYTICS SECTION */}
+            <div className="border-t border-white/10 pt-6">
+              <label className="text-sm font-medium text-white/80 block mb-3">Quick Stats</label>
+              <div className="bg-white/5 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-white/70 text-sm">Total Posts Today</span>
+                  <span className="text-white font-bold">{stats?.today?.totalPosts || 0}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-white/70 text-sm">Unique Posts</span>
+                  <span className="text-purple-300 font-bold">{stats?.today?.uniquePosts || 0}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-white/70 text-sm">All Time</span>
+                  <span className="text-white/50 font-bold">{stats?.allTime?.totalPosts || 0}</span>
+                </div>
+              </div>
+              
+              {/* My Posts Link */}
+                  <button
+                onClick={() => {
+                  setFilterSheetOpen(false)
+                  router.push('/my-posts')
+                }}
+                className="w-full mt-3 bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 border border-purple-400/30 rounded-lg p-4 transition-all"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    <span className="text-white font-medium">Your Posts</span>
+                  </div>
+                  <svg className="w-5 h-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </button>
+            </div>
+            
+            {/* APPLY BUTTON */}
+            <button
+              onClick={() => setFilterSheetOpen(false)}
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-lg transition-colors shadow-lg"
+            >
+              Apply Filters
+            </button>
           </div>
         </FilterSheet>
       )}
