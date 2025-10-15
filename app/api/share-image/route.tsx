@@ -106,7 +106,7 @@ export async function GET(request: Request) {
             fontWeight: 700,
           }}
         >
-          OnlyOne.Today
+          OnlyOne Today
         </div>
         <div
           style={{
