@@ -30,8 +30,9 @@ function ResponseContent() {
   const [vibeCelebration, setVibeCelebration] = useState<string>('')
   const [isClient, setIsClient] = useState(false)
   
-  // Auto-detect view type from uniqueness score (fallback if no view param)
-  const [shareType, setShareType] = useState<'uniqueness' | 'commonality'>('uniqueness')
+  // Determine if top tier based on percentile
+  const isTopTier = postResult?.percentile?.tier && 
+    ['elite', 'rare', 'unique', 'notable'].includes(postResult.percentile.tier)
   
   // Set client-side flag to prevent hydration errors
   useEffect(() => {
@@ -44,20 +45,8 @@ function ResponseContent() {
     if (storedResult) {
       const result = JSON.parse(storedResult)
       setPostResult(result)
-      
-      // Auto-set shareType based on view param or percentile tier
-      if (viewParam === 'common') {
-        setShareType('commonality')
-      } else if (viewParam === 'unique') {
-        setShareType('uniqueness')
-      } else {
-        // Fallback: auto-detect from percentile tier (Top 25% threshold)
-        const isTopTier = result.percentile?.tier && 
-          ['elite', 'rare', 'unique', 'notable'].includes(result.percentile.tier)
-        setShareType(isTopTier ? 'uniqueness' : 'commonality')
-      }
     }
-  }, [viewParam])
+  }, [])
   
   // Detect vibe
   useEffect(() => {
@@ -166,12 +155,20 @@ function ResponseContent() {
   // Auto-set initial view to the dominant score
   // If user navigated from submit, respect their view param
   // Otherwise default to showing the more impressive metric
-  useEffect(() => {
-    if (postResult && !viewParam) {
-      // No explicit view param - show dominant score
-      setShareType(isTopTier ? 'uniqueness' : 'commonality')
+  // Colors based on tier and input type
+  const getColorScheme = () => {
+    if (inputType === 'day') {
+      return isTopTier
+        ? { bg: 'from-orange-500/5 to-amber-500/5', glow: 'from-orange-500/40 via-amber-500/40 to-orange-600/40', inner: 'bg-orange-500/20', gradient: 'url(#orangeGradient)', text: 'from-orange-200 via-amber-200 to-orange-300', pill: 'from-orange-500/40 to-amber-500/40 text-orange-100 border-orange-300/40', button: 'from-orange-500 to-amber-500 hover:shadow-orange-500/50' }
+        : { bg: 'from-teal-500/5 to-emerald-500/5', glow: 'from-teal-500/40 via-emerald-500/40 to-teal-600/40', inner: 'bg-teal-500/20', gradient: 'url(#tealGradient)', text: 'from-teal-200 via-emerald-200 to-teal-300', pill: 'from-teal-500/40 to-emerald-500/40 text-teal-100 border-teal-300/40', button: 'from-teal-500 to-emerald-500 hover:shadow-teal-500/50' }
+    } else {
+      return isTopTier
+        ? { bg: 'from-purple-500/5 to-pink-500/5', glow: 'from-purple-500/40 via-pink-500/40 to-purple-600/40', inner: 'bg-purple-500/20', gradient: 'url(#purpleGradient)', text: 'from-purple-200 via-pink-200 to-purple-300', pill: 'from-purple-500/40 to-pink-500/40 text-purple-100 border-purple-300/40', button: 'from-purple-500 to-pink-500 hover:shadow-purple-500/50' }
+        : { bg: 'from-blue-500/5 to-cyan-500/5', glow: 'from-blue-500/40 via-cyan-500/40 to-blue-600/40', inner: 'bg-blue-500/20', gradient: 'url(#blueGradient)', text: 'from-blue-200 via-cyan-200 to-blue-300', pill: 'from-blue-500/40 to-cyan-500/40 text-blue-100 border-blue-300/40', button: 'from-blue-500 to-cyan-500 hover:shadow-blue-500/50' }
     }
-  }, [postResult, viewParam, isTopTier])
+  }
+  
+  const colors = getColorScheme()
   
   const handleShare = () => {
     setShowShareModal(true)
@@ -191,11 +188,7 @@ function ResponseContent() {
             {/* Hero Section with Circular Progress */}
             <div className="relative bg-gradient-to-br from-purple-500/10 via-transparent to-blue-500/10 p-6 text-center">
               {/* Animated glow */}
-              <div className={`absolute inset-0 ${
-                shareType === 'uniqueness' 
-                  ? 'bg-gradient-to-br from-purple-500/5 to-pink-500/5' 
-                  : 'bg-gradient-to-br from-blue-500/5 to-cyan-500/5'
-              } animate-pulse`} />
+              <div className={`absolute inset-0 bg-gradient-to-br ${colors.bg} animate-pulse`} />
               
               {/* Content */}
               <div className="relative z-10">
@@ -216,12 +209,8 @@ function ResponseContent() {
                 <div className="flex justify-center mb-4">
                   <div className="relative w-52 h-52">
                     {/* Multi-layer glow effect */}
-                    <div className={`absolute inset-0 rounded-full blur-2xl animate-pulse transition-all duration-1000 ${
-                      shareType === 'uniqueness' ? 'bg-gradient-to-br from-purple-500/40 via-pink-500/40 to-purple-600/40' : 'bg-gradient-to-br from-blue-500/40 via-cyan-500/40 to-blue-600/40'
-                    }`} />
-                    <div className={`absolute inset-3 rounded-full blur-lg transition-all duration-1000 ${
-                      shareType === 'uniqueness' ? 'bg-purple-500/20' : 'bg-blue-500/20'
-                    }`} />
+                    <div className={`absolute inset-0 rounded-full blur-2xl animate-pulse transition-all duration-1000 bg-gradient-to-br ${colors.glow}`} />
+                    <div className={`absolute inset-3 rounded-full blur-lg transition-all duration-1000 ${colors.inner}`} />
                     
                     <svg className="w-full h-full transform -rotate-90 relative">
                       {/* Background circle */}
@@ -239,11 +228,11 @@ function ResponseContent() {
                         cx="104"
                         cy="104"
                         r="88"
-                        stroke={shareType === 'uniqueness' ? 'url(#purpleGradient)' : 'url(#blueGradient)'}
+                        stroke={colors.gradient}
                         strokeWidth="10"
                         fill="none"
                         strokeDasharray={`${2 * Math.PI * 88}`}
-                        strokeDashoffset={`${2 * Math.PI * 88 * (1 - (shareType === 'uniqueness' ? uniquenessScore : commonalityScore) / 100)}`}
+                        strokeDashoffset={`${2 * Math.PI * 88 * (1 - uniquenessScore / 100)}`}
                         strokeLinecap="round"
                         className="drop-shadow-lg"
                         style={{ 
@@ -275,11 +264,7 @@ function ResponseContent() {
                           </div>
                           
                           {/* Percentile Display Text */}
-                          <div className={`text-2xl font-black mb-1 leading-none transition-all duration-1000 drop-shadow-lg ${
-                            shareType === 'uniqueness' 
-                              ? 'bg-gradient-to-br from-purple-200 via-pink-200 to-purple-300 bg-clip-text text-transparent' 
-                              : 'bg-gradient-to-br from-blue-200 via-cyan-200 to-blue-300 bg-clip-text text-transparent'
-                          }`}>
+                          <div className={`text-2xl font-black mb-1 leading-none transition-all duration-1000 drop-shadow-lg bg-gradient-to-br ${colors.text} bg-clip-text text-transparent`}>
                             {postResult.percentile.displayText}
                           </div>
                           
@@ -291,11 +276,7 @@ function ResponseContent() {
                           </div>
                           
                           {/* Tier Name */}
-                          <div className={`mt-1 px-2 py-0.5 rounded-full text-[8px] font-extrabold uppercase tracking-wider transition-all duration-500 shadow-md ${
-                            shareType === 'uniqueness'
-                              ? 'bg-gradient-to-r from-purple-500/40 to-pink-500/40 text-purple-100 border border-purple-300/40'
-                              : 'bg-gradient-to-r from-blue-500/40 to-cyan-500/40 text-blue-100 border border-blue-300/40'
-                          }`}>
+                          <div className={`mt-1 px-2 py-0.5 rounded-full text-[8px] font-extrabold uppercase tracking-wider transition-all duration-500 shadow-md bg-gradient-to-r ${colors.pill} border`}>
                             {postResult.percentile.tier}
                           </div>
                         </>
@@ -303,21 +284,15 @@ function ResponseContent() {
                         <>
                           {/* Fallback to old design if no percentile data */}
                           <div className="text-xs font-semibold text-white/60 uppercase tracking-widest mb-1">
-                            {shareType === 'uniqueness' ? 'Unique' : 'Common'}
+                            Your Score
                           </div>
-                          <div className={`text-4xl font-black mb-1 transition-all duration-1000 ${
-                            shareType === 'uniqueness' 
-                              ? 'bg-gradient-to-br from-purple-300 via-pink-300 to-purple-400 bg-clip-text text-transparent' 
-                              : 'bg-gradient-to-br from-blue-300 via-cyan-300 to-blue-400 bg-clip-text text-transparent'
-                          }`}>
-                            {shareType === 'uniqueness' ? uniquenessScore : commonalityScore}%
+                          <div className={`text-4xl font-black mb-1 transition-all duration-1000 bg-gradient-to-br ${colors.text} bg-clip-text text-transparent`}>
+                            {uniquenessScore}%
                           </div>
                           <div className="px-3 py-1 bg-white/10 rounded-full backdrop-blur-sm transition-all duration-500">
                             <span className="text-xs font-medium text-white/80">
-                              {shareType === 'uniqueness' 
-                                ? matchCount === 0
-                                  ? `Only you in ${scope}!`
-                                  : `${similarCount} people in ${scope}`
+                              {matchCount === 0
+                                ? `Only you in ${scope}!`
                                 : `${similarCount} people in ${scope}`
                               }
                             </span>
@@ -360,39 +335,6 @@ function ResponseContent() {
                   )}
                 </div>
 
-                {/* View Toggle - Minimal */}
-                <div className="inline-flex gap-1.5 p-1 bg-white/10 rounded-full backdrop-blur-md">
-            <button
-              onClick={() => setShareType('uniqueness')}
-                    className={`px-5 py-1.5 rounded-full transition-all text-xs font-medium ${
-                shareType === 'uniqueness'
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
-                        : 'text-white/60 hover:text-white'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                      </svg>
-                      Unique
-                    </div>
-            </button>
-            <button
-              onClick={() => setShareType('commonality')}
-                    className={`px-5 py-1.5 rounded-full transition-all text-xs font-medium ${
-                shareType === 'commonality'
-                  ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg'
-                        : 'text-white/60 hover:text-white'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                      Common
-                    </div>
-            </button>
-          </div>
               </div>
             </div>
 
@@ -452,12 +394,8 @@ function ResponseContent() {
             <div className="px-6 pb-6">
               <div className="grid grid-cols-3 gap-2.5">
                 <button
-              onClick={handleShare}
-                  className={`py-3 rounded-xl font-semibold text-sm transition-all shadow-lg hover:scale-105 ${
-                    shareType === 'uniqueness'
-                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:shadow-purple-500/50'
-                      : 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:shadow-blue-500/50'
-                  }`}
+                  onClick={handleShare}
+                  className={`py-3 rounded-xl font-semibold text-sm transition-all shadow-lg hover:scale-105 bg-gradient-to-r ${colors.button} text-white`}
                 >
                   <div className="flex items-center justify-center gap-1.5">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -504,8 +442,8 @@ function ResponseContent() {
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         content={content}
-        score={shareType === 'uniqueness' ? uniquenessScore : commonalityScore}
-        type={shareType}
+        score={uniquenessScore}
+        type={isTopTier ? 'uniqueness' : 'commonality'}
         message={message}
         rank={rank}
         scope={scope}
