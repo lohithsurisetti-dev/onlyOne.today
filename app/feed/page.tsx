@@ -714,10 +714,16 @@ export default function FeedPage() {
                   <button
                     key={f}
                     onClick={() => handleFilterChange(f)}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 relative ${
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 backdrop-blur-sm border ${
                       filter === f
-                        ? 'bg-purple-500 text-white shadow-lg'
-                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                        ? f === 'trending' 
+                          ? 'bg-gradient-to-r from-orange-500/30 to-red-500/30 border-orange-400/50 text-white'
+                          : f === 'unique'
+                          ? 'bg-purple-500/30 border-purple-400/50 text-white'
+                          : f === 'common'
+                          ? 'bg-blue-500/30 border-blue-400/50 text-white'
+                          : 'bg-white/20 border-white/30 text-white'
+                        : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
                     }`}
                   >
                     {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -744,12 +750,12 @@ export default function FeedPage() {
                       handleScopeFilterChange('city')
                     }}
                     disabled={!userLocation?.city}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 backdrop-blur-sm border ${
                       scopeFilter === 'city'
-                        ? 'bg-cyan-500 text-white shadow-lg'
+                        ? 'bg-cyan-500/30 border-cyan-400/50 text-white'
                         : !userLocation?.city
-                        ? 'bg-white/5 text-white/30 cursor-not-allowed'
-                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                        ? 'bg-white/5 border-white/5 text-white/30 cursor-not-allowed'
+                        : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
                     }`}
                   >
                     {userLocation?.city || 'City'}
@@ -767,12 +773,12 @@ export default function FeedPage() {
                       handleScopeFilterChange('state')
                     }}
                     disabled={!userLocation?.state}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 backdrop-blur-sm border ${
                       scopeFilter === 'state'
-                        ? 'bg-cyan-500 text-white shadow-lg'
+                        ? 'bg-cyan-500/30 border-cyan-400/50 text-white'
                         : !userLocation?.state
-                        ? 'bg-white/5 text-white/30 cursor-not-allowed'
-                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                        ? 'bg-white/5 border-white/5 text-white/30 cursor-not-allowed'
+                        : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
                     }`}
                   >
                     {userLocation?.state || 'State'}
@@ -790,12 +796,12 @@ export default function FeedPage() {
                       handleScopeFilterChange('country')
                     }}
                     disabled={!userLocation?.country}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 backdrop-blur-sm border ${
                       scopeFilter === 'country'
-                        ? 'bg-cyan-500 text-white shadow-lg'
+                        ? 'bg-cyan-500/30 border-cyan-400/50 text-white'
                         : !userLocation?.country
-                        ? 'bg-white/5 text-white/30 cursor-not-allowed'
-                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                        ? 'bg-white/5 border-white/5 text-white/30 cursor-not-allowed'
+                        : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
                     }`}
                   >
                     {userLocation?.country || 'Country'}
@@ -809,10 +815,10 @@ export default function FeedPage() {
                   </button>
                   <button
                     onClick={() => handleScopeFilterChange('world')}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 backdrop-blur-sm border ${
                       scopeFilter === 'world'
-                        ? 'bg-cyan-500 text-white shadow-lg'
-                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                        ? 'bg-cyan-500/30 border-cyan-400/50 text-white'
+                        : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
                     }`}
                   >
                     World
@@ -835,10 +841,10 @@ export default function FeedPage() {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => setReactionFilter('all')}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 backdrop-blur-sm border ${
                       reactionFilter === 'all'
-                        ? 'bg-white/20 text-white shadow-lg'
-                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                        ? 'bg-white/20 border-white/30 text-white'
+                        : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
                     }`}
                   >
                     All
@@ -852,10 +858,10 @@ export default function FeedPage() {
                   </button>
                   <button
                     onClick={() => setReactionFilter(reactionFilter === 'funny' ? 'all' : 'funny')}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 backdrop-blur-sm border ${
                       reactionFilter === 'funny'
-                        ? 'bg-yellow-500 text-white shadow-lg'
-                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                        ? 'bg-yellow-500/30 border-yellow-400/50 text-white'
+                        : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
                     }`}
                   >
                     Funny
@@ -869,10 +875,10 @@ export default function FeedPage() {
                   </button>
                   <button
                     onClick={() => setReactionFilter(reactionFilter === 'creative' ? 'all' : 'creative')}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 backdrop-blur-sm border ${
                       reactionFilter === 'creative'
-                        ? 'bg-purple-500 text-white shadow-lg'
-                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                        ? 'bg-purple-500/30 border-purple-400/50 text-white'
+                        : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
                     }`}
                   >
                     Creative
@@ -886,10 +892,10 @@ export default function FeedPage() {
                   </button>
                   <button
                     onClick={() => setReactionFilter(reactionFilter === 'must_try' ? 'all' : 'must_try')}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 backdrop-blur-sm border ${
                       reactionFilter === 'must_try'
-                        ? 'bg-green-500 text-white shadow-lg'
-                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                        ? 'bg-green-500/30 border-green-400/50 text-white'
+                        : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
                     }`}
                   >
                     Must Try
@@ -905,12 +911,17 @@ export default function FeedPage() {
               </div>
             )}
             
-            {/* APPLY BUTTON */}
+            {/* CLEAR FILTERS BUTTON */}
             <button
-              onClick={() => setFilterSheetOpen(false)}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-lg transition-colors shadow-lg"
+              onClick={() => {
+                setFilter('all')
+                setScopeFilter('world')
+                setReactionFilter('all')
+                setFilterSheetOpen(false)
+              }}
+              className="w-full bg-red-500/20 hover:bg-red-500/30 border border-red-400/50 text-white font-bold py-4 rounded-lg transition-colors backdrop-blur-sm"
             >
-              Apply Filters
+              Clear All Filters
             </button>
           </div>
         </FilterSheet>
