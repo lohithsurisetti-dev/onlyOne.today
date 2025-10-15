@@ -160,15 +160,14 @@ const DaySummaryCard = React.memo(({ post, onShare, onReact, userReactions }: Da
                     </h2>
                   </div>
                   
-                  {/* Ranking Badge */}
+                  {/* Ranking Badge - Compact */}
                   {post.percentile && (
-                    <div className={`px-4 py-2 rounded-xl border backdrop-blur-sm ${
+                    <div className={`px-3 py-1.5 rounded-lg border backdrop-blur-sm ${
                       isTopTier
                         ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-400/40'
                         : 'bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border-blue-400/40'
                     }`}>
-                      <p className="text-[10px] text-white/50 uppercase tracking-wider mb-0.5">Ranking</p>
-                      <p className={`text-lg font-bold ${
+                      <p className={`text-sm font-bold ${
                         isTopTier ? 'text-purple-200' : 'text-blue-200'
                       }`}>
                         {post.percentile.displayText}
