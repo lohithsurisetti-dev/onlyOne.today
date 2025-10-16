@@ -30,10 +30,18 @@ export function calculatePercentile(
     const percentile = (peopleWhoDidThis / totalPostsInScope) * 100
     
     // Determine tier even for small datasets
+    // IMPORTANT: For small datasets, we use absolute counts, not percentiles
+    // 1 of 1 = ELITE (only you!)
+    // 1 of 5 = UNIQUE (20%)
+    // 2 of 5 = NOTABLE (40%)
     let tier: PercentileResult['tier'] = 'common'
     let badge = '✅'
     
-    if (percentile <= 20) {
+    if (peopleWhoDidThis === 1) {
+      // Only you did this = most unique!
+      tier = 'elite'
+      badge = '🏆'
+    } else if (percentile <= 20) {
       tier = 'unique'
       badge = '⭐'
     } else if (percentile <= 40) {
@@ -50,9 +58,11 @@ export function calculatePercentile(
     return {
       percentile,
       tier,
-      displayText: `${peopleWhoDidThis} of ${totalPostsInScope}`,
+      displayText: peopleWhoDidThis === 1 ? 'Only you!' : `${peopleWhoDidThis} of ${totalPostsInScope}`,
       badge,
-      message: `You're one of ${peopleWhoDidThis} people who did this!`,
+      message: peopleWhoDidThis === 1 
+        ? "You're a unicorn! Only you did this! 🦄"
+        : `You're one of ${peopleWhoDidThis} people who did this!`,
       comparison: `${peopleWhoDidThis} of ${totalPostsInScope} people`
     }
   }

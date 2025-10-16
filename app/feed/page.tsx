@@ -568,7 +568,7 @@ export default function FeedPage() {
               {/* Mobile Analytics (lg:hidden) */}
               <div className="lg:hidden mb-4 space-y-3">
                 {/* Row 1: Your Posts Button (Full Width) */}
-                <button
+              <button
                   onClick={() => router.push('/my-posts')}
                   className="w-full bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-sm rounded-xl border border-purple-400/20 hover:border-purple-400/40 transition-all p-4 flex items-center justify-between"
                 >
@@ -583,7 +583,7 @@ export default function FeedPage() {
                   </div>
                   <svg className="w-5 h-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
+                </svg>
               </button>
               
                 {/* Row 2: Exclusive Dropdowns (only one open at a time) */}
@@ -645,7 +645,7 @@ export default function FeedPage() {
                 <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-4 text-white mb-4">
                   <p className="font-semibold">❌ Error loading posts</p>
                   <p className="text-sm text-white/70">{error}</p>
-                </div>
+            </div>
               )}
               
               <PostGrid
@@ -752,6 +752,10 @@ export default function FeedPage() {
           vibe={detectVibeSync(selectedPost.content)}
           scope={selectedPost.scope}
           inputType={selectedPost.input_type}
+          isOwnPost={false}
+          locationCity={selectedPost.location_city || undefined}
+          locationState={selectedPost.location_state || undefined}
+          locationCountry={selectedPost.location_country || undefined}
           percentile={selectedPost.percentile}
         />
       )}
@@ -780,7 +784,7 @@ export default function FeedPage() {
               <label className="text-sm font-medium text-white/80 block mb-3">Post Type</label>
               <div className="grid grid-cols-2 gap-2">
                 {(['all', 'unique', 'common', 'trending'] as FilterType[]).map((f) => (
-                  <button
+              <button
                     key={f}
                     onClick={() => handleFilterChange(f)}
                     className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 backdrop-blur-sm border ${
@@ -803,7 +807,7 @@ export default function FeedPage() {
                         </svg>
                       </span>
                     )}
-                  </button>
+              </button>
                 ))}
               </div>
             </div>
@@ -814,7 +818,7 @@ export default function FeedPage() {
                 <label className="text-sm font-medium text-white/80 block mb-3">Content Type</label>
                 <div className="grid grid-cols-3 gap-2">
                   {(['all', 'action', 'day'] as ('all' | 'action' | 'day')[]).map((type) => (
-                    <button
+              <button
                       key={type}
                       onClick={() => setInputTypeFilter(type)}
                       className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 backdrop-blur-sm border ${
@@ -841,7 +845,7 @@ export default function FeedPage() {
                           </svg>
                         </span>
                       )}
-                    </button>
+              </button>
                   ))}
                 </div>
               </div>
@@ -852,7 +856,7 @@ export default function FeedPage() {
               <div>
                 <label className="text-sm font-medium text-white/80 block mb-3">Location Scope</label>
                 <div className="grid grid-cols-2 gap-2">
-                  <button
+              <button
                     onClick={async () => {
                       if (!userLocation) await detectUserLocation()
                       handleScopeFilterChange('city')
@@ -874,8 +878,8 @@ export default function FeedPage() {
                         </svg>
                       </span>
                     )}
-                  </button>
-                  <button
+              </button>
+              <button
                     onClick={async () => {
                       if (!userLocation) await detectUserLocation()
                       handleScopeFilterChange('state')
@@ -897,8 +901,8 @@ export default function FeedPage() {
                         </svg>
                       </span>
                     )}
-                  </button>
-                  <button
+              </button>
+              <button
                     onClick={async () => {
                       if (!userLocation) await detectUserLocation()
                       handleScopeFilterChange('country')
@@ -918,10 +922,10 @@ export default function FeedPage() {
                         <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
-                      </span>
+                </span>
                     )}
                   </button>
-                  <button
+              <button
                     onClick={() => handleScopeFilterChange('world')}
                     className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 backdrop-blur-sm border ${
                       scopeFilter === 'world'
@@ -934,17 +938,17 @@ export default function FeedPage() {
                       <span className="ml-1 w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">
                         <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                </svg>
                       </span>
                     )}
-                  </button>
+              </button>
                 </div>
               </div>
             )}
             
             {/* REACTION FILTERS */}
             {filter !== 'trending' && (
-              <div>
+            <div>
                 <label className="text-sm font-medium text-white/80 block mb-3">Filter by Reactions</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -995,7 +999,7 @@ export default function FeedPage() {
                         <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
-                      </span>
+                  </span>
                     )}
                   </button>
                   <button
@@ -1016,7 +1020,7 @@ export default function FeedPage() {
                     )}
                   </button>
                 </div>
-              </div>
+            </div>
             )}
             
             {/* CLEAR FILTERS BUTTON */}

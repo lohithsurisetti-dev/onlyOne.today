@@ -307,7 +307,7 @@ function ResponseContent() {
                   <h2 className="text-xl font-bold text-white line-clamp-2">
                     "{content}"
           </h2>
-                  
+          
                   {/* Activity Breakdown for Day Summaries */}
                   {postResult?.isDaySummary && postResult?.activities && postResult.activities.length > 0 && (
                     <div className="mt-3 space-y-2">
@@ -329,7 +329,7 @@ function ResponseContent() {
                       </div>
                     </div>
                   )}
-                </div>
+          </div>
 
               </div>
             </div>
@@ -390,7 +390,7 @@ function ResponseContent() {
             <div className="px-6 pb-6">
               <div className="grid grid-cols-3 gap-2.5">
                 <button
-                  onClick={handleShare}
+              onClick={handleShare}
                   className={`py-3 rounded-xl font-semibold text-sm transition-all shadow-lg hover:scale-105 bg-gradient-to-r ${colors.button} text-white`}
                 >
                   <div className="flex items-center justify-center gap-1.5">
@@ -445,6 +445,9 @@ function ResponseContent() {
         scope={scope}
         inputType={inputType}
         vibe={vibe}
+        locationCity={postResult?.post?.location_city || undefined}
+        locationState={postResult?.post?.location_state || undefined}
+        locationCountry={postResult?.post?.location_country || undefined}
         percentile={postResult?.percentile}
       />
     </div>

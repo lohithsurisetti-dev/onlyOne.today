@@ -142,8 +142,22 @@ export function validateAction(content: string, doc?: any): {
   
   // Layer 5: Generic Statement Detection (-50 points)
   // Reject universal truths, advice, quotes, philosophy
-  const genericWords = ['people', 'everyone', 'someone', 'friends', 'friendship', 'family', 'life', 'love', 'world', 'always', 'never', 'forever', 'everything', 'nothing', 'all', 'every', 'girlfriends', 'boyfriends', 'relationship', 'relationships']
-  const hasGenericWords = genericWords.some(word => lowerContent.includes(word))
+  const genericWords = ['people', 'everyone', 'someone', 'friendship', 'life', 'love', 'world', 'always', 'never', 'forever', 'everything', 'nothing', 'every', 'relationship', 'relationships']
+  
+  // Special handling for "all" - only flag if NOT used as time modifier
+  // "all day", "all night", "all morning" = OK (time duration)
+  // "all people", "all friends" = generic statement
+  const hasAllTimeModifier = /\ball\s+(day|night|morning|afternoon|evening|week|month|year)\b/i.test(content)
+  const hasGenericAll = !hasAllTimeModifier && /\ball\b/i.test(content)
+  
+  // Check for "friends"/"family" but allow if in action context
+  // "called friends" = OK, "friends are important" = generic
+  const hasFriendsFamily = /\b(friends|family|girlfriends|boyfriends)\b/i.test(content)
+  const friendsFamilyInActionContext = hasFriendsFamily && (hasPastTense || hasGerund)
+  
+  const hasGenericWords = genericWords.some(word => lowerContent.includes(word)) || 
+                          (hasGenericAll && !hasAllTimeModifier) || 
+                          (hasFriendsFamily && !friendsFamilyInActionContext)
   
   // Check for universal/timeless structure (use both NLP and regex)
   const isUniversalTruthNLP = nlpDoc.match('#Noun (be|is|are|was|were) #Adjective').found ||

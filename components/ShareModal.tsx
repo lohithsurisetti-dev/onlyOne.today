@@ -17,6 +17,10 @@ interface ShareModalProps {
   inputType?: string
   vibe?: string
   isGhost?: boolean
+  isOwnPost?: boolean // If true, use "you" language. If false, use promotional language
+  locationCity?: string
+  locationState?: string
+  locationCountry?: string
   percentile?: {
     percentile: number
     tier: string
@@ -39,6 +43,10 @@ export default function ShareModal({
   inputType = 'action',
   vibe,
   isGhost = false,
+  isOwnPost = true,
+  locationCity,
+  locationState,
+  locationCountry,
   percentile,
 }: ShareModalProps) {
   const [copied, setCopied] = useState(false)
@@ -89,8 +97,45 @@ export default function ShareModal({
   
   const getShareText = () => {
     const homepageUrl = getHomepageUrl()
+    
+    // Different messaging for own posts vs. feed posts
+    if (!isOwnPost) {
+      // Sharing from feed - promotional language
+      const scopeText = scope === 'world' 
+        ? 'globally' 
+        : scope === 'country'
+        ? `in ${locationCountry}`
+        : scope === 'state'
+        ? `in ${locationState}`
+        : `in ${locationCity}`
+      
+      const tierText = percentile?.tier === 'elite' 
+        ? 'Only one person did this'
+        : percentile?.tier === 'rare' 
+        ? 'Super rare action'
+        : percentile?.tier === 'unique'
+        ? 'Unique moment'
+        : 'Interesting action'
+      
+      return `${tierText} ${scopeText} on OnlyOne Today! 🎯\n\n"${content}"\n\n✨ What did YOU do today? Share at: ${homepageUrl}`
+    }
+    
+    // Own post - use personal language
     const shareMessage = percentile?.message || message
-    return `${shareMessage}\n\n"${content}"\n\n🎯 Discover your uniqueness: ${homepageUrl}`
+    
+    // Format scope for display with actual location values
+    const scopeText = scope === 'world' 
+      ? 'globally' 
+      : scope === 'country'
+      ? `in ${locationCountry || 'your country'}`
+      : scope === 'state'
+      ? `in ${locationState || 'your state'}`
+      : `in ${locationCity || 'your city'}`
+    
+    // Add scope context to the message
+    const fullMessage = `${shareMessage} ${scopeText}!`
+    
+    return `${fullMessage}\n\n"${content}"\n\n🎯 Discover your uniqueness: ${homepageUrl}`
   }
   
   const generateImage = async (): Promise<Blob | null> => {
@@ -138,35 +183,49 @@ export default function ShareModal({
       // Wait a bit for any animations to settle
       await new Promise(resolve => setTimeout(resolve, 100))
       
-      // Simple capture without complex options first
-      const dataUrl = await toPng(cardRef.current, {
-        quality: 1.0,
-        pixelRatio: 1, // Reduce to 1 first
-        backgroundColor: '#ffffff',
-        skipFonts: true, // Skip font loading issues
-        skipAutoScale: true // Skip auto-scaling
-      })
-      
-      console.log('✅ Image captured, dataUrl length:', dataUrl.length)
-      
-      // Create download link
-      const link = document.createElement('a')
-      link.download = `onlyone-${Date.now()}.png`
-      link.href = dataUrl
-      link.style.display = 'none'
-      
-      // Trigger download
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      
-      console.log('✅ Download link triggered!')
+      try {
+        // High-quality capture with optimized settings
+        console.log('📸 Attempting toPng capture...')
+        const dataUrl = await toPng(cardRef.current, {
+          quality: 1.0,
+          pixelRatio: 2, // Higher resolution for better quality
+          backgroundColor: '#ffffff',
+          skipFonts: false, // Include fonts for better quality
+          skipAutoScale: false, // Allow scaling for quality
+          width: 1200, // Explicit dimensions to avoid white space
+          height: 630,
+          style: {
+            transform: 'scale(1)', // Reset any transforms
+            transformOrigin: 'top left'
+          }
+        })
+        
+        console.log('✅ toPng capture successful, dataUrl length:', dataUrl.length)
+        
+        // Create download link
+        const link = document.createElement('a')
+        link.download = `onlyone-${Date.now()}.png`
+        link.href = dataUrl
+        link.style.display = 'none'
+        
+        // Trigger download
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        
+        console.log('✅ High-quality download completed!')
+        return // Exit successfully
+        
+      } catch (toPngError) {
+        console.error('❌ toPng failed:', toPngError)
+        throw toPngError // Re-throw to trigger fallback
+      }
     } catch (error) {
       console.error('❌ Download failed with error:', error)
       console.error('❌ Error details:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
       })
       
       // Try a simpler fallback
@@ -174,6 +233,8 @@ export default function ShareModal({
         console.log('🔄 Trying fallback method...')
         const canvas = document.createElement('canvas')
         const ctx = canvas.getContext('2d')
+        if (!ctx) throw new Error('Canvas context not available')
+        
         canvas.width = 1200
         canvas.height = 630
         
@@ -263,7 +324,7 @@ export default function ShareModal({
       console.error('❌ WhatsApp share failed:', error)
       // Final fallback: just open WhatsApp with text
       const url = `https://wa.me/?text=${encodeURIComponent(getShareText())}`
-      window.open(url, '_blank')
+    window.open(url, '_blank')
     } finally {
       setSharing(false)
     }
@@ -311,13 +372,13 @@ export default function ShareModal({
           {/* Ambient Glow */}
           <div className={`absolute inset-0 opacity-20 bg-gradient-to-br ${colors.modalBg.replace('/10', '/20')}`} />
           
-          {/* Close Button */}
-          <button
-            onClick={onClose}
+        {/* Close Button */}
+        <button
+          onClick={onClose}
             className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-all hover:scale-110 group"
-          >
+        >
             <X size={20} className="text-white/70 group-hover:text-white transition-colors" />
-          </button>
+        </button>
           
           {/* Content Grid */}
           <div className="relative grid lg:grid-cols-2 gap-6 p-6 sm:p-8">
@@ -337,87 +398,112 @@ export default function ShareModal({
                     {/* Card at 1200x630, scaled down for preview */}
                     <div
                       ref={cardRef}
-                      className="relative bg-white"
+                      className="relative"
                       style={{ 
                         width: '1200px', 
                         height: '630px', 
                         transform: `scale(${previewScale})`,
                         transformOrigin: 'center',
-                        transition: 'transform 0.2s ease-out'
+                        transition: 'transform 0.2s ease-out',
+                        background: 'white',
+                        borderRadius: '0px',
+                        overflow: 'hidden'
                       }}
                     >
-                      {/* Gradient Background Pattern */}
-                      <div className="absolute top-0 right-0 w-2/3 h-full opacity-40 pointer-events-none">
-                        <div
-                          className="absolute inset-0"
-                          style={{
-                            background: `radial-gradient(circle at 100% 0%, ${colors.accent}99 0%, ${colors.bg} 50%, transparent 100%)`
-                          }}
-                        />
+                      {/* Minimalist Design - Inspired by successful social cards */}
+                      
+                      {/* Top Section - Branding */}
+                      <div 
+                        className="absolute top-0 left-0 right-0 flex items-center justify-between px-8 py-6"
+                        style={{ 
+                          background: `linear-gradient(90deg, ${colors.gradient[0]} 0%, ${colors.gradient[1]} 100%)`,
+                          height: '120px'
+                        }}
+                      >
+                        <div className="text-white">
+                          <h1 className="text-3xl font-bold mb-1">OnlyOne Today</h1>
+                          <p className="text-white/80 text-sm">Discover your uniqueness</p>
+                        </div>
+                        <div className="text-white text-right">
+                          <p className="text-lg font-semibold">{percentile?.displayText || `${score}%`}</p>
+                          <p className="text-white/80 text-xs">{percentile?.comparison || '1 of 23'}</p>
+                        </div>
                       </div>
                       
-                      {/* Main Content - Flex Layout */}
-                      <div className="relative w-full h-full flex items-center justify-between px-16 py-12">
-                        {/* Left Side - Circular Badge */}
-                        <div className="flex items-center justify-center" style={{ width: '350px' }}>
-                          <div
-                            className={`w-[300px] h-[300px] rounded-full flex flex-col items-center justify-center shadow-2xl bg-gradient-to-br ${colors.gradientClass} relative`}
-                            style={{
-                              boxShadow: `0 25px 50px -12px ${colors.gradient[0]}66`
-                            }}
-                          >
-                            {/* Badge Content */}
-                            <div className="flex flex-col items-center justify-center">
-                              <div className="text-8xl mb-3 leading-none">{percentile?.badge || (type === 'uniqueness' ? '⭐' : '👥')}</div>
-                              <div className="text-6xl font-black text-white leading-none mb-3">
-                                {percentile?.displayText || `${score}%`}
-                              </div>
-                              <div className="text-lg text-white/95 font-semibold px-6 text-center leading-tight">
-                                {percentile?.comparison || (type === 'uniqueness' ? 'Unique' : 'Common')}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Right Side - Text Content */}
-                        <div className="flex-1 flex flex-col justify-center" style={{ maxWidth: '650px', paddingLeft: '40px' }}>
-                          {/* Quote Text */}
-                          <div 
-                            className="text-6xl font-bold text-gray-900 leading-tight mb-8"
+                      {/* Main Content Area */}
+                      <div 
+                        className="absolute left-0 right-0 flex flex-col justify-center items-center px-12"
+                        style={{ 
+                          top: '120px',
+                          bottom: '100px'
+                        }}
+                      >
+                        {/* Quote */}
+                        <div className="text-center max-w-4xl">
+                          <p 
+                            className="font-bold text-gray-900 italic leading-relaxed"
                             style={{ 
-                              letterSpacing: '-1px',
+                              fontSize: content.length > 100 ? '1.8rem' : content.length > 60 ? '2rem' : '2.2rem',
+                              letterSpacing: '-0.02em',
                               lineHeight: '1.2'
                             }}
                           >
-                            "{content.substring(0, 70)}{content.length > 70 ? '...' : ''}"
+                            "{content.substring(0, content.length > 100 ? 120 : 100)}{content.length > (content.length > 100 ? 120 : 100) ? '...' : ''}"
+                          </p>
+                        </div>
+                        
+                        {/* Metadata */}
+                        <div className="flex items-center gap-6 mt-8 text-gray-600">
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">🌍</span>
+                            <span className="font-medium capitalize">{scope}</span>
                           </div>
-                          
-                          {/* Metadata Row */}
-                          <div className="flex items-center gap-5 mb-10">
-                            <span className="text-4xl">🌍</span>
-                            <span className="text-2xl font-bold text-gray-500 capitalize">{scope}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">🏷️</span>
+                            <span className="font-medium">{vibe || 'Free Spirit'}</span>
                           </div>
-                          
-                          {/* Gradient Divider */}
-                          <div
-                            className="w-full h-1 rounded-full mb-8"
-                            style={{
-                              background: `linear-gradient(90deg, ${colors.gradient[0]} 0%, ${colors.gradient[1]} 50%, transparent 100%)`
-                            }}
-                          />
-                          
-                          {/* Branding */}
-                          <div className="space-y-2">
-                            <div
-                              className={`text-5xl font-black bg-gradient-to-r ${colors.gradientClass} bg-clip-text text-transparent`}
-                              style={{ letterSpacing: '-1px' }}
+                        </div>
+                      </div>
+                      
+                      {/* Bottom Section - Stats */}
+                      <div 
+                        className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-8 py-6"
+                        style={{ 
+                          background: '#f8f9fa',
+                          height: '100px',
+                          borderTop: '1px solid #e9ecef'
+                        }}
+                      >
+                        <div className="flex items-center gap-8">
+                          <div className="text-center">
+                            <p className="text-gray-600 text-xs uppercase tracking-wider mb-1">Ranking</p>
+                            <p 
+                              className="font-bold"
+                              style={{ 
+                                color: colors.text,
+                                fontSize: '1.5rem'
+                              }}
                             >
-                              OnlyOne Today
-                            </div>
-                            <div className="text-xl text-gray-500 font-semibold">
-                              Discover your uniqueness
-                            </div>
+                              {percentile?.displayText || `${score}%`}
+                            </p>
                           </div>
+                          <div className="text-center">
+                            <p className="text-gray-600 text-xs uppercase tracking-wider mb-1">People</p>
+                            <p 
+                              className="font-bold"
+                              style={{ 
+                                color: colors.text,
+                                fontSize: '1.5rem'
+                              }}
+                            >
+                              {percentile?.comparison || '1 of 23'}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="text-right text-gray-500">
+                          <p className="text-sm font-medium">onlyonetoday.com</p>
+                          <p className="text-xs">{new Date().toLocaleDateString()}</p>
                         </div>
                       </div>
                     </div>
@@ -458,19 +544,19 @@ export default function ShareModal({
                     <div className="text-right">
                       <p className="text-white/50 text-xs uppercase tracking-wider mb-1">Scope</p>
                       <p className="text-lg font-semibold text-white capitalize">{scope}</p>
-                    </div>
-                  </div>
                 </div>
               </div>
-              
+            </div>
+          </div>
+          
               {/* Actions */}
               <div className="space-y-4">
                 {/* Primary Actions */}
                 <div className="grid grid-cols-2 gap-3">
                   {/* Download Button */}
                   <button
-                    onClick={handleDownload}
-                    disabled={downloading}
+              onClick={handleDownload}
+              disabled={downloading}
                     className={`py-4 rounded-xl font-semibold text-sm transition-all hover:scale-[1.02] active:scale-[0.98] border bg-gradient-to-r ${colors.button} text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl`}
                   >
                     <div className="flex items-center justify-center gap-2">
@@ -494,23 +580,23 @@ export default function ShareModal({
                   
                   {/* Copy Link Button */}
                   <button
-                    onClick={handleCopyLink}
+              onClick={handleCopyLink}
                     className="py-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white text-sm font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]"
-                  >
+            >
                     <div className="flex items-center justify-center gap-2">
-                      {copied ? (
-                        <>
+              {copied ? (
+                <>
                           <Check size={18} className="text-green-400" />
                           <span className="hidden sm:inline text-green-400">Copied!</span>
                           <span className="sm:hidden text-green-400">✓</span>
-                        </>
-                      ) : (
-                        <>
+                </>
+              ) : (
+                <>
                           <LinkIcon size={18} />
                           <span className="hidden sm:inline">Copy Link</span>
                           <span className="sm:hidden">Copy</span>
-                        </>
-                      )}
+                </>
+              )}
                     </div>
                   </button>
                 </div>
@@ -525,41 +611,41 @@ export default function ShareModal({
                       Share to social media
                     </span>
                   </div>
-                </div>
-                
-                {/* Social Share Buttons */}
+          </div>
+          
+          {/* Social Share Buttons */}
                 <div className="grid grid-cols-3 gap-3">
                   {/* WhatsApp */}
-                  <button
+              <button
                     onClick={handleShareWhatsApp}
                     disabled={sharing}
                     className="flex flex-col items-center justify-center gap-2 py-4 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] border border-white/10 hover:border-white/20 group disabled:opacity-50"
-                  >
+              >
                     <MessageCircle size={20} className="text-[#25D366] group-hover:text-[#20BA5A] transition-colors" />
                     <span className="text-xs font-medium text-white/80 group-hover:text-white transition-colors hidden sm:block">WhatsApp</span>
                     <span className="text-xs font-medium text-white/80 group-hover:text-white transition-colors sm:hidden">WA</span>
-                  </button>
-                  
+              </button>
+              
                   {/* Instagram */}
-                  <button
+              <button
                     onClick={handleShareInstagram}
                     disabled={downloading}
                     className="flex flex-col items-center justify-center gap-2 py-4 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] border border-white/10 hover:border-white/20 group disabled:opacity-50"
-                  >
+              >
                     <Instagram size={20} className="text-pink-400 group-hover:text-pink-300 transition-colors" />
                     <span className="text-xs font-medium text-white/80 group-hover:text-white transition-colors hidden sm:block">Instagram</span>
                     <span className="text-xs font-medium text-white/80 group-hover:text-white transition-colors sm:hidden">IG</span>
-                  </button>
-                  
+              </button>
+              
                   {/* More */}
-                  <button
+              <button
                     onClick={handleNativeShare}
                     disabled={sharing}
                     className="flex flex-col items-center justify-center gap-2 py-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] group disabled:opacity-50"
                   >
                     <Share2 size={20} className="text-white/60 group-hover:text-white transition-colors" />
                     <span className="text-xs font-medium text-white/80 group-hover:text-white transition-colors">More</span>
-                  </button>
+              </button>
                 </div>
                 
                 {/* Footer Tip */}
