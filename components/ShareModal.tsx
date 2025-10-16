@@ -52,7 +52,7 @@ export default function ShareModal({
   const [copied, setCopied] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const [sharing, setSharing] = useState(false)
-  const [previewScale, setPreviewScale] = useState(0.28)
+  const [previewScale, setPreviewScale] = useState(0.2)
   const cardRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   
@@ -75,15 +75,66 @@ export default function ShareModal({
   
   const colors = getColorScheme()
   
-  // Calculate preview scale
+  // Dynamic font sizing based on content length and type
+  const getDynamicFontSize = (content: string, inputType?: string) => {
+    const length = content.length
+    const isDaySummary = inputType === 'day'
+    
+    // Day summaries are typically much longer, so different thresholds
+    if (isDaySummary) {
+      if (length <= 50) return '2.2rem'      // Very short day summary
+      if (length <= 100) return '1.8rem'     // Short day summary  
+      if (length <= 150) return '1.6rem'     // Medium day summary
+      if (length <= 200) return '1.4rem'     // Long day summary
+      return '1.2rem'                        // Very long day summary
+    } else {
+      // Regular actions - typically shorter
+      if (length <= 30) return '2.8rem'      // Very short action
+      if (length <= 60) return '2.4rem'      // Short action
+      if (length <= 100) return '2rem'       // Medium action
+      if (length <= 150) return '1.6rem'     // Long action
+      return '1.4rem'                        // Very long action
+    }
+  }
+
+  const getDynamicLineHeight = (content: string, inputType?: string) => {
+    const length = content.length
+    const isDaySummary = inputType === 'day'
+    
+    // Longer content needs more line spacing
+    if (isDaySummary) {
+      if (length <= 100) return '1.2'
+      if (length <= 200) return '1.3'
+      return '1.4'
+    } else {
+      if (length <= 60) return '1.1'
+      if (length <= 100) return '1.2'
+      return '1.3'
+    }
+  }
+  
+  // Calculate preview scale - responsive for mobile and desktop
   useEffect(() => {
     if (!isOpen || !containerRef.current) return
     
     const updateScale = () => {
       if (!containerRef.current) return
       const containerWidth = containerRef.current.offsetWidth
-      const scale = Math.min((containerWidth - 16) / 1200, 0.5)
-      setPreviewScale(scale)
+      const containerHeight = containerRef.current.offsetHeight
+      
+      // Base canvas dimensions (1200x630)
+      const canvasWidth = 1200
+      const canvasHeight = 630
+      
+      // Calculate scale to fit both width and height
+      const scaleX = (containerWidth - 16) / canvasWidth
+      const scaleY = (containerHeight - 16) / canvasHeight
+      const scale = Math.min(scaleX, scaleY, 0.6) // Cap at 60% for readability
+      
+      // Ensure minimum scale for mobile - much smaller on mobile
+      const minScale = window.innerWidth < 768 ? 0.08 : 0.25
+      const maxScale = window.innerWidth < 768 ? 0.2 : 0.6
+      setPreviewScale(Math.max(Math.min(scale, maxScale), minScale))
     }
     
     updateScale()
@@ -161,65 +212,61 @@ export default function ShareModal({
   const handleDownload = async () => {
     setDownloading(true)
     try {
+      console.log('🖼️ Starting download...')
+      
       if (!cardRef.current) {
         console.error('❌ cardRef.current is null')
         alert('Card element not found. Please try refreshing the page.')
         return
       }
       
-      console.log('🖼️ Starting image capture...')
-      console.log('📏 Card element:', cardRef.current)
-      console.log('📐 Card dimensions:', cardRef.current.offsetWidth, 'x', cardRef.current.offsetHeight)
+      console.log('📏 Element found:', cardRef.current)
+      console.log('📐 Element dimensions:', {
+        width: cardRef.current.offsetWidth,
+        height: cardRef.current.offsetHeight,
+        scrollWidth: cardRef.current.scrollWidth,
+        scrollHeight: cardRef.current.scrollHeight
+      })
       
-      // Check if element is visible and has content
+      // Check if element is visible
       const computedStyle = window.getComputedStyle(cardRef.current)
       console.log('🎨 Element styles:', {
         display: computedStyle.display,
         visibility: computedStyle.visibility,
         opacity: computedStyle.opacity,
-        position: computedStyle.position
+        position: computedStyle.position,
+        transform: computedStyle.transform
       })
       
-      // Wait a bit for any animations to settle
-      await new Promise(resolve => setTimeout(resolve, 100))
+      // Wait for any animations to settle
+      await new Promise(resolve => setTimeout(resolve, 200))
       
-      try {
-        // High-quality capture with optimized settings
-        console.log('📸 Attempting toPng capture...')
-        const dataUrl = await toPng(cardRef.current, {
-          quality: 1.0,
-          pixelRatio: 2, // Higher resolution for better quality
-          backgroundColor: '#ffffff',
-          skipFonts: false, // Include fonts for better quality
-          skipAutoScale: false, // Allow scaling for quality
-          width: 1200, // Explicit dimensions to avoid white space
-          height: 630,
-          style: {
-            transform: 'scale(1)', // Reset any transforms
-            transformOrigin: 'top left'
-          }
-        })
-        
-        console.log('✅ toPng capture successful, dataUrl length:', dataUrl.length)
-        
-        // Create download link
-        const link = document.createElement('a')
-        link.download = `onlyone-${Date.now()}.png`
-        link.href = dataUrl
-        link.style.display = 'none'
-        
-        // Trigger download
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        
-        console.log('✅ High-quality download completed!')
-        return // Exit successfully
-        
-      } catch (toPngError) {
-        console.error('❌ toPng failed:', toPngError)
-        throw toPngError // Re-throw to trigger fallback
-      }
+      console.log('📸 Attempting toPng capture...')
+      
+      // Try with high-quality options and fonts
+      const dataUrl = await toPng(cardRef.current, {
+        quality: 1.0,
+        pixelRatio: 3, // 3x resolution for crisp quality
+        backgroundColor: '#ffffff',
+        skipFonts: false, // Try to include fonts for exact match
+        skipAutoScale: true,
+        fontEmbedCSS: 'data:font/woff2;base64,' // Embed font CSS for better font handling
+      })
+      
+      console.log('✅ Capture successful! Data URL length:', dataUrl.length)
+      
+      // Download the captured image
+      const link = document.createElement('a')
+      link.download = `onlyone-${Date.now()}.png`
+      link.href = dataUrl
+      link.style.display = 'none'
+      
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      console.log('✅ Download completed!')
+      
     } catch (error) {
       console.error('❌ Download failed with error:', error)
       console.error('❌ Error details:', {
@@ -228,36 +275,32 @@ export default function ShareModal({
         stack: error instanceof Error ? error.stack : undefined
       })
       
-      // Try a simpler fallback
+      // Try with even simpler options
       try {
-        console.log('🔄 Trying fallback method...')
-        const canvas = document.createElement('canvas')
-        const ctx = canvas.getContext('2d')
-        if (!ctx) throw new Error('Canvas context not available')
+        console.log('🔄 Trying with minimal options...')
+        if (!cardRef.current) throw new Error('Card element not found')
+        const dataUrl = await toPng(cardRef.current, {
+          quality: 1.0,
+          pixelRatio: 2, // 2x resolution for fallback
+          skipFonts: false, // Try fonts in fallback too
+          skipAutoScale: true,
+          fontEmbedCSS: 'data:font/woff2;base64,'
+        })
         
-        canvas.width = 1200
-        canvas.height = 630
-        
-        // Fill with white background
-        ctx.fillStyle = '#ffffff'
-        ctx.fillRect(0, 0, 1200, 630)
-        
-        // Add text
-        ctx.fillStyle = '#333333'
-        ctx.font = '48px Arial'
-        ctx.fillText('Share Image Preview', 100, 100)
-        ctx.fillText(content.substring(0, 50), 100, 200)
-        
-        const fallbackDataUrl = canvas.toDataURL('image/png')
         const link = document.createElement('a')
-        link.download = `onlyone-fallback-${Date.now()}.png`
-        link.href = fallbackDataUrl
-        link.click()
+        link.download = `onlyone-${Date.now()}.png`
+        link.href = dataUrl
+        link.style.display = 'none'
         
-        console.log('✅ Fallback download completed!')
-      } catch (fallbackError) {
-        console.error('❌ Fallback also failed:', fallbackError)
-        alert('Download failed. Please try using the "Copy Link" button instead.')
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        
+        console.log('✅ Minimal capture successful!')
+        
+      } catch (minimalError) {
+        console.error('❌ Even minimal capture failed:', minimalError)
+        alert(`Download failed: ${error instanceof Error ? error.message : 'Unknown error'}. Please try using the "Copy Link" button instead.`)
       }
     } finally {
       setDownloading(false)
@@ -366,146 +409,108 @@ export default function ShareModal({
   if (!isOpen) return null
   
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-xl animate-in fade-in duration-200">
-      <div className="relative w-full max-w-6xl mx-auto px-4 py-6 sm:py-8">
-        <div className="relative bg-gradient-to-br from-space-dark via-space-darker to-space-darkest rounded-3xl border border-white/10 shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-xl animate-in fade-in duration-200 p-2 sm:p-4">
+      <div className="relative w-full max-w-4xl mx-auto px-2 py-2 sm:py-4 max-h-[95vh] overflow-y-auto">
+        <div className="relative bg-gradient-to-br from-space-dark via-space-darker to-space-darkest rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
           {/* Ambient Glow */}
           <div className={`absolute inset-0 opacity-20 bg-gradient-to-br ${colors.modalBg.replace('/10', '/20')}`} />
           
         {/* Close Button */}
         <button
           onClick={onClose}
-            className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-all hover:scale-110 group"
+            className="absolute top-2 right-2 sm:top-4 sm:right-4 z-20 p-2 rounded-full bg-black/50 hover:bg-black/70 border border-white/20 transition-all hover:scale-110 group backdrop-blur-sm"
         >
-            <X size={20} className="text-white/70 group-hover:text-white transition-colors" />
+            <X size={18} className="text-white group-hover:text-white transition-colors" />
         </button>
           
           {/* Content Grid */}
-          <div className="relative grid lg:grid-cols-2 gap-6 p-6 sm:p-8">
+          <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-6">
             {/* Left Side - Preview */}
             <div className="flex flex-col">
-              <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 flex items-center gap-2">
+              <h3 className="text-base sm:text-xl font-bold text-white mb-2 sm:mb-3 flex items-center gap-2">
                 <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 Preview
               </h3>
               
-              {/* Share Card Preview - Direct DOM */}
-              <div ref={containerRef} className="flex-1 relative rounded-2xl overflow-hidden border border-white/20 shadow-2xl bg-white">
-                <div className="w-full" style={{ paddingBottom: '52.5%' }}>
-                  <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
-                    {/* Card at 1200x630, scaled down for preview */}
-                    <div
-                      ref={cardRef}
-                      className="relative"
-                      style={{ 
-                        width: '1200px', 
-                        height: '630px', 
-                        transform: `scale(${previewScale})`,
-                        transformOrigin: 'center',
-                        transition: 'transform 0.2s ease-out',
-                        background: 'white',
-                        borderRadius: '0px',
-                        overflow: 'hidden'
-                      }}
-                    >
-                      {/* Minimalist Design - Inspired by successful social cards */}
-                      
-                      {/* Top Section - Branding */}
-                      <div 
-                        className="absolute top-0 left-0 right-0 flex items-center justify-between px-8 py-6"
-                        style={{ 
-                          background: `linear-gradient(90deg, ${colors.gradient[0]} 0%, ${colors.gradient[1]} 100%)`,
-                          height: '120px'
+              {/* Share Card Preview - Direct Image */}
+              <div ref={containerRef} className="flex-1 relative rounded-2xl overflow-hidden border border-white/20 shadow-2xl">
+                {/* Direct Canvas - No container, no scaling */}
+                <div
+                  ref={cardRef}
+                  className="w-full h-full"
+                  style={{
+                    aspectRatio: '1200/630',
+                    background: `linear-gradient(135deg, ${colors.gradient[0]} 0%, ${colors.gradient[1]} 100%)`,
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-6 sm:px-8 py-4 sm:py-6">
+                    <div className="text-white">
+                      <h1 className="text-3xl font-bold mb-1">OnlyOne Today</h1>
+                      <p className="text-white/90 text-sm">Share what makes you unique</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="bg-white/20 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/30">
+                        <p className="text-white text-xl font-bold">{percentile?.displayText || `${score}%`}</p>
+                        <p className="text-white/80 text-xs mt-1">{percentile?.comparison || '1 of 23'}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Main Content - Centered */}
+                  <div className="flex-1 flex flex-col justify-center items-center px-8 sm:px-12 py-6 sm:py-8">
+                    {/* Quote Card with Glass Effect */}
+                    <div className="bg-white/95 backdrop-blur-md rounded-2xl px-6 py-4 shadow-2xl max-w-4xl border border-white/50">
+                      <p 
+                        className="font-bold text-gray-900 italic leading-relaxed text-center"
+                    style={{ 
+                          fontSize: getDynamicFontSize(content, inputType),
+                          letterSpacing: '-0.02em',
+                          lineHeight: getDynamicLineHeight(content, inputType)
                         }}
                       >
-                        <div className="text-white">
-                          <h1 className="text-3xl font-bold mb-1">OnlyOne Today</h1>
-                          <p className="text-white/80 text-sm">Discover your uniqueness</p>
-                        </div>
-                        <div className="text-white text-right">
-                          <p className="text-lg font-semibold">{percentile?.displayText || `${score}%`}</p>
-                          <p className="text-white/80 text-xs">{percentile?.comparison || '1 of 23'}</p>
-                        </div>
-                      </div>
+                        "{(() => {
+                          const isDaySummary = inputType === 'day'
+                          const maxLength = isDaySummary ? 180 : 120
+                          const truncateLength = content.length > 100 ? maxLength : 100
+                          return content.substring(0, truncateLength) + (content.length > truncateLength ? '...' : '')
+                        })()}"
+                      </p>
                       
-                      {/* Main Content Area */}
-                      <div 
-                        className="absolute left-0 right-0 flex flex-col justify-center items-center px-12"
-                        style={{ 
-                          top: '120px',
-                          bottom: '100px'
-                        }}
-                      >
-                        {/* Quote */}
-                        <div className="text-center max-w-4xl">
-                          <p 
-                            className="font-bold text-gray-900 italic leading-relaxed"
-                            style={{ 
-                              fontSize: content.length > 100 ? '1.8rem' : content.length > 60 ? '2rem' : '2.2rem',
-                              letterSpacing: '-0.02em',
-                              lineHeight: '1.2'
-                            }}
-                          >
-                            "{content.substring(0, content.length > 100 ? 120 : 100)}{content.length > (content.length > 100 ? 120 : 100) ? '...' : ''}"
-                          </p>
+                      {/* Metadata */}
+                      <div className="flex items-center justify-center gap-6 mt-4 pt-4 border-t border-gray-200">
+                        <div className="text-center">
+                          <p className="font-semibold text-gray-700 capitalize text-sm">{scope} Level</p>
+                          <p className="text-gray-500 text-xs">Global Comparison</p>
                         </div>
-                        
-                        {/* Metadata */}
-                        <div className="flex items-center gap-6 mt-8 text-gray-600">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">🌍</span>
-                            <span className="font-medium capitalize">{scope}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">🏷️</span>
-                            <span className="font-medium">{vibe || 'Free Spirit'}</span>
-                          </div>
+                        <div className="text-center">
+                          <p className="font-semibold text-gray-700 text-sm">{vibe || 'Adventurer'}</p>
+                          <p className="text-gray-500 text-xs">Personality</p>
                         </div>
                       </div>
-                      
-                      {/* Bottom Section - Stats */}
-                      <div 
-                        className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-8 py-6"
-                        style={{ 
-                          background: '#f8f9fa',
-                          height: '100px',
-                          borderTop: '1px solid #e9ecef'
-                        }}
-                      >
-                        <div className="flex items-center gap-8">
-                          <div className="text-center">
-                            <p className="text-gray-600 text-xs uppercase tracking-wider mb-1">Ranking</p>
-                            <p 
-                              className="font-bold"
-                              style={{ 
-                                color: colors.text,
-                                fontSize: '1.5rem'
-                              }}
-                            >
-                              {percentile?.displayText || `${score}%`}
-                            </p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-gray-600 text-xs uppercase tracking-wider mb-1">People</p>
-                            <p 
-                              className="font-bold"
-                              style={{ 
-                                color: colors.text,
-                                fontSize: '1.5rem'
-                              }}
-                            >
-                              {percentile?.comparison || '1 of 23'}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="text-right text-gray-500">
-                          <p className="text-sm font-medium">onlyonetoday.com</p>
-                          <p className="text-xs">{new Date().toLocaleDateString()}</p>
-                        </div>
+                    </div>
+                  </div>
+                  
+                  {/* Footer */}
+                  <div className="flex items-center justify-between px-6 sm:px-8 py-3 sm:py-4 bg-white/10 backdrop-blur-sm border-t border-white/20">
+                    <div className="flex items-center gap-8">
+                      <div>
+                        <p className="text-white/70 text-xs uppercase tracking-wider mb-1">Your Uniqueness</p>
+                        <p className="text-white text-xl font-bold">{percentile?.displayText || `${score}%`}</p>
                       </div>
+                      <div>
+                        <p className="text-white/70 text-xs uppercase tracking-wider mb-1">Community Size</p>
+                        <p className="text-white text-xl font-bold">{percentile?.comparison || '1 of 23'}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="text-right text-white/90">
+                      <p className="text-base font-semibold">Join the community</p>
+                      <p className="text-xs text-white/70">onlyonetoday.com</p>
                     </div>
                   </div>
                 </div>
